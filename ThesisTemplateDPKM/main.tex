@@ -1,0 +1,746 @@
+
+\newcommand{\adrian}[1]{\textcolor{orange}{#1}}
+
+\section{Introduction}
+
+Generative retrieval represents an emerging paradigm in \glsxtrshort{ir} that aims to consolidate retrieval processes into end-to-end autoregressive models. While these systems offer promising advantages over traditional approaches, they also exhibit distinct failure modes, behavioral biases, and structural limitations that remain poorly understood. This chapter introduces the research problem and establishes the foundation for the thesis. Section 1.1 presents the motivation for studying failure modes in generative retrieval systems and explains the gap in existing research. Section 1.2 formulates the research questions that guide this thesis. Section 1.3 outlines the key contributions of this work. Finally, Section 1.4 provides an overview of the thesis structure and describes the content of subsequent chapters.
+
+\subsection{Motivation}
+
+\glsxtrfull{gr} is an emerging framework in \glsxtrshort{ir} systems. Unlike traditional approaches that rely on separate vector index structures for document embeddings and multi-stage pipelines, generative retrieval systems directly generate document identifiers through autoregressive language models, consolidating the retrieval process into a single end-to-end model \cite{kuo2024surveygenerativeinformationretrieval, li2025matchinggenerationsurveygenerative, zhang2024generativeretrievaltermset}. This unified architecture offers several compelling advantages, such as eliminating the need for dense vector indexes and their associated Approximate Nearest Neighbor (ANN) search structures, reducing memory footprint compared to dense retrieval systems, and enabling the model to learn document representations jointly with the retrieval objective \cite{sun2023learningtokenizegenerativeretrieval, tang2024listwisegenerativeretrievalmodels}. While some \glsxtrshort{gr} implementations employ auxiliary data structures for constrained generation (such as \glsxtrshort{SEAL}'s FM-Index to ensure generated n-grams exist in the corpus), these differ from the separate encoding and indexing stages required by dense retrieval systems. Systems like \glsxtrshort{SEAL} and PAG have demonstrated that generative retrieval can achieve memory requirements approximately seven times lighter than dense retrieval counterparts while maintaining or improving performance. Specifically, \glsxtrshort{SEAL} achieves 7x less storage than Dense Passage Retrieval while showing comparable accuracy@k and exact match metrics on the \glsxtrfull{nq} 320k dataset \cite{bevilacqua2022autoregressivesearchenginesgenerating}. Similarly, PAG required approximately 7x less memory to index the entire corpus compared to single-vector dense retrieval models and comparable memory needs to BM25. It achieved comparable or better MRR@10 results on the MS-MARCO Dev set compared to sparse and dense retrieval models. Notably, PAG achieved a 70.1\% improvement over BM25 and an 11.2\% improvement over TAS-B \cite{zeng2024planningaheadgenerativeretrieval}.
+
+Despite these promising characteristics, generative retrieval systems exhibit distinct failure modes that differ fundamentally from those observed in traditional retrieval architectures. While dense retrieval failures typically manifest as low similarity scores in vector space, generative retrieval failures can include hallucination of non-existent document identifiers, incorrect pruning during autoregressive generation, poor performance on dynamically expanding corpora, and challenges with scalability \cite{Metzler_2021, Ji_2023, zeng2024planningaheadgenerativeretrieval, pradeep2023doesgenerativeretrievalscale}. Understanding these failure modes, biases, and limitations is important for the development of robust \glsxtrshort{gr} systems.
+
+Existing literature on \glsxtrshort{gr} documents various challenges and failure cases. However, these failures are typically discussed in isolation within individual papers proposing new methods or architectures. There is no systematic taxonomy that comprehensively classifies the types of failures that occur in generative retrieval systems, their relative frequencies in practice, or their underlying causes.
+
+This thesis addresses this gap through an analysis that involves a literature review component with empirical analysis. This research aims to develop a comprehensive taxonomy of failures, biases, and limitations for generative retrieval systems by synthesizing documented failure cases from the literature and conducting detailed analysis of retrieval outputs from the \glsxtrshort{SEAL} model \cite{bevilacqua2022autoregressivesearchenginesgenerating} on the \glsxtrfull{nq} dataset. The \glsxtrshort{nq} dataset \cite{kwiatkowski-etal-2019-natural} is a benchmark of Google search queries paired with full Wikipedia pages, annotated with the exact section and phrases of the page containing the answer.
+
+
+\subsection{Research Question}
+
+This thesis addresses two interconnected research questions:
+
+\textbf{RQ1:} What is a systematic classification of the failures, behavioral biases, and structural limitations observed in generative retrieval systems?
+
+\textbf{RQ2:} What are the most frequent failure modes observed in \glsxtrshort{SEAL}'s n-gram-based generative retrieval, and which failures stem from the generation component versus the scoring mechanism?
+
+\subsection{Contributions}
+
+This thesis makes the following contributions:
+
+\begin{enumerate}
+    \item A synthesis of failure modes documented across generative retrieval research, organized into five categories: inference and decoding failures, memorization and representation issues, scalability limitations, dynamic corpus problems, and architectural constraints.
+
+    \item A mapping from abstract failure modes to observable indicators measurable from inference outputs.
+
+    \item Quantitative characterization of failure patterns via the \glsxtrshort{SEAL} framework ,\cite{bevilacqua2022autoregressivesearchenginesgenerating} including correlation analysis between failure indicators and retrieval success.
+
+
+\end{enumerate}
+The code used for this thesis is available under \textbf{TODO}.
+
+
+\pagebreak
+
+\section{Background and Related Work}
+
+In this section we introduce the concept of \glsxtrfull{gr} and discuss the important details of the \glsxtrshort{SEAL} architecture.
+
+\subsection{\glsxtrlong{ir}}
+
+Traditional \glsxtrfull{ir} has long been structured around the foundational ``index-retrieve-then-rank'' pipeline \cite{10.1145/3589335.3641239, Metzler_2021}. Sparse retrieval methods, such as BM25, rely on lexical representations but suffer from the lexical mismatch problem where semantic similarity is missed if terms do not overlap exactly \cite{Choi_2022, biswas2024efficientinterpretableinformationretrieval, gao2021coilrevisitexactlexical}. Dense retrieval (DR) methods using dual-encoder architectures (e.g., DPR) address this by encoding queries and documents into semantic vector representations \cite{karpukhin2020densepassageretrievalopendomain}. However, DR systems still depend on separate vector index structures and Approximate Nearest Neighbor (ANN) indexes \cite{xiong2020approximatenearestneighbornegative, li2023constructingtreebasedindexefficient}, and queries and documents are encoded independently with limited semantic interaction \cite{ni2021largedualencodersgeneralizable}.
+
+Generative retrieval (\glsxtrshort{gr}) diverges from traditional architectures by aiming to directly generate document identifiers through autoregressive language models, consolidating the retrieval process into a single end-to-end model \cite{zhang2024generativeretrievaltermset, li2025matchinggenerationsurveygenerative, kuo2024surveygenerativeinformationretrieval}. While this aspirational goal is not always fully achieved in practice, as many systems introduce additional components, the unified architecture still offers several advantages when realized: it eliminates the need for separate dense vector indexes and their associated ANN search structures used in traditional dense retrieval, significantly reduces memory footprint, and enables the optimization of document representations and retrieval objectives \cite{bevilacqua2022autoregressivesearchenginesgenerating, zeng2024planningaheadgenerativeretrieval, tang2024listwisegenerativeretrievalmodels}. While some \glsxtrshort{gr} implementations employ auxiliary data structures for constrained generation (such as \glsxtrshort{SEAL}'s FM-Index), these differ fundamentally from the separate encoding and indexing stages required by traditional systems. Additionally, the foundational pre-trained language models used in \glsxtrshort{gr} can perform effectively in zero- and few-shot scenarios when limited labeled data is available \cite{Metzler_2021}.
+
+
+\subsection{Document Identifier Design}
+
+\glsxtrfull{docid} design is the one of the key decisive factors for retrieval effectiveness, as it replaces traditional external indices with the model’s internal parametric memory. A \glsxtrshort{docid} serves as a unique ``index'' that the model must autoregressively generate to point toward a specific document. Initial foundational works categorized these identifiers into three main types: unstructured atomic identifiers (such as unique random integers), naively structured string identifiers (such as titles), and semantically structured, numeric identifiers (such hierarchical cluster paths). While atomic IDs require the model to memorize random associations, semantic IDs group similar documents together under shared prefix tokens to improve retrieval quality \cite{pradeep2023doesgenerativeretrievalscale}.
+
+String identifiers use natural language such as document titles, URLs, or synthetic pseudo-queries, which allow the model to leverage its pre-trained linguistic knowledge rather than learning a new symbolic system from scratch. Substring or n-gram identifiers, such as those used in the \glsxtrshort{SEAL} framework, allow any span of text within a document to act as its identifier. in \glsxtrshort{SEAL} specifically, the documents aren't assigned a  single identifier per document, unlike in other frameworks such as DSI \cite{tay2022transformermemorydifferentiablesearch} or GENRE \cite{sun2023learningtokenizegenerativeretrieval}. A single document has multiple possible identifiers, as \glsxtrshort{SEAL} treats all n-grams within the passage as valid identifiers. While string-based IDs are more interpretable and generalizable to dynamic corpora where document collections expand, they often suffer from ``false pruning'', where a sequence-based generation discards a relevant document early in the beam search if the model fails to predict the correct prefix token.
+
+Semantically structured identifiers are designed to capture the relationships between documents using hierarchical categorization methods, such as by recursively applying k-means clustering to document embeddings, creating a tree where each root-to-leaf path serves as a DocID. Because they share prefixes with similar documents, they facilitate semantic matching, but their sequential nature makes them, just like string-based \glspl{docid}, highly susceptible to false pruning. In this scenario, if a model fails to predict the correct initial cluster token with high enough probability during a beam search, the relevant document is discarded permanently from the candidate list before its full identifier can be generated.
+
+Unstructured atomic identifiers treat each document as a single, unique token added directly to the model's vocabulary. Unlike sequential designs, retrieval involves only a single decoding step, where the model sorts the logits of all \glsxtrshort{docid} tokens to produce a ranked list. While this makes them immune to false pruning and very FLOP efficient during inference, they require a large increase in model parameters as the corpus scales \cite{pradeep2023doesgenerativeretrievalscale}. This is because atomic \glspl{docid} predict the document in a single softmax, the output layer must contain one set of weights per document, causing the parameter count to grow with the collection size \cite{nguyen2023generativeretrievaldenseretrieval, kuo2024surveygenerativeinformationretrieval}. Because they are often randomly initialized, they lack inherent semantic connections to the text, forcing the model to rely entirely on memorizing the association between document content and its identifier during the training phase.
+
+\subsection{\glsxtrshort{SEAL} Architecture}
+
+This thesis focuses empirically on \glsxtrshort{SEAL} (Search Engines with Autoregressive LMs) \cite{bevilacqua2022autoregressivesearchenginesgenerating}, which addresses \glsxtrshort{docid} design challenges by using actual document text as identifiers. Such challenges specifically adressed are the unavailability of unique metadata (like titles) for all documents, the insufficient granularity of page- and document-level identifiers, as well as the need to force a structure onto the search space, such as hierarchical cluster trees, which can be difficult to construct for large-scale benchmarks. \glsxtrshort{SEAL} defines document identifiers as any n-gram (substring) within the document. An autoregressive model (e.g., BART) is trained to generate distinctive, query-relevant n-grams that identify documents containing them. A critical component is the FM-Index, a compressed full-text substring index that constrains generation during decoding so that the model only generates n-grams actually existing in the corpus. For ranking, \glsxtrshort{SEAL} uses intersective scoring to aggregate information from multiple generated n-grams while filtering for overlaps. Specifically, ``intersective'' refers to a selection process where an n-gram's score is down-weighed if it overlaps with a higher-scoring n-gram already selected. This is implemented so that the final score does not overscore based on repetitive or redundant document content.
+
+
+\subsubsection{Scoring Mechanism}
+
+\glsxtrshort{SEAL}'s failure modes are directly influenced by its scoring function. \glsxtrshort{SEAL} computes n-gram scores by combining the language model's conditional probability with corpus frequency to favor distinctive n-grams.
+
+The unconditional n-gram probability is computed from corpus statistics:
+\begin{equation}
+    P(n) = \frac{F(n, R)}{\sum_{d \in R} |d|}
+    \label{eq:unconditional-prob}
+\end{equation}
+where $F(n, R)$ is the frequency of n-gram $n$ in corpus $R$, and $|d|$ is the length of document $d$.
+
+The n-gram score combines conditional and unconditional probabilities:
+\begin{equation}
+    w(n, q) = \max\left(0, \log \frac{P(n|q)(1 - P(n))}{P(n)(1 - P(n|q))}\right)
+    \label{eq:ngram-score}
+\end{equation}
+
+This formulation, inspired by TF-IDF and BM25, promotes n-grams that have high conditional probability given the query ($P(n|q)$), computed by the autoregressive language model (BART), but low unconditional probability in the corpus ($P(n)$). This means that distinctive, query-relevant n-grams are prioritized.
+
+Finally, the document score aggregates contributions from multiple non-overlapping n-grams:
+\begin{equation}
+    W(d, q) = \sum_{n \in K^{(d)}} w(n, q)^\alpha \cdot \text{cover}(n, K^{(d)})
+    \label{eq:doc-score}
+\end{equation}
+where $K^{(d)}$ is the set of non-overlapping n-grams matched in document $d$, $\alpha$ is a hyperparameter, and $\text{cover}(n, K(d))$ downweights n-grams whose tokens overlap with higher-scoring n-grams. The purpose of the coverage weight is to avoid the
+overscoring of very repetitive documents, where
+many similar ngrams are matched. \cite{bevilacqua2022autoregressivesearchenginesgenerating}
+
+For example, given the query ``who sings does he love me with reba'', the top-ranked passage (titled ``Linda Davis'') matched the following keys:
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \begin{tabular}{lrr}
+        \toprule
+        \textbf{N-gram} & \textbf{Corpus Freq. $F(n,R)$} & \textbf{Score $w(n,q)$} \\
+        \midrule
+        \texttt{</s> Linda Davis @@} & 9 & 216.33 \\
+        \texttt{ "Does He Love} & 23 & 196.06 \\
+        \texttt{ Reba} & 1,851 & 103.56 \\
+        \texttt{ country singles} & 777 & 83.47 \\
+        \texttt{ country music singer} & 4,024 & 39.20 \\
+        \bottomrule
+    \end{tabular}
+    \caption{Example n-gram keys for query ``who sings does he love me with reba''. Lower corpus frequency correlates with higher scores for query-relevant n-grams.}
+    \label{tab:ngram-example}
+\end{table}
+
+\subsubsection{Architectural Limitations}
+
+Architectural constraints pose a significant challenge in many \glsxtrshort{gr} approaches. As an example, \glsxtrshort{docid} assignment is traditionally non-differentiable because model architectures typically use the argmax function to select discrete \glspl{docid} from a probability distribution during training, breaking gradient flow and preventing joint end-to-end optimization \cite{yang2023autosearchindexerendtoend, sun2023learningtokenizegenerativeretrieval}. While \glsxtrshort{gr} aims toward single unified models, the highest-performing systems often introduce additional components, specific constraints, or multi-stage training processes, which break end-to-end differentiability in most cases. \cite{tang2024generativeretrievalmeetsmultigraded, 10.1145/3603167, tang2024listwisegenerativeretrievalmodels}.
+
+\subsubsection{Document Length Bias}
+
+The n-gram aggregation mechanism in \glsxtrshort{SEAL} introduces a theoretical bias toward longer documents in corpora with variable document lengths. Because \glsxtrshort{SEAL}'s default configuration uses pure score aggregation, where each document's final ranking is the sum of scores from all matched n-grams, longer documents have more textual positions available to match different n-grams, potentially accumulating higher scores regardless of their relevance and specificity. A short, highly-relevant passage containing a few highly-specific n-grams could be outscored by a longer, topically-related but less relevant document containing many generic n-grams that individually contribute modest scores but collectively dominate.
+
+The \glsxtrshort{SEAL} paper does not explicitly address this as a potential failure mode, focusing instead on the model's ability to generate diverse n-grams and overcome vocabulary mismatch. However, the implementation includes several mechanisms designed to mitigate score accumulation from redundant or overlapping evidence. First, a repetition penalty $\beta$ reduces scores for n-grams containing tokens already covered by previously-scored n-grams in that document. If an n-gram's tokens have all appeared in earlier matches, its score is multiplied by $(1-\beta)$ where $\beta \in (0,1)$. Second, a no-overlap constraint prevents multiple n-grams from scoring the same token positions within a document so that each piece of text contributes at most once. Third, exponential score weighting $\text{score}^{\alpha}$ amplifies the difference between high-scoring and low-scoring n-grams, theoretically favoring documents with fewer but more relevant matches. Finally, the \texttt{single\_key} parameter allows interpolating between pure score aggregation and ranking by best single n-gram, though it defaults to pure aggregation.
+
+These countermeasures provide partial mitigation but remain imperfect under default settings. The repetition penalty only reduces redundancy among overlapping tokens, not semantically redundant but lexically distinct n-grams (e.g., ``earthquake data'' and ``seismic data'' would both contribute nearly full scores despite conceptual overlap). The non-overlapping constraint prevents position reuse but does not address the fundamental issue that longer documents have more positions available to match different n-grams. The exponential weighting helps but is not a robust solution when the model generates many medium-relevant n-grams. The most effective mitigation, increasing \texttt{single\_key} to emphasize best-match quality over quantity, is disabled by default and not discussed in the original paper as a tuning consideration.
+
+\paragraph{Inapplicability to the \glsxtrlong{nq} Corpus}
+Importantly, this theoretical document length bias cannot be empirically tested in our experimental setup. The \glsxtrlong{nq} retrieval corpus used by \glsxtrshort{SEAL} consists of a Wikipedia dump split into approximately 21 million passages of 100 tokens each \cite{karpukhin2020densepassageretrievalopendomain}. Because all passages are length-controlled by construction, variation in passage length is minimal and any differences in n-gram matching counts between passages cannot be attributed to document length.
+
+Instead, in our length-controlled corpus, the number of n-grams matched to a passage reflects topical breadth rather than document length. A passage that matches many generated n-grams does so because its content is topically broad, containing vocabulary from multiple aspects of the query's semantic domain, not because it is longer. Conversely, a passage matching few n-grams may be highly specific or may simply lack lexical overlap with the generated n-grams. This distinction is important for interpreting the empirical results in Section~\ref{sec:failure-pattern-analysis}, as when we observe that incorrect (``negative'') passages match more n-grams than correct (``positive'') passages, this indicates that \glsxtrshort{SEAL} generates n-grams favoring topically broad but potentially less relevant content, rather than evidence of length-based score inflation.
+
+\section{Methodology}
+
+\subsection{Failure Modes in \glsxtrlong{gr}} 
+\label{sec:failure-modes-literature}
+
+Despite these advantages, \glsxtrshort{gr} systems exhibit several distinct failure modes, behavioral biases, and structural limitations that motivate this thesis. I organize these into five categories: inference and decoding failures, memorization and representation issues, scalability limitations, dynamic corpus problems, and architectural constraints.
+
+\paragraph{Inference and Decoding Failures}
+
+Inference and decoding failures are primarily driven by the problem of prefix pruning, also referred to as false pruning. This occurs during autoregressive generation of document identifiers when beam search prematurely discards the prefix of a relevant document because its cumulative probability at an early step is lower than competing candidates \cite{zhang2024generativeretrievaltermset, zeng2024planningaheadgenerativeretrieval, sun2023learningtokenizegenerativeretrieval}. Once a prefix is pruned, the system cannot recover the correct document regardless of subsequent token probabilities. This failure stems from the myopic nature of autoregressive decoding, in which the model perceives only preceding tokens and lacks visibility into subsequent tokens that might contribute to a high final relevance score. While the scale of this issue depends significantly on the model architecture, empirical analyses indicate that even with large beam sizes (e.g., 1000), constrained beam search often fails to match brute-force decoding performance, suggesting that relevant \glspl{docid} are frequently eliminated during search \cite{zeng2023scalableeffectivegenerativeinformation}.
+
+However, the challenge of prefix pruning is further compounded by a fundamental misalignment between the model’s probability distribution and retrieval adequacy. Stahlberg and Byrne (2019) demonstrate that search errors in autoregressive models often act as a paradoxical ``safety net'' for underlying model deficiencies. By utilizing an exact inference procedure, they revealed that neural machine translation models frequently assign the highest global probability to the empty string, a phenomenon they attribute to an inherent bias toward shorter sequences. In the context of \glsxtrlong{gr}, this suggests that the failure to retrieve a relevant document identifier (docid) is not merely a failure of search heuristics to find the global optimum, but rather a model failure where the global optimum itself may be a short or irrelevant prefix. While \glsxtrshort{SEAL} uses constrained beam search to prevent the ``empty string'' problem the authors found, the underlying bias that the model potentially prefers the shortest valid DocID path or the one with the most frequent initial tokens, regardless of their actual relevance to the query, may still exist. Consequently, standard beam search ``succeeds'' only insofar as the decoder does not collapse into these high-probability but low-adequacy regions of the search space.\cite{stahlberg2019nmtsearcherrorsmodel}.
+
+Related is the problem of hallucination, in which the model generates invalid identifiers, since without constrained decoding mechanisms, generative models may produce token sequences not corresponding to any valid document identifier within the corpus \cite{massarelli2020decodingstrategiesaffectverifiability, Ji_2023}. This stems from the probabilistic nature of language models, which often prioritize coherent linguistic patterns over valid identifier strings. While constrained decoding using prefix trees or FM-indexes can force generation of valid IDs, it does not inherently solve relevance ranking and introduces computational overhead \cite{bevilacqua2022autoregressivesearchenginesgenerating, pradeep2023doesgenerativeretrievalscale}.
+
+\paragraph{Memorization and Representation Issues}
+One of the memorization and representation issues specific to the capacity of \glsxtrshort{gr} models is the apparent forgetting of fine-grained features. While generative models capture coarse-grained semantic clusters effectively, they struggle to accurately memorize and decode fine-grained document distinctions. Experimental comparisons reveal that error rates for \glsxtrshort{gr} models increase significantly at later token positions in \glsxtrshort{docid} sequences, rising from approximately 1\% at the first position to over 12\% by the sixth position. This indicates degradation in memory accuracy for detailed document features \cite{yuan2024generativedenseretrievalmemory}.
+
+\glsxtrshort{gr} systems also suffer from ``\glsxtrshort{docid} collision'' where the mapping from document content to identifiers is not sufficiently distinct. When using synthetic queries or semantic clustering as identifiers, multiple documents may share quasi-identical or highly similar representations, causing the model to conflate distinct documents \cite{yang2023autosearchindexerendtoend}. This is exacerbated by the indexing-retrieval gap, a distribution mismatch between data used for memorization (such as long documents) and data used for retrieval (such as short queries). Because the model maps document content to \glspl{docid} during indexing but queries to \glspl{docid} during retrieval, it often fails to bridge this semantic gap without data augmentation such as synthetic query generation \cite{kuo2024surveygenerativeinformationretrieval}.
+
+More broadly, \glsxtrshort{docid} design is consistently identified as a core challenge affecting these representation issues. Numerical \glspl{docid} offer efficiency but suffer from limited generalization and overfitting to initial training sets, while string-based \glspl{docid}, such as titles, n-grams, or pseudo-queries maintain better semantic alignment but are more susceptible to false pruning \cite{zhang2024generativeretrievaltermset, zhang2025replicationexplorationgenerativeretrieval, 10.1145/3589335.3641239}.
+
+\paragraph{Scalability Limitations}
+Scalability limitations become evident as corpus size increases, \glsxtrshort{gr} models exhibit limitations in terms of capacity \cite{nguyen2023generativeretrievaldenseretrieval, zeng2023scalableeffectivegenerativeinformation}. For example, in some models the fixed parameter budget of the transformer becomes insufficient to encode nuances of a massive corpus. Empirical studies show sharp performance decline as corpora scale from 100,000 to 8.8 million passages. For example, a T5-XL model achieves only ~30\% of the MRR@10 score on the full MS MARCO corpus compared to the base corpus, which means it significantly underperforms compared to smaller subsets \cite{pradeep2023doesgenerativeretrievalscale}. This suggests memorization capacity does not scale smoothly with corpus size, leading to the model failing to distinguish between its targets \cite{pradeep2023doesgenerativeretrievalscale, yuan2024generativedenseretrievalmemory}.
+
+Associated with scalability is the issue that oftentimes increasing model size does not yield proportional improvements. Based on an analysis by Pradeep et.al (2023)\cite{pradeep2023doesgenerativeretrievalscale}, scaling T5 from XL (3B parameters) to XXL (11B parameters) actually degraded retrieval performance when using naive string identifiers on large corpora, dropping from 26.7 to 24.3 MRR@10 on the full MS MARCO dataset despite identical training configurations. This is a counter-intuitive result given that generative retrieval is often assumed to be limited by model capacity. Additionally, atomic identifiers (e.g., digits 0-9) assign each document a single unique output token, requiring the model's output vocabulary to equal the corpus size. Since the output projection layer has dimensions of hidden size × vocabulary size, scaling to 8.8 million documents with a hidden size of 768 adds approximately 6.8 billion parameters to the output layer alone, making this approach prohibitively expensive for large corpora. In contrast, sequential identifiers like naive string IDs reuse a fixed vocabulary across multiple decoding steps, keeping parameter count constant regardless of corpus size. \cite{kuo2024surveygenerativeinformationretrieval, pradeep2023doesgenerativeretrievalscale}.
+
+\paragraph{Dynamic Corpus Problems}
+Dynamic corpus problems arise in environments where corpora change, \glsxtrshort{gr} models exhibit two opposing failure modes \cite{Chen_2023, zhang2025replicationexplorationgenerativeretrieval, yuan2024generativedenseretrievalmemory, mehta2023dsiupdatingtransformermemory}. ``Catastrophic forgetting'' occurs when updating a model with new documents degrades its ability to retrieve previously indexed documents. Experiments demonstrate that sequential indexing of new batches can cause indexing accuracy for the initial corpus to drop by more than 25 points, necessitating retraining and increasing costs \cite{mehta2023dsiupdatingtransformermemory}. The opposing failure is excessive recency bias, where models fail to retrieve newly added content, favoring documents from the original training corpus.
+
+\glsxtrshort{gr} models also exhibits ``implicit forgetting'' during initial training itself. Analysis of training dynamics shows models frequently ``forget'' and ``re-learn'' document-to-identifier mappings between mini-batches, with approximately 88\% of documents undergoing at least one forgetting event during training \cite{mehta2023dsiupdatingtransformermemory}.
+
+An additional issue identified is the problem that in \glsxtrlong{gr} newly added documents are practically inaccessible until model weights are updated and the model retrained, unlike dense retrieval systems which can index new embeddings instantly without retraining the encoder \cite{kuo2024surveygenerativeinformationretrieval}.
+
+\paragraph{Architectural Constraints and Interpretability}
+Lastly, the lack of interpretability in generation processes presents challenges for understanding and debugging failures. Unlike sparse retrieval where term matching is transparent, or dense retrieval where embedding similarity can be analyzed, the internal decision processes of generative retrieval is significantly more opaque \cite{10.1145/3589335.3641239, ross2021evaluatinginterpretabilitygenerativemodels}.
+
+
+\subsection{Preliminary Analysis}
+\label{sec:failure-pattern-analysis}
+
+To understand the mechanisms behind \glsxtrshort{SEAL}'s retrieval failures, we analyze the distribution of generated n-gram keys across retrieved documents. We categorize each query based on the correctness of its top-2 retrieved passages: PP (both correct), PN (rank-1 correct, rank-2 incorrect), NP (rank-1 incorrect, rank-2 correct), and NN (both incorrect) to compare n-gram generation patterns across success and failure cases.
+
+Table~\ref{tab:category-distribution} presents the distribution of queries across retrieval outcome categories.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Distribution of queries across retrieval outcome categories (N=6,515).}
+    \label{tab:category-distribution}
+    \begin{tabular}{llrl}
+        \toprule
+        \textbf{Category} & \textbf{Count} & \textbf{Percentage} & \textbf{Interpretation} \\
+        \midrule
+        PP & 1,287 & 19.8\% & Perfect success \\
+        PN & 1,427 & 21.9\% & Partial success \\
+        NP & 702 & 10.8\% & Partial failure \\
+        NN & 3,099 & 47.6\% & Complete failure \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Nearly half of all queries (47.6\%) result in complete retrieval failure, where neither of the top-2 ranked passages contains the answer. Combined with the 10.8\% partial failures, this indicates that 58.4\% of queries fail to surface a relevant passage at rank~1. Conversely, 41.7\% of queries achieve successful retrieval (PP~+~PN), with roughly equal proportions of perfect versus partial success.
+
+We also examine the n-gram keys generated by \glsxtrshort{SEAL} to understand why incorrect passages outrank correct ones. For each query, we partition keys into three sets: keys appearing exclusively in positive (ground-truth) passages, keys appearing exclusively in negative passages, and keys shared by both. Table~\ref{tab:key-distribution} presents the aggregate statistics.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Aggregate n-gram key statistics across all queries (N=6,515).}
+    \label{tab:key-distribution}
+    \begin{tabular}{lr}
+        \toprule
+        \textbf{Metric} & \textbf{Value} \\
+        \midrule
+        Avg. unique keys in positive passages & 25.9 \\
+        Avg. unique keys in negative passages & 185.2 \\
+        Avg. shared keys & 22.8 \\
+        \midrule
+        Avg. score of unique positive keys & 6.45 \\
+        Avg. score of unique negative keys & 9.67 \\
+        Avg. score of shared keys (in positive context) & 19.54 \\
+        Avg. score of shared keys (in negative context) & 31.47 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Two patterns emerge. First, \glsxtrshort{SEAL} generates substantially more keys matching negative passages than positive passages, in an approximately 7:1 ratio. Second, keys unique to negative passages receive higher average scores (9.67) than keys unique to positive passages (6.45). Together, these patterns indicate that \glsxtrshort{SEAL} generates n-grams that are topically relevant but not specific enough to distinguish correct passages from semantically similar incorrect ones.
+
+The scoring differential for shared keys is particularly interesting. When the same n-gram appears in both positive and negative passages, it receives a higher score in the negative context (31.47 vs.\ 19.54). This suggests that even semantically relevant keys contribute more strongly to incorrect rankings.
+
+Table~\ref{tab:category-comparison} disaggregates these metrics by retrieval outcome category.
+
+Let $|K_P^u|$ denote the count of n-gram keys appearing exclusively in positive passages, 
+$\bar{w}_P^u$ the mean score of those keys, and $\Sigma_P^u$ their cumulative score. 
+Analogous notation applies for negative-exclusive keys ($|K_N^u|$, $\bar{w}_N^u$, $\Sigma_N^u$).
+
+We analyze n-gram distributions across the top-10 retrieved passages per query. While outcome categories (PP, PN, NP, NN) are defined by the top-2 positions, the broader window captures patterns explaining why correct passages may be retrieved but mis-ranked (e.g. appearing at positions 3-10) versus missed entirely.
+
+\begin{table}[htbp]
+    \centering
+    \caption{N-gram key statistics by retrieval outcome category ($k$=10).}
+    \label{tab:category-comparison}
+    \begin{tabular}{lrrrrrr}
+        \toprule
+        \textbf{Category} & $|K_P^u|$ & $\bar{w}_P^u$ & $\Sigma_P^u$ & $|K_N^u|$ & $\bar{w}_N^u$ & $\Sigma_N^u$ \\
+        \midrule
+        PP & 54.6 & 12.98 & 955 & 125.8 & 8.13 & 1,411 \\
+        PN & 27.7 & 8.87 & 264 & 170.5 & 7.80 & 1,855 \\
+        NP & 29.8 & 5.83 & 235 & 174.1 & 8.21 & 1,972 \\
+        NN & 12.3 & 2.76 & 81 & 219.2 & 11.49 & 3,958 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+
+The progression from PP to NN reveals a clear pattern. In successful retrievals (PP), positive-unique keys contribute substantial cumulative evidence ($\Sigma_P^u = 955$), while the gap with negative evidence remains moderate. In complete failures (NN), positive-unique keys contribute minimal evidence ($\Sigma_P^u = 81$) while negative-unique keys dominate with $\Sigma_N^u = 3{,}958$, approximately a ratio of 49:1.
+
+The average score column is simiarly insightful. In NN cases, not only are there more negative-unique keys (219.2 vs.\ 12.3), but each negative key scores approximately 4x higher on average ($\bar{w}_N^u = 11.49$ vs.\ $\bar{w}_P^u = 2.76$). This suggests that in failure cases, the model generates ``higher-quality'' n-grams pointing to incorrect documents, not merely more of them. In contrast, for successful retrievals (PP), positive-unique keys score higher on average than negative-unique keys ($\bar{w}_P^u = 12.98$ vs.\ $\bar{w}_N^u = 8.13$), indicating that retrieval success correlates with generating distinctive, high-scoring n-grams that specifically identify the correct passage.
+
+We can see that \glsxtrshort{SEAL} assigns incorrect passages to top ranks because the aggregate evidence from generated n-grams overwhelmingly favors those passages. While the model does not fail to generate relevant keys, it generates more keys that match irrelevant content than keys that match relevant content, and in failure cases those keys are individually higher-scoring as well.
+
+\paragraph{Example}
+
+Consider the query ``who sings does he love me with reba'' (category NN). \glsxtrshort{SEAL} generated 39 keys unique to positive passages with a cumulative score of 327, compared to 125 keys unique to negative passages with a cumulative score of 2,323. Despite the query's specificity, the model assigned seven times more score pointing toward incorrect documents, resulting in complete retrieval failure.
+
+Table~\ref{tab:reba-ngram-examples} illustrates the contrast between keys unique to positive and negative passages for this query.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \caption{Example n-gram keys for query ``who sings does he love me with reba'', comparing keys unique to positive (ground-truth) passages versus keys unique to negative (incorrect) passages.}
+    \label{tab:reba-ngram-examples}
+    \begin{tabular}{p{0.35\textwidth}rr|p{0.35\textwidth}rr}
+        \toprule
+        \multicolumn{3}{c|}{\textbf{Unique to Positive (39 total)}} & \multicolumn{3}{c}{\textbf{Unique to Negative (125 total)}} \\
+        \textbf{N-gram} & \textbf{Freq.} & \textbf{Score} & \textbf{N-gram} & \textbf{Freq.} & \textbf{Score} \\
+        \midrule
+        \texttt{Reba's} & 72 & 112.8 & \texttt{</s> Linda Davis @@} & 9 & 216.3 \\
+        \texttt{country music artist} & 5,249 & 44.6 & \texttt{</s> Kathy Mattea @@} & 34 & 135.4 \\
+        \texttt{He Love} & 36 & 26.3 & \texttt{</s> Reba McEntire @@} & 85 & 117.5 \\
+        \texttt{chart,} & 23,699 & 24.1 & \texttt{country singles} & 777 & 83.5 \\
+        \texttt{single from} & 46,518 & 20.2 & \texttt{Hot Country Sing} & 3,729 & 78.5 \\
+        \midrule
+        \multicolumn{3}{r|}{Sum: 327} & \multicolumn{3}{r}{Sum: 2,323} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The keys unique to negative passages reveal that despite \glsxtrshort{SEAL} generating a highly distinctive n-gram \texttt{</s> Linda Davis @@} (the correct answer, with corpus frequency of only 9 and the highest score of 216.3), this key matched passages about Linda Davis that were \textit{not} the annotated ground truth. Additionally, \glsxtrshort{SEAL} generated title identifiers for related but incorrect artists such as Kathy Mattea and Reba McEntire herself, whose passages discuss other songs and collaborations. The 50 shared keys between positive and negative passages include the partial song title \texttt{"Does He Love} (score: 196.1) and the artist name \texttt{Reba} (corpus frequency: 1,851), which match numerous passages across the country music domain.
+
+This example demonstrates \glsxtrshort{SEAL}'s failure coming from generating too many topically relevant n-grams that collectively overwhelm the evidence pointing to the correct passage. The additive scoring amplifies the impact of quantity over precision, as the 3.2x increase between the \textit{unique to positive} and the \textit{unique to negative} n-grams matched (125 vs.\ 39) led to a 7-fold increase in cumulative score (2,323 vs.\ 327).
+
+
+\subsection{Failure Taxonomy for Empirical Analysis}
+\label{sec:failure-taxonomy-empirical}
+
+The literature-derived taxonomy presented in Section~\ref{sec:failure-modes-literature} identifies numerous failure modes across generative retrieval systems. However, not all failure modes are observable from inference outputs alone. This section establishes which failure categories can be empirically analyzed given the available \glsxtrshort{SEAL} output data, and which remain outside the scope of this analysis.
+
+\subsubsection{Available Data Structure}
+
+The \glsxtrshort{SEAL} output dataset contains 6,515 queries from the \glsxtrlong{nq} benchmark. For each query, the following relevant information is available:
+
+\begin{itemize}
+    \item \textbf{question}: The original natural language query
+    \item \textbf{answers}: Ground-truth answer string(s)
+    \item \textbf{positive\_ctxs}: Ground-truth relevant passages containing the answer, with passage identifiers
+    \item \textbf{ctxs}: \glsxtrshort{SEAL}'s top-100 retrieved passages, ranked by intersective scoring, each containing:
+    \begin{itemize}
+        \item Passage title and text
+        \item Aggregate document score
+        \item Passage identifier
+        \item The set of matched n-gram keys
+    \end{itemize}
+\end{itemize}
+
+The n-gram keys are most useful to understand \glsxtrshort{SEAL}'s retrieval decisions. Each key entry contains three parts:
+\begin{enumerate}
+    \item The n-gram string (e.g., \texttt{`` Reba''}, \texttt{``</s> Linda Davis @@''})
+    \item The corpus frequency $F(n, R)$---how many times this n-gram appears across all documents
+    \item The n-gram score $w(n, q)$ computed via the scoring function
+\end{enumerate}
+
+
+\subsubsection{Observable Failure Modes}
+
+Given this data structure, three categories of failure modes can be directly analyzed:
+
+One of the most common failure modes is when generated n-grams lack sufficient specificity to distinguish relevant documents from semantically related but incorrect alternatives.
+
+The n-gram \texttt{`` Reba''} in Table~\ref{tab:ngram-example} appears 1,851 times across the corpus, meaning this query-relevant term matches thousands of documents about Reba McEntire unrelated to the specific song. Similarly, \texttt{`` country singles''} (frequency: 777) and \texttt{`` country music singer''} (frequency: 4,024) are topically relevant but not specific enough to isolate the correct passage. We can see this issue especially if the top-scoring n-grams have a high corpus frequency, if n-grams are matching many passages beyond the ground truth, and if the query relevant terms are common across the whole topical domain. Cases where the model generates topically appropriate but overly generic n-grams are thus a key issue. The corpus frequency directly quantifies specificity, as an n-gram which appears countless times over and over provides minimal discriminative signal regardless of its relevance to the query.
+
+While Equation~\ref{eq:ngram-score} downweights frequent n-grams via the $P(n)$ term, if the model assigns high conditional probability $P(n|q)$ to generic n-grams, they may still dominate the final ranking. This occurs because \glsxtrshort{SEAL} is trained to generate n-grams from ground-truth passages that have high lexical overlap with queries, meaning it learns to reproduce query-relevant vocabulary. However, this training signal does not distinguish between highly specific terms (like song titles or unique names) and broadly applicable domain terms (like ``country music singer''). When a query clearly indicates a topical domain, such as country music, sports, or politics, the language model's pre-trained knowledge causes it to assign high conditional probability to domain-typical phrases, regardless of whether those phrases discriminate the specific answer passage from thousands of other passages in the same domain. For instance, a query about a specific Supreme Court case might generate ``Supreme Court'' with high $P(n|q)$, which, despite having corpus frequency over 10,000, still receives a non-trivial score because the model's confidence in its relevance partially overcomes the frequency penalty.
+
+Likewise, if short n-grams such as unigrams and bigrams dominate the contribution (as shown in Section \ref{sec:failure-7}), this issue appears The model may prefer generating shorter sequences because shorter sequences have higher cumulative probability, as each token multiplication reduces probability, as well as because common single words have stronger learned associations in the pre-trained model. Inverse correlation between n-gram frequency and retrieval success could thus help us identify such cases.
+
+Secondly, we can identify a failure mode in the scoring mechanism too. To isolate failures in the scoring mechanism rather than n-gram generation, cases where \glsxtrshort{SEAL} retrieves the correct passage but ranks it below incorrect alternatives are useful to examine.
+
+For example, on the query ``when does the new my hero academia movie come out'', the ground-truth passage appears at rank~3 with score 620.5, while two other passages from the same Wikipedia article rank higher with scores 709.4 and 663.9. All passages share similar high-scoring n-grams (e.g., \texttt{``</s> My Hero Academia: Two Heroes @@''}), but non-ground-truth passages accumulated higher aggregate scores from secondary n-grams. In this case, we can check the score differentials between correct and incorrect top-ranked passages and examine which shared high-scoring n-grams are to be found across multiple retrieved passages
+
+Third, the mismatch between query phrasing and document content may also cause the model to generate irrelevant n-grams that fail to ``bridge the gap'' between query and document. This occurs when generated n-grams do not align with how the answer is expressed in the ground-truth passage. Low lexical overlap between query terms and high-scoring n-grams is therefore an issue to deal with. Cases where n-grams capture related concepts but miss the specific answer formulation are hard for model to match. Similar problem occurs if the query requires inference to match the document text.
+
+\subsubsection{Non-Observable Failure Modes}
+
+Several failure modes from the literature taxonomy cannot be directly measured from the available output data:
+
+False pruning cannot be determined in this thesis. Determining whether beam search prematurely discarded the prefix of a discriminative n-gram sequence would require access to the full beam search trajectory, including all candidate sequences considered and rejected at each decoding step. The data at hand contains only the final set of n-grams that survived beam search. We cannot distinguish between cases where (a) the model never considered a relevant n-gram, versus (b) the model considered but incorrectly pruned it during decoding.
+
+\glsxtrshort{SEAL}'s architecture directly prevents hallucinative failure modes through constrained decoding, which prevents the model to generate invalid identifiers. At each generation step, the model can only produce tokens that extend a valid corpus substring, guaranteeing that every generated n-gram exists in at least one document. While this eliminates hallucination as a failure mode for \glsxtrshort{SEAL}, it also means we cannot study hallucination patterns, which is a limitation if we were to generalize and compare the findings with other \glsxtrshort{gr} architectures that lack constrained decoding.
+
+Evaluating whether beam search found the optimal solution under the model's scoring function would require comparison against exhaustive search over all possible n-gram sequences. Such brute-force decoding is computationally prohibitive and not available in the output data used in this thesis.
+
+Assessing whether failures stem from the model's limited capacity to encode a large corpus would require us to perform a comparison across varied corpus sizes. The available data represents a single corpus configuration (\glsxtrlong{nq} with approximately 21 million passages), precluding a scalability and saturation analysis.
+
+Similarly, the previously mentioned forgetting and cold-start problems that arise in settings where the corpus is dynamic are issues that are unobservable in our dataset, as the \glsxtrlong{nq} evaluation uses a static corpus snapshot.
+
+Non-differentiable optimization, training instability, and struggles with learning fine-grained features that might occur during model training rather than inference are another category of issues we cannot account for in this thesis. Analysis of these failures would require access to training dynamics, gradient statistics, or intermediate checkpoints not available in inference outputs.
+
+\subsubsection{Annotation Problems in Evaluation}
+
+Standard retrieval evaluation compares retrieved passage identifiers against annotated ground-truth passages. However, the \glsxtrlong{nq} dataset annotates only specific passages, while multiple passages in the corpus may contain the correct answer. This can create an event where \glsxtrshort{SEAL} retrieves a passage containing the answer, but this passage differs from the annotated ground-truth.
+
+To identify such cases, we check whether the answer string appears in any top-$k$ retrieved passage. Table~\ref{tab:answer-passage-mismatch} presents the results.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Retrieval outcomes based on answer string matching (N=6,515, $k$=2).}
+    \label{tab:answer-passage-mismatch}
+    \begin{tabular}{lrr}
+        \toprule
+        \textbf{Outcome} & \textbf{Count} & \textbf{Percentage} \\
+        \midrule
+        Ground-truth passage found & 3,416 & 52.4\% \\
+        Answer string in different passage & 426 & 6.5\% \\
+        Answer string not found & 2,673 & 41.0\% \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+
+In 426 queries (6.5\%), the answer string appears in (at least) one of the top-2 retrieved passages that is not the annotated ground truth. However, string matching alone does not determine whether the passage genuinely answers the question.
+
+Understanding these cases requires understanding how the corpus is structured. The Questions retrieval corpus consists of a Wikipedia dump split into approximately 21 million passages of exactly 100 words each \cite{karpukhin2020densepassageretrievalopendomain}. These chunks are created by word count, not by sentence boundaries, so passages frequently end mid-sentence. For example, a passage about Linda Davis ends with: ``Her highest solo chart position'', which is clearly cut off. \glsxtrshort{SEAL} retrieves from all 21 million chunks independently, it does not retrieve one chunk per article and discard the rest. If multiple chunks from the same article match the query, they can all appear in the results. This also raises the question of whether low passage diversity (for example, when most or all retrieved passages come from the same article) reflects high model confidence, or instead indicates that alternative answers are being crowded out. Accordingly, an analysis of the number of unique documents among the top-k retrieved results is warranted.
+ 
+
+To understand what the 426 ``answer in different passage'' cases actually look like, we examine three examples in detail.
+
+\textbf{Example 1: ``which apostle had a thorn in his side'' (answer: Paul).} The ground-truth passage is from the Wikipedia article ``Thorn in the flesh,'' which explains that Paul the Apostle used this phrase in 2 Corinthians 12:7--9. \glsxtrshort{SEAL}'s top result is a 100-word chunk from Galatians 3, which mentions ``Paul the Apostle'' as the author of that epistle but contains nothing about a thorn. Even though \glsxtrshort{SEAL} seemed to be able to identify ``Paul'' as a relevant term (potentially from BART's pretrained parameters), this is still a failure, since Galatians 3 is the wrong chapter entirely. \glsxtrshort{SEAL} matched on generic terms (``Paul,'' ``apostle'') but never generated n-grams containing ``thorn.'' No other chunk from Galatians would help, as the thorn passage is in 2 Corinthians, a different book of the Bible.
+
+\textbf{Example 2: ``how many judges currently serve on the supreme court'' (answer: nine).} The ground-truth passage directly states the current composition of the Court. \glsxtrshort{SEAL}'s top result is a historical passage stating that in 1869, ``the Circuit Judges Act returned the number of justices to nine, where it has since remained.'' This is borderline, because the reader could infer the answer, but the passage is about the 19th-century history of the Supreme Court, not specifically about the current number of judges.
+
+\textbf{Example 3: ``who is the youngest judge currently sitting on the u.s. supreme court'' (answer: Neil Gorsuch).} The ground-truth passage discusses Gorsuch's nomination process and him being the youngest sitting justice. \glsxtrshort{SEAL}'s top result directly states: ``Neil Gorsuch is the youngest justice sitting, at 50 years of age.'' This is a success, because \glsxtrshort{SEAL} found a passage that answers the question even more directly than the annotated ground truth.
+
+These examples show that the 426 cases are a mix of genuine successes where \glsxtrshort{SEAL} found an answer in a different but valid passage (Example 3), some borderline cases requiring inference (Example 2), and some failures where the answer string appears coincidentally without answering the question (Example 1). To determine how many fall into each category, manual review or LLM-based classification is required. Section~\ref{sec:llm-judge} applies LLM-as-a-judge to classify whether each retrieved passage genuinely answers the question or not. If most of the 426 cases are genuine retrievals, then \glsxtrshort{SEAL}'s effective top-2 recall is closer to 59.0\% rather than 52.4\%. If most are coincidental matches, then 52.4\% remains the accurate figure.
+
+\subsubsection{LLM-as-a-Judge Classification}
+\label{sec:llm-judge}
+
+To disambiguate the 426 cases where the answer string appears in a retrieved passage that differs from the annotated ground truth, we employ an LLM-as-a-judge approach. For each case, we present a large language model (\texttt{claude-sonnet-4-5-20250929}) with the original question, the expected answer, and the retrieved passage text, asking it to determine whether the passage genuinely answers the question or whether the answer string's presence is coincidental. The model was chosen based on expected reasoning capabilities and cost of operation.
+
+The judge classifies each case into one of three categories:
+\begin{itemize}
+    \item \textbf{YES}: The passage directly and unambiguously answers the question.
+    \item \textbf{NO}: The answer string appears coincidentally and the passage does not answer the question.
+    \item \textbf{PARTIAL}: The passage provides relevant information from which the answer could be inferred, but does not state it directly.
+\end{itemize}
+
+Table~\ref{tab:llm-judge-results} presents the classification results.
+
+\begin{table}[htbp]
+    \centering
+    \caption{LLM-as-a-judge classification of answer-in-different-passage cases (N=426).}
+    \label{tab:llm-judge-results}
+    \begin{tabular}{lrrl}
+        \toprule
+        \textbf{Verdict} & \textbf{Count} & \textbf{Percentage}\\
+        \midrule
+        YES & 208 & 48.8\% \\
+        NO & 116 & 27.2\% \\
+        PARTIAL & 102 & 23.9\% \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The results reveal that nearly half (48.8\%) of these ambiguous cases represent genuine retrieval successes where \glsxtrshort{SEAL} retrieved a valid answer-bearing passage that simply differs from the annotated ground truth passage(s). The 116 cases classified as NO (27.2\%) represent true coincidental matches where the answer string appears, but in an unrelated context, as exemplified by Example 1. The 102 borderline cases (23.9\%) typically involve passages that provide sufficient context for inference but lack explicit statements. To provide an additional example for the latter, for ``who made the first telephone in the world'' (expected answer: Alexander Graham Bell), the retrieved passage states ``The first telephone was invented by Antonio Meucci, but Alexander Graham Bell is credited with the development of the first practical telephone.'' This passage contains the answer but complicates the question's premise by distinguishing between ``first'' and ``first practical'' telephone.
+
+Accordingly, we adjust the estimate of \glsxtrshort{SEAL}'s retrieval performance. Table~\ref{tab:adjusted-recall} presents the adjusted top-2 recall under different inclusion criteria.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Adjusted top-2 recall estimates based on LLM-as-a-judge classification.}
+    \label{tab:adjusted-recall}
+    \begin{tabular}{lrr}
+        \toprule
+        \textbf{Inclusion Criterion} & \textbf{Successful Retrievals} & \textbf{Recall} \\
+        \midrule
+        Ground-truth passage only (baseline) & 3,416 & 52.4\% \\
+        + YES verdicts & 3,624 & 55.6\% \\
+        + YES and PARTIAL verdicts & 3,726 & 57.2\% \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+When counting only unambiguous successes (YES verdicts), \glsxtrshort{SEAL}'s effective top-2 recall increases from 52.4\% to 55.6\%, a 3.2 percentage point improvement. Including borderline cases (YES + PARTIAL) raises the estimate to 57.2\%. These adjustments suggest that \glsxtrshort{SEAL}'s true retrieval capability may have been underestimated by approximately 3--5 percentage points due to incomplete or inaccurate ground-truth annotations.
+
+\subsubsection{Limitations of Data}
+\label{sec:datalims}
+
+A fundamental structural constraint of n-gram-based retrieval is that n-grams must be strictly contiguous substrings within the corpus. \glsxtrshort{SEAL}'s FM-Index ensures that any generated n-gram exists as a continuous sequence in at least one document \cite{bevilacqua2022autoregressivesearchenginesgenerating}. While such constrained decoding eliminates hallucination of invalid \glspl{docid}, the issue persists that the model cannot match n-grams that would semantically connect a query to a document if the relevant terms, which are separated by intervening words, would be connected.
+
+Consider a passage stating ``Tom likes pizza and tomatoes'' and a query ``does Tom like tomatoes?'' The semantically relevant n-gram ``likes tomatoes'' does not exist as a contiguous substring in the passage due to the intervening words ``pizza'' and ``and.'' The FM-Index would theoretically reject or fail to map this n-gram to the document, even though the passage clearly contains both ``like'' and ``tomatoes'' in a relevant context.  During \glsxtrshort{docid} generation, the model may falsely prune prefixes from the beam search before it reaches the discriminative keywords. This false pruning occurs because the model generates tokens left-to-right and cannot recover from early missteps once a prefix is discarded from the search beam, as discussed before.
+
+This issue is partially mitigated by the fact that n-grams that do exist contiguously in the passage are still generated, such as ``and tomatoes,'' ``pizza and tomatoes,'' or simply ``tomatoes.'' \glsxtrshort{SEAL} uses intersective scoring that aggregates scores from multiple generated n-grams, so even if the model cannot generate a specific multi-word n-gram due to intervening text, it can still retrieve the document by generating multiple shorter n-grams (such as separate unigrams or bigrams) that collectively identify the passage. 
+
+Additionally, the \glsxtrshort{SEAL} framework is capable of rephrasing the question into semantically similar queries. The paper gives an example, where the query ``can you predict earthquakes'' successfully generates the n-gram ``earthquakes can be predicted'' \cite{bevilacqua2022autoregressivesearchenginesgenerating}. It is worth noting that \glsxtrshort{SEAL} is only capable of generating ngrams that exist in the corpus. ``earthquakes can be predicted'' exists in a passage in the corpus in the sentence ``Podcast discussing why the claim that earthquakes can be predicted is false.''
+
+For this, it would be useful to understand why \glsxtrshort{SEAL} is capable of such rephrasing. During the generation phase, \glsxtrshort{SEAL} uses the FM-index to enforce that at each decoding step, the language model can only generate tokens that would extend the current partial n-gram into a sequence that exists somewhere in the corpus. Specifically, when \glsxtrshort{SEAL} has generated the partial sequence ``earthquakes can be,'' the FM-index queries which tokens follow this exact 3-gram in the corpus and constrains generation only to those possibilities. This means that ``earthquakes can be predicted'' can only be generated if this complete 4-gram exists as a contiguous substring in at least one document. 
+
+After n-gram generation, in the retrieval phase, for each n-gram, \glsxtrshort{SEAL} uses the FM-index to identify every document containing that n-gram and assign a relevance score based on the n-gram's uniqueness and frequency in the corpus. Documents are then ranked by aggregating the scores from all n-grams they contain. This means that a document scores highly not because any single n-gram uniquely identifies it, but because it contains multiple high-scoring n-grams. For example, even if ``earthquakes can be predicted'' appears in only one document, that document's final ranking depends on whether it also contains other highly relevant generated n-grams like, for example ``seismic activity'' or ``forecasting methods.'' This provides robustness, since even if one highly ranked n-gram points to an irrelevant document, other n-grams can still guide retrieval toward more relevant documents that contain a higher concentration of query-related terms.
+
+This architecture helps explain why \glsxtrshort{SEAL} can overcome vocabulary mismatch issues. While the model cannot generate n-grams that do not exist in the corpus, it can find paraphrases and related terms as long as those appear in corpus documents.
+
+This limitation affects the interpretation of failure cases in the empirical analysis, because when \glsxtrshort{SEAL} fails to retrieve a relevant passage, the failure may stem not from the absence of relevant terms in the document, but from the model's inability to generate a valid n-gram sequence that connects the query phrasing to the specific word ordering in the passage. Therefore we must examine whether alternative ngrams exist that could've plausibly identified the document. Additionally, using skip-grams instead of ngrams could theoretically be an alternate solution to the problem. That is, however, out of scope for this thesis.
+
+Based on the observable failure modes, Table~\ref{tab:failure-classification} defines the classification scheme for empirical analysis.
+
+
+\begin{table}[H]
+    \centering
+    \begin{threeparttable}
+        \caption{Failure classification framework for \glsxtrshort{SEAL} output analysis (updated).}
+        \label{tab:failure-classification}
+        \begin{tabular}{p{0.25\textwidth} p{0.4\textwidth} p{0.4\textwidth}}
+            \toprule
+            \textbf{Failure Category} & \textbf{Definition} & \textbf{Observable Indicator} \\
+            \midrule
+            Low Lexical Specificity & 
+            Top-scoring n-grams common across many passages, reducing discriminative power & 
+            Avg. corpus frequency of top n-grams, \% of n-grams considered high-frequency \\
+            \addlinespace
+            Misranking Despite Retrieval\tnote{1} & 
+            Correct passage is retrieved but misranked below incorrect passages & 
+            Ground-truth passage appears in top-$K$ but not rank 1 \\
+            \addlinespace
+            Insufficient Query Coverage & 
+            Generated n-grams fail to sufficiently cover query terms & 
+            Proportion of unique query tokens present in generated n-grams \\
+            \addlinespace
+            Missing Answer Identifiers & 
+            Generated n-grams do not contain the answer string & 
+            Fraction of queries where at least one top-1 passage n-gram contains the answer string \\
+            \addlinespace
+            Correlated identifier generation & 
+            Multiple n-grams share overlapping tokens, creating inflated scoring & 
+            Ratio of unique tokens to total tokens across all n-grams \\
+            \addlinespace
+            Overreliance on a Single Identifier & 
+            Total passage score is concentrated in one high-scoring n-gram & 
+            max(n-gram score) / sum(n-gram scores) per passage \\
+            \addlinespace
+            Bias Toward Short Identifiers & 
+            Generated n-grams skew toward short sequences (such as unigrams) rather than longer, distinctive n-grams & 
+            Fraction of unigrams among generated n-grams \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}
+            \small
+            \item[1] The category \emph{Misranking Despite Retrieval} differs from the other failure modes in that it reflects a deficiency in the post-generation scoring mechanism rather than in \glsxtrshort{SEAL}'s n-gram generation, which can occur both as a downstream problem from generation quality and independently due to limitations in the scoring mechanism. All other categories represent failures originating from the generation of n-grams.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+It is worth noting that not all retrieval errors reflect deficiencies in SEAL's generation or scoring components. Two identified external factors contribute to apparent failures independent of model quality: (1) alternative passages containing the correct answer could exist but are not labeled as ground truth (affecting 5.7\% of analyzed queries, as shown in Table~\ref{tab:answer-passage-mismatch}); (2) cases where the 100-word passage boundaries split relevant content mid-sentence or separate related information across multiple chunks. These factors directly impact measurable retrieval performance independent of SEAL's design choices.
+
+\section{Empirical Results \& Analysis}
+
+
+\subsection{Quantitative Overview}
+
+Table~\ref{tab:failure-indicators} defines the observable indicator used for each failure mode. The Spearman $\rho$ values in Table~\ref{tab:failure-summary} represent the correlation between each indicator and binary retrieval success (1 if the top-1 passage is correct, 0 otherwise).
+
+\begin{table}[H]
+    \centering
+    \caption{Observable indicators for each failure mode and interpretation of correlation direction.}
+    \label{tab:failure-indicators}
+    \begin{tabular}{p{0.22\textwidth} p{0.32\textwidth} p{0.38\textwidth}}
+        \toprule
+        \textbf{Failure Mode} & \textbf{Indicator Measured} & \textbf{Interpretation of $\rho$} \\
+        \midrule
+        Bias Toward Short Identifiers & Fraction of n-grams that are unigrams & $\rho < 0$: More unigrams $\rightarrow$ lower success \\
+        \addlinespace
+        Insufficient Query Coverage & Proportion of query tokens covered by n-grams & $\rho > 0$: Higher coverage $\rightarrow$ higher success \\
+        \addlinespace
+        Answer in n-grams & Whether answer string appears in any n-gram & Binary comparison only \\
+        \addlinespace
+        High-freq.\ n-grams & Avg.\ corpus frequency of top-5 n-grams & $\rho < 0$: Higher frequency $\rightarrow$ lower success \\
+        \addlinespace
+        Correlated identifier generation & Token diversity ratio (unique / total tokens) & $\rho < 0$: Higher diversity $\rightarrow$ lower success\textsuperscript{\dag} \\
+        \addlinespace
+        Overreliance on a Single Identifier & max(score) / sum(scores) for top-1 passage & $\rho < 0$: More concentrated $\rightarrow$ lower success \\
+        \bottomrule
+    \end{tabular}
+
+    \vspace{0.5em}
+    \footnotesize
+    \textsuperscript{\dag} Counter-intuitive: repetition (low diversity) correlates with \textit{higher} success.
+\end{table}
+
+Table~\ref{tab:failure-summary} consolidates the empirical findings across all analyzed failure modes, quantifying their correlation with retrieval success and the performance differential between favorable and unfavorable conditions.
+
+\textbf{TODO UPDATE}
+\begin{table}[H]
+    \centering
+    \caption{Summary of failure mode analysis for \glsxtrshort{SEAL} on \glsxtrlong{nq} (N=6,515).}
+    \label{tab:failure-summary}
+    \begin{tabular}{p{0.22\textwidth} r p{0.38\textwidth} r}
+        \toprule
+        \textbf{Failure Mode} & \textbf{Spearman $\rho$} & \textbf{Success Rate Comparison} & \textbf{$\Delta$} \\
+        \midrule
+        Bias Toward Short Identifiers & $-0.278$ & Low unigram frac.: 80.8\% vs.\ high: 27.5\% & +53.3 pp \\
+        \addlinespace
+        Insufficient Query Coverage & $+0.290$ & High overlap: 60.2\% vs.\ low: 20.2\% & +40.0 pp \\
+        \addlinespace
+        Answer in n-grams & --- & Present: 75.0\% vs.\ absent: 34.9\% & +40.1 pp \\
+        \addlinespace
+        High-freq.\ n-grams & $-0.238$ & Low freq.: 59.8\% vs.\ high freq.: 32.5\% & +27.3 pp \\
+        \addlinespace
+        Correlated identifier generation\textsuperscript{\dag} & $-0.227$ & Low diversity: 55.3\% vs.\ high: 35.5\% & +19.8 pp \\
+        \addlinespace
+        Overreliance on a Single Identifier & $-0.115$ & Distributed: 48.5\% vs.\ concentrated: 29.4\% & +19.1 pp \\
+        \addlinespace
+        Misranking Despite Retrieval & --- & 55.0\% of retrieved passages mis-ranked & --- \\
+        \bottomrule
+    \end{tabular}
+
+    \vspace{0.5em}
+    \footnotesize
+    \textsuperscript{\dag} Correlated identifier generation shows an inverse relationship: lower diversity (more repetition) correlates with \textit{higher} success, suggesting focused n-gram generation benefits retrieval rather than harming it. \\
+    pp = percentage points. $\Delta$ = difference in top-1 success rate between favorable and unfavorable conditions.
+\end{table}
+
+The strongest predictors of retrieval failure are bias toward short identifiers ($\rho = -0.278$) and low Insufficient Query Coverage ($\rho = +0.290$). When \glsxtrshort{SEAL} generates predominantly unigrams, success drops from 80.8\% to 27.5\%; when n-grams fail to cover query terms, success drops from 60.2\% to 20.2\%. High-frequency n-grams and Overreliance on a Single Identifier show weaker but still significant effects.
+
+Notably, correlated identifier generation exhibits a counter-intuitive pattern: queries with more token repetition across n-grams achieve \textit{higher} success rates, suggesting that concentrated topical focus benefits retrieval. This finding indicates that not all initially hypothesized failure modes function as expected.
+
+\subsection{Generative Failures}
+
+\subsubsection{Low Lexical Specificity}
+\label{sec:failure-1}
+
+N-gram corpus frequency reflects how distinctive a generated n-gram is. Rare n-grams provide stronger evidence for specific documents, while common n-grams match many topically-related passages. We analyze the average corpus frequency of the top-scored n-grams (ranked by \glsxtrshort{SEAL}'s scoring function) to determine whether high-frequency n-grams contribute to retrieval failures.
+
+Across 6,515 queries, the average mean corpus frequency of the top-5 scored n-grams is 28753. When stratified by frequency, for queries whose rank-1 retrieved passage has an average corpus frequency of its top-5 scored n-grams below 500, 59.8\% of those queries contain at least one positive (ground truth) passage (somewhere) in the top-1, 69.2\% in the top-2, 88.3\% in the top-10 retrieved results. Interestingly, for queries whose rank-1 retrieved passage has an average corpus frequency of its top-5 scored n-grams over 5000, 32.5\% of those queries contain at least one positive (ground truth) passage (somewhere) in the top-1, 43.7\% in the top-2, 70.1\% in the top-10 retrieved results. Please note thresholds like 500 and 5000 are arbitrary and can be freely adjusted. We can observe a significant drop in retrieval quality when the lexical uniqueness of the top scoring n-grams increase. Across all queries, the average corpus frequency of the top-5 scored n-grams in the rank-1 passage is weakly negatively correlated with top-1 retrieval success (Spearman $\rho = -0.238$, $p < 0.001$).
+
+This finding confirms that when \glsxtrshort{SEAL} generates high-frequency n-grams as its top-ranked identifiers, these n-grams match many topically-related passages, diluting discriminative power. In queries where top-scored n-grams has very high corpus frequency, the model struggles to distinguish the target passage from hundreds of similar alternatives. While \glsxtrshort{SEAL}'s scoring function theoretically downweights common n-grams through the $P(n)$ term in Equation~\ref{eq:ngram-score}, this analysis reveals that high-frequency n-grams still frequently dominate the top-ranked positions, suggesting that the conditional probability $P(n|q)$ assigned by the language model can override frequency-based penalties when the model strongly associates common terms with the query.
+
+To illustrate when high $P(n|q)$ occurs for generic n-grams, consider the query ``who sings does he love me with reba.'' The model assigns high conditional probability to \texttt{`` country music singer''} (corpus frequency: 4,024, score: 39.20) because the query's semantic content (such as mentioning ``Reba'', a country artist, and ``sings'') strongly activates associations with the country music domain. During training, \glsxtrshort{SEAL} learned that passages answering questions about country artists frequently contain such phrases. The BART language model's pre-trained knowledge further reinforces this, as it associates ``Reba'' with ``country music.'' Despite the frequency penalty in Equation~\ref{eq:ngram-score}, the conditional probability is sufficiently high that this generic n-gram still contributes meaningfully to the ranking. Because the n-gram appears in over 4,000 passages discussing various country artists unrelated to the specific song, it matches many incorrect documents and dilutes the retrieval quality.
+
+\subsubsection{Bias Toward Short Identifiers}
+\label{sec:failure-7}
+
+N-gram length bias examines whether \glsxtrshort{SEAL} disproportionately generates short n-grams (unigrams and bigrams) rather than longer, more distinctive multi-word sequences. Longer n-grams generally provide stronger discriminative power, as multi-word phrases are far less likely to appear across multiple passages than individual words. For example, the unigram ``president'' may occur in thousands of Wikipedia passages, whereas the 4-gram ``youngest president in history'' identifies a far more specific set of passages.
+
+We quantify this bias by measuring the fraction of generated n-grams that consist of a single token in the top-1 retrieved passage. Across 6,515 queries, the mean unigram fraction is 0.869 (median 0.878), and the average n-gram length is 1.28 tokens (median 1.24), indicating that, on average, nearly 87\% of generated n-grams are unigrams. This indicates a strong skew toward short n-grams despite \glsxtrshort{SEAL}’s ability to generate longer sequences.
+
+We further stratify queries into fixed bins based on the unigram fraction. Queries in the low unigram fraction bin (<0.7) achieve a success rate of 80.8\%, compared to 48.3\% for the medium bin (0.7–0.9) and 27.5\% for the high bin (>0.9). This indicates that passages with a higher proportion of multi-word n-grams are substantially more likely to retrieve the correct document, while passages dominated by unigrams correspond to poorer retrieval performance. Interestingly, only 130 queries fit into the low unigram fraction bin, 4103 into the medium, and 2282 into the high fraction bin, consistent with the high mean unigram fraction of 0.869.
+
+Decile-based binning of the unigram fraction similarly shows the success rate decline as the unigram fraction increases, from 67.7\% in the lowest decile (0.51–0.78) to 22.6\% in the highest decile (0.94–1.0). The Spearman correlation $\rho$ between unigram fraction and top-1 retrieval success is $-0.278 \space (p<0.001)$, indicating a statistically significant, but moderate negative relationship between unigram dominance and retrieval effectiveness.
+
+The graph below shows the success rate of the top-1 retrieved passage mapped with the mean fraction of unigrams among the generated n-grams for each query, grouped by decile bins. Higher unigram fractions correlate with lower retrieval success, with success rates declining from 67.7\% in the lowest decile to 22.6\% in the highest decile ($\rho = -0.278$, $p < 0.001$)
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{assets/unigram_line_plot.png}
+    \caption{Top-1 retrieval success rate by mean fraction of unigrams among n-grams generated (decile bins)}
+\end{figure}
+
+\subsubsection{Correlated Identifier Generation}
+\label{sec:failure-5}
+
+Correlated identifier generation occurs when \glsxtrshort{SEAL} produces semantically redundant n-grams containing repeated tokens across multiple generated sequences. For example, a query about country music might generate ``country,'' ``country music,'' ``country singer,'' and ``country charts,'' all sharing the token ``country.'' While these n-grams are individually valid, their redundancy can inflate scoring for passages containing common topical terms without ensuring those passages contain the specific answer.
+
+We measure repetitiveness using the number of unique tokens divided by the total tokens across all generated n-grams for a query. A ratio near 1.0 indicates each token appears only once, while lower ratios indicate repeated tokens across multiple n-grams. We arbitrarily define low diversity as $<$0.7, medium as 0.7-0.85, and high as $>$0.85. Across 6,515 queries, the mean diversity ratio for the top-1 retrieved passage is 0.881, with 114 queries (1.7\%) exhibiting low diversity, 1,941 (29.8\%) showing moderate diversity, and 4,460 (68.5\%) achieving high diversity.
+
+Counter-intuitively, the results reveal a weak, but significant \textit{negative} correlation between diversity and success ($\rho = -0.227$, $p < 0.001$). Low-diversity queries achieve a 55.3\% success rate and medium-diversity 55.1\% compared to 35.5\% for high-diversity queries. This +19.8 percentage point advantage for low-diversity generation contradicts the initial hypothesis that correlated identifier generation constitutes a failure mode.
+
+This unexpected finding suggests that such repetition may actually benefit retrieval. When \glsxtrshort{SEAL} repeatedly uses key topical terms across multiple n-grams (e.g., generating ``Reba,'' ``Reba McEntire,'' ``singer Reba'' for a question about Reba McEntire), it reinforces topical focus and ensures that the scoring function accumulates substantial evidence for passages containing those terms. In contrast, high diversity may indicate that the model is exploring too broad a semantic space, generating n-grams that individually score well but collectively lack the coherent focus on a single target passage. Consequently, rather than classifying correlated identifier generation as a failure mode, it appears to function as a successful retrieval strategy wherein the model concentrates its generated evidence on a specific semantic cluster.
+
+\subsubsection{Insufficient Query Coverage}
+\label{sec:failure-3}
+
+Query-to-n-gram overlap measures the lexical alignment between query terms and the n-grams generated by \glsxtrshort{SEAL}. High overlap indicates that the model successfully generated n-grams containing query-relevant terms, while low overlap suggests a mismatch where generated n-grams, though potentially topically related, do not directly address the query's specific terms. We quantify this using a coverage metric, where the proportion of unique query tokens that appear in any generated n-gram.
+
+Coverage varies substantially across the top-1 retrieved passages. For many queries, the lexical overlap between the query tokens and the top-1 passage is low-to-moderate, with only a minority of queries achieving high overlap.
+
+The relationship between query coverage and retrieval success, while not strong, is statistically significant. Queries whose top-1 retrieved passage has high lexical overlap (defined as $>$60\%) achieve a 60.2\% success rate, compared to 41.9\% for mid-coverage (defined as 30\%-60\%) and 20.2\% for low-coverage (defined as $<$30\%) queries ($\rho = 0.290$, $p < 0.001$). This demonstrates that higher lexical overlap in the top-1 passage correlates with a higher likelihood of retrieving a correct passage.
+
+Low query coverage typically arises in two scenarios. First, the model may generate semantically related but lexically distinct n-grams (e.g., for a query containing ``automobile,'' the model could generate n-grams with ``car'' or ``auto''). Second, the model may generate generic topical n-grams that lack the specific query terms needed to isolate the answer (e.g., a query about ``Victorian architecture in London'' generates only ``architecture'' and ``London''). In both cases, while the generated n-grams may retrieve topically relevant passages, they fail to discriminate between documents enough to retrieve the correct one.
+
+
+\subsection{Scoring Failures}
+\subsubsection{Misranking Despite Retrieval}
+\label{sec:failure-2}
+
+Misranking Despite Retrieval occurs when \glsxtrshort{SEAL} successfully retrieves the ground-truth passage within its top-$K$ candidates but assigns it a lower score than incorrect alternatives, causing it to be mis-ranked. This failure mode aims to isolate deficiencies in the scoring mechanism independent of generation quality, where the model has generated sufficient n-grams to match the correct passage, but the intersective scoring function $W(d, q)$ (Equation~\ref{eq:doc-score}) fails to rank it first.
+
+Of 6,515 queries analyzed, the ground-truth passage appears in the top-100 retrieved results for 6,027 queries (92.5\%). However, among these, in 3,313 queries (55.0\%) the ground truth is ranked below position 1. The average rank of the first ground-truth passage retrieved is 7.7, with a median of 2, indicating that while \glsxtrshort{SEAL} often places the correct answer in the top-2 or top-3 positions, precise ranking remains challenging.
+
+Among the 6,027 queries, 2,714 (45.0\%) rank the ground truth at position 1, 702 (11.6\%) at position 2, and 449 (7.4\%) at position 3. The fact that 55.0\% of successfully retrieved passages are found but mis-ranked suggests that \glsxtrshort{SEAL}'s generation component can identify relevant passages through n-gram matching, but the scoring function commonly misjudges their relative importance.
+
+\subsubsection{Overreliance on a Single Identifier}
+\label{sec:failure-6}
+
+Overreliance on a Single Identifier measures the extent to which the top-1 ranked passage's total score is concentrated in one high-scoring n-gram versus distributed across multiple n-grams. We define this ``dominance'' as the ratio of the highest scored n-gram score and the sum of all matched n-gram scores for the passage. A high ratio indicates that a single n-gram contributes more than half the total score, while a low ratio suggests distributed evidence from multiple n-grams (or, alternatively, low model confidence) .
+
+Across 6,515 queries, the mean such ratio is 0.438 (median 0.439), indicating that on average, the top-scoring n-gram contributes approximately 44\% of the total score. The distribution reveals that 698 queries (10.7\%) exhibit a ratio of $<$0.35, while 3972 queries (61.8\%) exhibit a ratio between 0.3 and 0.5, and 1845 queries (28.3\%) have more than half of their total score contributed by a single n-gram.
+
+The relationship between such single-query dominance and retrieval success demonstrates a weak but clear negative correlation (Spearman $\rho = -0.115$, $p < 0.001$). Stratified into 10 bins, queries in the lowest ratio bin (0.12–0.30) achieve a top-1 success rate of approximately 48.5\%, while queries in the highest bin (0.57–0.85) achieve only 29.4\%.
+
+This finding aligns with \glsxtrshort{SEAL}'s intersective scoring design, which aggregates evidence from multiple n-grams to identify passages. Theoretically, when retrieval succeeds through distributed evidence, multiple n-grams collectively point toward the target passage, providing redundant confirmation and reducing sensitivity to individual n-gram errors. Conversely, when a single n-gram dominates, retrieval might become highly dependent on that one identifier. If the top-scoring n-gram matches many passages or matches the wrong passage, the remaining low-scoring n-grams provide insufficient corrective evidence.
+
+\subsubsection{Impact of N-gram Quantity on Retrieval Success}
+
+While not a failure mode, given that \glsxtrshort{SEAL}'s scoring mechanism aggregates evidence from multiple n-grams, it is essential to examine whether the quantity of matched n-grams correlates with retrieval success. Intuitively, a higher number of matched n-grams should provide stronger cumulative evidence for a passage, considering that SEAL's score is sum-based, and therefore a passage with more matched n-grams has a mathematical advantage over a passage with fewer matched n-grams. However, excessive generation may also introduce noise if additional n-grams are redundant or non-discriminative.
+
+Across 6,515 queries, the number of n-grams matched to the top-1 retrieved passage has a mean of 41.5 (median: 42.0, $\sigma$: 6.3), with a range of 11 to 65. Table~\ref{tab:ngram-count} presents retrieval performance stratified by n-gram count intervals.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Retrieval success rate and mean n-gram corpus frequency ($\bar{F}_c$) by number of matched n-grams in the top-1 passage.}
+    \label{tab:ngram-count}
+    \begin{tabular}{lrrr}
+        \toprule
+        \textbf{N-gram Count Range} & \textbf{Queries} & \textbf{Success@1} & \textbf{Mean $\bar{F}_c$} \\
+        \midrule
+        $<$30   & 273   & 31.5\% & 387,506 \\
+        31--38  & 1,668 & 38.9\% & 379,866 \\
+        39--44  & 2,554 & 44.4\% & 385,187 \\
+        45--52  & 1,798 & 42.3\% & 381,124 \\
+        $>$52   & 222   & 38.7\% & 365,687 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The relationship between n-gram count and retrieval success is notably weak (Spearman $\rho = 0.040$, $p = 0.001$), exhibiting a non-monotonic, inverted-U pattern. Success rates increase from 31.5\% for passages with low identifier counts ($<$30) to a peak of 44.4\% in the 39--44 range, subsequently declining to 38.7\% for passages exceeding 52 matched n-grams. This trend suggests that while a minimum amount of evidence is required to identify a passage, accumulating n-grams beyond a moderate threshold yields diminishing or negative returns.
+
+This performance plateau points to a structural vulnerability in \glsxtrshort{SEAL}'s additive scoring function, $W(d, q)$. Because the document score is computed as a summation of individual n-gram weights without normalization for quantity, in high-count scenarios, a passage may be ranked first not due to high precision, but because it contains a large volume of generic domain vocabulary that the model associates with the query context.
+
+Notably, the mean n-gram corpus frequency ($\bar{F}_c$) remains stable across all intervals (ranging from 365,687 to 387,506). This stability indicates that the decline (or increase) in success at higher counts is not caused by the generative component reverting to high-frequency "filler" tokens. Instead, the failure might come from the scoring mechanism failing to distinguish between concentrated, unique n-grams and the aggregate score of multiple, moderately relevant n-grams that may appear in non-relevant but topically-broad documents.
+
+\subsection{Missing Answer Identifiers}
+\label{sec:failure-4}
+
+Missing Answer Identifiers assesses whether any generated n-gram contains the target answer string. This metric is particularly revealing because successful retrieval theoretically \textit{requires} that n-grams identify passages containing the answer, yet generation of the answer string itself is neither guaranteed nor strictly necessary, as the model generates n-grams to identify documents, not to answer questions directly.
+
+Of 6,515 queries analyzed, the answer string appears in at least one generated n-gram for the top-1 retrieved passage for only 1,096 queries (16.8\%), while 5,419 queries (83.2\%) fail to generate any n-gram containing the answer in their respective highest-ranked retrieved passage. When the answer appears in the n-grams, the success rate reaches 75.0\%, compared to 34.9\% when the answer is absent among the n-grams.
+
+This is revealing, as the model is trained to generate distinctive, query-relevant n-grams, but it is not explicitly trained to generate the answer itself. Consequently, even when the model successfully identifies topically relevant passages (e.g., generating ``Supreme Court,'' ``justices,'' ``current composition'' for a query about the number of justices), it may never generate the specific answer token (e.g., ``nine''). In such cases, the model retrieves passages from the correct topical domain but lacks the precise discriminative n-gram needed to confidnetly isolate the answer-bearing passage from related alternatives.
+
+The low Missing Answer Identifiers rate (16.8\%) suggests that most of the successful retrievals rely on ``indirect'' identification, where the model generates n-grams describing the context surrounding the answer rather than the answer itself. While this approach can succeed when the context is sufficiently distinctive, it may fail when multiple documents share similar contextual terms but differ in their specifics.
+
+\section{Discussion}
+
+\textbf{TODO}
+
+\subsection{Key Findings}
+
+The empirical analysis of \glsxtrshort{SEAL}'s retrieval outputs reveals several findings about the failure modes of n-gram-based generative retrieval systems and about SEAL itself.
+
+\paragraph{Generation Quality Dominates Retrieval Success}
+The strongest predictors of retrieval failure originate in the n-gram generation component rather than the scoring mechanism. Bias toward short identifiers ($\rho = -0.278$) and insufficient n-gram query coverage ($\rho = +0.290$) exhibit the largest effect sizes, with success rate differentials of 53.3 and 40.0 percentage points respectively between favorable and unfavorable conditions (Table~\ref{tab:failure-summary}). When \glsxtrshort{SEAL} generates predominantly unigrams (>90\% of n-grams), retrieval success drops to 27.5\%, compared to 80.8\% when multi-word n-grams comprise a larger share. This suggests that the autoregressive language model's tendency to favor short, high-probability sequences directly undermines retrieval effectiveness, as it diminishes discriminative power.
+
+\paragraph{Specificity-Relevance}
+The analysis reveals a fundamental tension between generating topically relevant n-grams and generating sufficiently specific ones. \glsxtrshort{SEAL} consistently generates more n-grams matching incorrect passages than correct ones (approximately 7:1 ratio, Table~\ref{tab:key-distribution}), and in failure cases, these negative-unique n-grams score higher on average ($\bar{w}_N^u = 11.49$ in PP vs.\ $\bar{w}_P^u = 2.76$ in NN cases). The model successfully identifies the semantic domain of a query but fails to generate n-grams distinctive enough to isolate the specific answer-bearing passage from semantically similar alternatives. We exemplified this by a query about a country music artist, where domain-typical phrases like ``country music singer'' receive high conditional probability despite appearing in thousands of passages.
+
+\paragraph{Scoring Mechanism Limitations}
+While generation quality is the primary determinant of success, the scoring mechanism exhibits independent failure modes. Among queries where the ground-truth passage appears in the top-100 results, 55.0\% rank it below position 1, indicating that \glsxtrshort{SEAL}'s intersective scoring function frequently misjudges relative relevance even when the generation component has produced sufficient evidence to retrieve the correct passage. The non-monotonic relationship between n-gram quantity and success (Table~\ref{tab:ngram-count}) further suggests that the additive scoring function can be overwhelmed by volume, ranking topically broad but less relevant passages above more precise alternatives.
+
+\paragraph{Token Repetition}
+Contrary to initial hypotheses, correlated identifier generation (token repetition across n-grams) correlates with \textit{higher} retrieval success ($\rho = -0.227$ for diversity, meaning lower diversity yields better results). Queries with concentrated topical focus, where key terms appear across multiple generated n-grams, achieve 55.3\% success compared to 35.5\% for high-diversity queries. This suggests that when \glsxtrshort{SEAL} reinforces specific semantic clusters through repeated vocabulary, it accumulates stronger evidence for the target passage.
+
+\paragraph{Indirect Document Identification}
+Only 16.8\% of the top-1 retrieved passage includes the answer in any generated n-gram, yet answer presence correlates with success (75.0\% vs.\ 34.9\%). This indicates that \glsxtrshort{SEAL} primarily operates through indirect identification, generating contextual n-grams that describe the semantic neighborhood of the answer rather than the answer itself. While this approach can succeed when context is distinctive, it fails when multiple passages share similar contextual vocabulary but differ in their specific answers. %TODO rethink this to be sure, I am not sure I am correct. Re-analyze if "answer string presence" is related to answer success through contextual/neighbor/synonyms
+
+\paragraph{Annotation Artifacts in Evaluation}
+The LLM-as-a-judge analysis reveals that 48.8\% of cases where the answer appears in a non-ground-truth passage represent genuine retrieval successes (Table~\ref{tab:llm-judge-results}). Adjusting for these annotation artifacts increases \glsxtrshort{SEAL}'s estimated top-2 recall from 52.4\% to 55.6\%--57.2\%. This finding has implications for interpreting retrieval benchmarks more broadly, as incomplete ground-truth annotations systematically penalize systems that find valid alternative evidence.
+
+\subsection{Scope and Limitations}
+
+Three important caveats apply to this analysis:
+
+First, the observable failure modes are not mutually exclusive. The classification framework should permit multi-label assignment.
+
+Second, the analysis is specific to \glsxtrshort{SEAL}'s n-gram-based architecture. The availability of matched n-gram keys with corpus frequencies provides interpretability not present in other \glsxtrshort{gr} systems. Any findings may not generalize to systems using different identifier designs (e.g., hierarchical cluster paths in DSI, or title-based identifiers in GENRE).
+
+Third, as shown in Table~\ref{tab:answer-passage-mismatch}, 6.5\% of queries (426 cases) have the answer string in a different passage than the annotated ground truth. Whether these represent genuine retrieval successes or coincidental string matches requires manual verification.
+
+
+Additionally, it is worth noting that the empirical analysis is conducted on the \glsxtrlong{nq} dataset, which focuses on open-domain question answering tasks. Failure patterns identified on this dataset may not fully generalize to other \glsxtrshort{ir} scenarios that present different challenges and query characteristics. The findings are primarily applicable to question-answering retrieval scenarios.
+
+The analysis is based on \glsxtrshort{SEAL} model outputs and literature available as of late 2025/early 2026. As generative retrieval is a rapidly evolving field, new failure modes or mitigation strategies may emerge beyond those captured in this work.
+
+
+\subsection{Generalizability} %of method and findings
+
+\textbf{TODO}
+
+\section{Conclusion} % incl future work
+
+\textbf{TODO}
+
+\section*{AI Use Disclosure}
+Some portions of code for this thesis were generated with the assistance of \textit{Claude by Antropic} and \textit{ChatGPT by OpenAI} large language models. All AI-generated code was reviewed, edited, and verified by the author.
