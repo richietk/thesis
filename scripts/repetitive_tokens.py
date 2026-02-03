@@ -5,6 +5,12 @@ from collections import Counter
 from scipy.stats import spearmanr
 import sys
 
+def strip_ngram_markers(ngram: str, datapath: str) -> str:
+    """Strip pseudoquery markers from ngrams if using Minder data."""
+    if "minder_output.json" in datapath:
+        ngram = ngram.replace(" ||", "").strip()
+    return ngram
+
 def parse_ngrams(keys_str):
     if not keys_str:
         return []
@@ -38,7 +44,7 @@ def analyze_repetitive_generation(datapath="data/seal_output.json"):
             if not ngrams:
                 continue
 
-            all_ngram_text = ' '.join([ng[0] for ng in ngrams])
+            all_ngram_text = ' '.join([strip_ngram_markers(ng[0], datapath) for ng in ngrams])
             all_tokens = all_ngram_text.split()
             if not all_tokens:
                 continue

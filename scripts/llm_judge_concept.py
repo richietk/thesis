@@ -14,7 +14,8 @@ import csv
 import random
 import time
 import os
-import cohere 
+import re
+import cohere
 
 # ================= CONFIGURATION =================
 OUTPUT_VERIFICATION = "generated_data/results_verification_hybrid.csv"
@@ -29,7 +30,22 @@ SAMPLE_SIZE_FAILURES = 30
 
 co = cohere.ClientV2(API_KEY)
 
-def parse_keys_and_get_top(keys_field, top_n=10):
+def strip_pseudoqueries(text: str, datapath: str) -> str:
+    """Strip pseudoquery markers from text if using Minder data."""
+    if "minder_output.json" in datapath:
+        # Remove || ... @@ patterns
+        text = re.sub(r'\|\|[^@]*@@', '', text)
+    return text
+
+
+def strip_ngram_markers(ngram: str, datapath: str) -> str:
+    """Strip pseudoquery markers from ngrams if using Minder data."""
+    if "minder_output.json" in datapath:
+        ngram = ngram.replace(" ||", "").strip()
+    return ngram
+
+
+def parse_keys_and_get_top(keys_field, top_n=10, datapath=""):
     try:
         if isinstance(keys_field, str):
             keys_list = json.loads(keys_field)
@@ -40,7 +56,8 @@ def parse_keys_and_get_top(keys_field, top_n=10):
         top_keys = valid_keys[:top_n]
         formatted = []
         for k in top_keys:
-            formatted.append(f'"{k[0]}" (Score: {k[2]:.1f}, Freq: {k[1]})')
+            ngram_clean = strip_ngram_markers(k[0], datapath)
+            formatted.append(f'"{ngram_clean}" (Score: {k[2]:.1f}, Freq: {k[1]})')
         return "\n".join(formatted)
     except:
         return "Error parsing keys"
@@ -168,6 +185,7 @@ def main(datapath="data/seal_output.json"):
         found_text = ""
         for c in top_k:
             txt = c.get('text', '') + ' ' + c.get('title', '')
+            txt = strip_pseudoqueries(txt, datapath)
             if any(a.lower().strip() in txt.lower() for a in answers):
                 ans_in_top_k = True
                 found_text = txt
@@ -226,29 +244,29 @@ def main(datapath="data/seal_output.json"):
             
             # [A] Wrong Passage (Rank 1)
             wrong_doc = case['ctxs'][0]
-            wrong_text = wrong_doc.get('title', '') + ": " + wrong_doc.get('text', '')
-            
+            wrong_text = wrong_doc.get('title', '') + ": " + strip_pseudoqueries(wrong_doc.get('text', ''), datapath)
+
             # [B] Correct Passage
             gt_idx = case.get('gt_found_index', -1)
-            
+
             scenario = "UNRECOVERABLE (NN)"
             correct_text = ""
-            
-            if gt_idx > 0: 
+
+            if gt_idx > 0:
                 # RECOVERABLE (NP): The correct doc IS in the list (e.g. Rank 2)
                 scenario = f"RECOVERABLE (Rank {gt_idx+1})"
                 correct_doc = case['ctxs'][gt_idx]
-                correct_text = correct_doc.get('title', '') + ": " + correct_doc.get('text', '')
+                correct_text = correct_doc.get('title', '') + ": " + strip_pseudoqueries(correct_doc.get('text', ''), datapath)
             else:
                 # UNRECOVERABLE (NN): Correct doc NOT in list. Use Dataset GT.
                 if case.get('positive_ctxs'):
                     p = case['positive_ctxs'][0]
-                    correct_text = p.get('title', '') + ": " + p.get('text', '')
+                    correct_text = p.get('title', '') + ": " + strip_pseudoqueries(p.get('text', ''), datapath)
                 else:
                     correct_text = "No Ground Truth Text Available."
 
             # Get Top Keys from Rank 1 (Why did this win?)
-            top_keys_str = parse_keys_and_get_top(wrong_doc.get('keys', []), top_n=8)
+            top_keys_str = parse_keys_and_get_top(wrong_doc.get('keys', []), top_n=8, datapath=datapath)
             
             sys, user = get_class_prompts(
                 case['question'],

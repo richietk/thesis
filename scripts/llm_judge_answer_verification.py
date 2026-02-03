@@ -14,6 +14,7 @@ import json
 import os
 import time
 import ijson
+import re
 
 # ================= CONFIGURATION =================
 INPUT_CSV = "generated_data/answer_location_analysis.csv"
@@ -98,15 +99,25 @@ def load_json_data_stream(json_path: str):
     return json_index
 
 
+def strip_pseudoqueries(text: str, datapath: str) -> str:
+    """Strip pseudoquery markers from text if using Minder data."""
+    if "minder_output.json" in datapath:
+        # Remove || ... @@ patterns
+        text = re.sub(r'\|\|[^@]*@@', '', text)
+    return text
+
+
 # Change the function to check the whole list
-def find_answer_passage(entry: dict, answers: list, top_k: int = 2) -> tuple:
+def find_answer_passage(entry: dict, answers: list, top_k: int = 2, datapath: str = "") -> tuple:
     """Find the first passage containing ANY of the answer strings."""
     for ctx in entry.get('ctxs', [])[:top_k]:
         # Concatenate Title and Text
         passage_text = ctx.get('text', '') + ' ' + ctx.get('title', '')
+        # Strip pseudoqueries if Minder data
+        passage_text = strip_pseudoqueries(passage_text, datapath)
         # Normalize exactly like the analysis script
         normalized_passage = passage_text.lower().strip()
-        
+
         for ans in answers:
             # Normalize the answer string
             if ans.lower().strip() in normalized_passage:
@@ -158,8 +169,8 @@ def main(datapath="data/seal_output.json"):
                 continue
 
             # SEARCH USING THE FULL LIST
-            title, text = find_answer_passage(entry, answers, top_k=2)
-            
+            title, text = find_answer_passage(entry, answers, top_k=2, datapath=datapath)
+
             if not text:
                 # If it still fails, it's likely a Duplicate Question overwrite issue
                 print(f"  [{i+1}] Warning: Still could not find answer for: {question[:30]}")

@@ -4,6 +4,12 @@ import pandas as pd
 from pathlib import Path
 import sys
 
+def strip_ngram_markers(ngram: str, datapath: str) -> str:
+    """Strip pseudoquery markers from ngrams if using Minder data."""
+    if "minder_output.json" in datapath:
+        ngram = ngram.replace(" ||", "").strip()
+    return ngram
+
 def parse_ngrams(keys_str):
     if not keys_str:
         return []
@@ -41,7 +47,7 @@ def analyze_answer_coverage(datapath="data/seal_output.json"):
             if not ngrams:
                 continue
 
-            ngram_text = ' '.join([ng[0].lower() for ng in ngrams])
+            ngram_text = ' '.join([strip_ngram_markers(ng[0], datapath).lower() for ng in ngrams])
             answer_in_ngrams = any(ans.lower() in ngram_text for ans in answers)
 
             results.append({

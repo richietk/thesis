@@ -10,6 +10,15 @@ Inspect 'Answer in Different Passage' Cases (Full Text)
 import json
 import csv
 import os
+import re
+
+def strip_pseudoqueries(text: str, datapath: str) -> str:
+    """Strip pseudoquery markers from text if using Minder data."""
+    if "minder_output.json" in datapath:
+        # Remove || ... @@ patterns
+        text = re.sub(r'\|\|[^@]*@@', '', text)
+    return text
+
 
 def load_target_questions(csv_path):
     """
@@ -33,14 +42,14 @@ def load_target_questions(csv_path):
     print(f"Found {len(target_questions)} queries categorized as 'answer_in_different_passage'.")
     return target_questions
 
-def display_comparison(entry, index, total):
+def display_comparison(entry, index, total, datapath=""):
     """Prints the comparison for a single entry with FULL TEXT."""
     print("=" * 80)
     print(f"CASE {index}/{total}")
     print(f"QUESTION: {entry.get('question')}")
     print(f"ANSWERS: {entry.get('answers')}")
     print("-" * 80)
-    
+
     # 1. Show Ground Truth (Annotated Passage)
     print("GROUND TRUTH (Annotated Passage):")
     positive_ctxs = entry.get('positive_ctxs', [])
@@ -48,9 +57,9 @@ def display_comparison(entry, index, total):
         print("  [No Ground Truth provided in dataset]")
     else:
         # Show annotated ground truths (usually 1, but sometimes list)
-        for i, ctx in enumerate(positive_ctxs): 
+        for i, ctx in enumerate(positive_ctxs):
             title = ctx.get('title', 'N/A')
-            text = ctx.get('text', '')
+            text = strip_pseudoqueries(ctx.get('text', ''), datapath)
             pid = ctx.get('passage_id', 'N/A')
             print(f"  [GT #{i+1}] ID: {pid} | Title: {title}")
             print(f"  Text: {text}") # Printing FULL text
@@ -66,10 +75,10 @@ def display_comparison(entry, index, total):
     else:
         for i, ctx in enumerate(retrieved_ctxs[:2]): # Limit to Top 2
             title = ctx.get('title', 'N/A')
-            text = ctx.get('text', '')
+            text = strip_pseudoqueries(ctx.get('text', ''), datapath)
             score = ctx.get('score', 'N/A')
             pid = ctx.get('passage_id', 'N/A')
-            
+
             print(f"  [Rank {i+1}] ID: {pid} | Score: {score} | Title: {title}")
             print(f"  Text: {text}") # Printing FULL text
             print()
@@ -111,7 +120,7 @@ def main(datapath="data/seal_output.json"):
         
         if q_text in target_questions:
             matches_found += 1
-            display_comparison(entry, matches_found, total_targets)
+            display_comparison(entry, matches_found, total_targets, datapath)
 
     print(f"Done. Displayed {matches_found} cases.")
 

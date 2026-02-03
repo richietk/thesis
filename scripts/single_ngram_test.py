@@ -2,6 +2,12 @@ import ijson
 import ast
 import sys
 
+def strip_ngram_markers(ngram: str, datapath: str) -> str:
+    """Strip pseudoquery markers from ngrams if using Minder data."""
+    if "minder_output.json" in datapath:
+        ngram = ngram.replace(" ||", "").strip()
+    return ngram
+
 def main(datapath='data/seal_output.json'):
     records = []
 

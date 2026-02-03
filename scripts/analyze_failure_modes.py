@@ -48,6 +48,13 @@ def load_data(path: str) -> List[Dict]:
     return data
 
 
+def strip_ngram_markers(ngram: str, datapath: str) -> str:
+    """Strip pseudoquery markers from ngrams if using Minder data."""
+    if "minder_output.json" in datapath:
+        ngram = ngram.replace(" ||", "").strip()
+    return ngram
+
+
 def parse_ngrams(keys_str: str) -> List[Tuple[str, int, float]]:
     """
     Parse n-gram keys from string format.
@@ -69,7 +76,7 @@ def parse_ngrams(keys_str: str) -> List[Tuple[str, int, float]]:
 # Failure Mode 1: Repetitive Generation
 # ============================================================================
 
-def analyze_repetitive_generation(data: List[Dict]) -> pd.DataFrame:
+def analyze_repetitive_generation(data: List[Dict], datapath: str = "") -> pd.DataFrame:
     """
     Analyze semantic redundancy in generated n-grams.
 
@@ -104,7 +111,7 @@ def analyze_repetitive_generation(data: List[Dict]) -> pd.DataFrame:
             continue
 
         # Extract all tokens from all n-grams
-        all_ngram_text = ' '.join([ng[0] for ng in ngrams])
+        all_ngram_text = ' '.join([strip_ngram_markers(ng[0], datapath) for ng in ngrams])
         all_tokens = all_ngram_text.split()
 
         if len(all_tokens) == 0:
@@ -250,7 +257,7 @@ def analyze_additive_scoring_bias(data: List[Dict]) -> pd.DataFrame:
 # Failure Mode 3: Query-N-gram Overlap
 # ============================================================================
 
-def analyze_query_ngram_overlap(data: List[Dict]) -> pd.DataFrame:
+def analyze_query_ngram_overlap(data: List[Dict], datapath: str = "") -> pd.DataFrame:
     """
     Analyze lexical overlap between query and generated n-grams.
 
@@ -286,7 +293,7 @@ def analyze_query_ngram_overlap(data: List[Dict]) -> pd.DataFrame:
             continue
 
         # Extract tokens from n-grams
-        ngram_text = ' '.join([ng[0].lower() for ng in ngrams])
+        ngram_text = ' '.join([strip_ngram_markers(ng[0], datapath).lower() for ng in ngrams])
         ngram_tokens = set(ngram_text.split())
 
         # Calculate overlap
@@ -333,7 +340,7 @@ def analyze_query_ngram_overlap(data: List[Dict]) -> pd.DataFrame:
 # Failure Mode 4: Answer Coverage
 # ============================================================================
 
-def analyze_answer_coverage(data: List[Dict]) -> pd.DataFrame:
+def analyze_answer_coverage(data: List[Dict], datapath: str = "") -> pd.DataFrame:
     """
     Analyze whether answer string appears in generated n-grams.
 
@@ -371,7 +378,7 @@ def analyze_answer_coverage(data: List[Dict]) -> pd.DataFrame:
             continue
 
         # Check if any answer appears in any n-gram
-        ngram_text = ' '.join([ng[0].lower() for ng in ngrams])
+        ngram_text = ' '.join([strip_ngram_markers(ng[0], datapath).lower() for ng in ngrams])
 
         answer_in_ngrams = any(ans.lower() in ngram_text for ans in answers)
 
@@ -825,10 +832,10 @@ def main(datapath="data/seal_output.json"):
     # Run analyses
     print("\nRunning failure mode analyses...\n")
 
-    repetitive_df = analyze_repetitive_generation(data)
+    repetitive_df = analyze_repetitive_generation(data, datapath)
     scoring_bias_df = analyze_additive_scoring_bias(data)
-    query_overlap_df = analyze_query_ngram_overlap(data)
-    answer_coverage_df = analyze_answer_coverage(data)
+    query_overlap_df = analyze_query_ngram_overlap(data, datapath)
+    answer_coverage_df = analyze_answer_coverage(data, datapath)
     scoring_failure_df = analyze_scoring_failure(data)
     frequency_df = analyze_ngram_frequency(data)
 

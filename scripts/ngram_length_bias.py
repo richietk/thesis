@@ -7,6 +7,13 @@ import sys
 import matplotlib.pyplot as plt
 
 
+def strip_ngram_markers(ngram: str, datapath: str) -> str:
+    """Strip pseudoquery markers from ngrams if using Minder data."""
+    if "minder_output.json" in datapath:
+        ngram = ngram.replace(" ||", "").strip()
+    return ngram
+
+
 def parse_ngrams(keys_str):
     """Parse n-gram keys from string format."""
     import ast
@@ -42,7 +49,7 @@ def analyze_ngram_length_bias(datapath="data/seal_output.json"):
             if not ngrams:
                 continue
 
-            lengths = [len(ngram.strip().split()) for ngram, _, _ in ngrams]
+            lengths = [len(strip_ngram_markers(ngram, datapath).strip().split()) for ngram, _, _ in ngrams]
             unigram_frac = sum(1 for l in lengths if l == 1) / len(lengths)
             avg_length = np.mean(lengths)
 

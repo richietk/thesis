@@ -144,8 +144,8 @@ def main(datapath="data/seal_output.json"):
             total += 1
             if total % 1000 == 0:
                 print(f"  Processed {total} queries...")
-            
-            result = analyze_retrieval_outcome(entry, top_k=top_k)
+
+            result = analyze_retrieval_outcome(entry, top_k=top_k, datapath=file_path)
             outcome_counts[result['outcome']] += 1
             
             csv_row = result.copy()

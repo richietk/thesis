@@ -23,6 +23,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from collections import defaultdict
 import sys
+import re
 
 # Fix Unicode encoding issues for Windows console
 if sys.platform == 'win32':
@@ -34,10 +35,20 @@ if sys.platform == 'win32':
 
 OUTPUT_DIR = "generated_data/length_bias_analysis"
 
+
+def strip_pseudoqueries(text: str, datapath: str) -> str:
+    """Strip pseudoquery markers from text if using Minder data."""
+    if "minder_output.json" in datapath:
+        # Remove || ... @@ patterns
+        text = re.sub(r'\|\|[^@]*@@', '', text)
+    return text
+
+
 # Tokenization: Use whitespace splitting (close approximation to BART tokens)
 # For 100-word passages, word count ≈ BPE token count within ~10% margin
-def get_token_count(text):
+def get_token_count(text, datapath=""):
     """Approximate BART token count using whitespace splitting."""
+    text = strip_pseudoqueries(text, datapath)
     return len(text.split())
 
 # ============================================================================
@@ -53,7 +64,7 @@ def load_seal_output(path):
     return data
 
 
-def extract_analysis_data(seal_data):
+def extract_analysis_data(seal_data, datapath=""):
     """
     Extract data for empirical analysis of length bias.
 
@@ -88,7 +99,7 @@ def extract_analysis_data(seal_data):
             score = ctx.get('score', 0.0)
 
             # Passage length (approximate BART token count)
-            passage_length = get_token_count(text)
+            passage_length = get_token_count(text, datapath)
 
             # N-gram key analysis
             keys_str = ctx.get('keys', '')
@@ -638,7 +649,7 @@ def main(datapath="data/seal_output.json"):
     seal_data = load_seal_output(datapath)
 
     # Extract analysis data
-    df = extract_analysis_data(seal_data)
+    df = extract_analysis_data(seal_data, datapath)
 
     # Run analyses
     print("\nRunning analyses...")

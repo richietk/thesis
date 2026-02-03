@@ -7,6 +7,14 @@ import csv
 from typing import Dict, List, Set, Any, Tuple
 
 
+def strip_ngram_markers(ngram: str, datapath: str) -> str:
+    """Strip pseudoquery markers from ngrams if using Minder data."""
+    if "minder_output.json" in datapath:
+        # Remove " ||" prefix from ngrams
+        ngram = ngram.replace(" ||", "").strip()
+    return ngram
+
+
 def parse_keys_field(keys_field: Any) -> List:
     """
     Parse the keys field
@@ -64,7 +72,7 @@ def get_scores_list(id_set: Set[int], source_map: Dict[int, List[float]]) -> Lis
     return scores
 
 
-def extract_ngram_examples(query_data: Dict, top_k: int = 10) -> Dict:
+def extract_ngram_examples(query_data: Dict, top_k: int = 10, datapath: str = "") -> Dict:
     """
     Extracts detailed n-gram examples for a query, including the actual n-gram strings.
     Returns dict with lists of (ngram_string, corpus_freq, score) tuples for each category.
@@ -93,7 +101,7 @@ def extract_ngram_examples(query_data: Dict, top_k: int = 10) -> Dict:
             if len(item) < 3:
                 continue
 
-            ngram_string = item[0]  # The actual n-gram text
+            ngram_string = strip_ngram_markers(item[0], datapath)  # The actual n-gram text
             ngram_id = item[1]      # Corpus frequency (used as ID)
             score = item[2]         # Score
 
@@ -200,14 +208,14 @@ def find_query_by_substring(data: List[Dict], substring: str) -> Dict:
     return None
 
 
-def analyze_query_sets(query_data: Dict, top_k: int = 10) -> Dict:
+def analyze_query_sets(query_data: Dict, top_k: int = 10, datapath: str = "") -> Dict:
     """
     Analyzes the n-gram keys for a single query.
     query_data: a single entry
     top_k: Number of retrieved documents to consider
     returns a dictionary containing the statistics
     """
-    
+
     # 1. identify the positives
     gold_ids = set()
     if 'positive_ctxs' in query_data:
@@ -420,7 +428,7 @@ def main(datapath="data/seal_output.json"):
         if i > 0 and i % 1000 == 0:
             print(f"  Processing query {i}...")
 
-        result = analyze_query_sets(entry, top_k=TOP_K)
+        result = analyze_query_sets(entry, top_k=TOP_K, datapath=INPUT_FILE)
         all_results.append(result)
 
     print(f"Analysis complete. Processed {len(all_results)} queries.")
@@ -458,7 +466,7 @@ def main(datapath="data/seal_output.json"):
         for query_substring in example_queries:
             query_entry = find_query_by_substring(data, query_substring)
             if query_entry:
-                examples = extract_ngram_examples(query_entry, top_k=TOP_K)
+                examples = extract_ngram_examples(query_entry, top_k=TOP_K, datapath=INPUT_FILE)
                 print_ngram_examples(examples, max_examples=15)
             else:
                 print(f"\nQuery not found: '{query_substring}'")

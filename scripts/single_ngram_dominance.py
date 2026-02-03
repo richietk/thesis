@@ -4,6 +4,12 @@ import pandas as pd
 from scipy.stats import spearmanr
 import sys
 
+def strip_ngram_markers(ngram: str, datapath: str) -> str:
+    """Strip pseudoquery markers from ngrams if using Minder data."""
+    if "minder_output.json" in datapath:
+        ngram = ngram.replace(" ||", "").strip()
+    return ngram
+
 def parse_ngrams(keys_str):
     if not keys_str:
         return []
@@ -100,4 +106,5 @@ def analyze_single_ngram_dominance(datapath="data/seal_output.json"):
 
 
 if __name__ == "__main__":
-    analyze_single_ngram_dominance()
+    datapath = sys.argv[1] if len(sys.argv) > 1 else 'data/seal_output.json'
+    analyze_single_ngram_dominance(datapath)

@@ -8,6 +8,12 @@ from scipy.stats import spearmanr
 import sys
 
 
+def strip_ngram_markers(ngram: str, datapath: str) -> str:
+    """Strip pseudoquery markers from ngrams if using Minder data."""
+    if "minder_output.json" in datapath:
+        ngram = ngram.replace(" ||", "").strip()
+    return ngram
+
 def parse_ngrams(keys_str):
     if not keys_str:
         return []
@@ -96,4 +102,5 @@ def analyze_ngram_frequency(datapath="data/seal_output.json"):
     print(f"\nSpearman correlation (top-5 freq vs top-1 success): ρ={corr:.3f}, p={p_val:.4e}")
 
 if __name__ == "__main__":
-    analyze_ngram_frequency()
+    datapath = sys.argv[1] if len(sys.argv) > 1 else 'data/seal_output.json'
+    analyze_ngram_frequency(datapath)

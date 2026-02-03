@@ -5,6 +5,12 @@ import pandas as pd
 from scipy.stats import spearmanr
 import sys
 
+def strip_ngram_markers(ngram: str, datapath: str) -> str:
+    """Strip pseudoquery markers from ngrams if using Minder data."""
+    if "minder_output.json" in datapath:
+        ngram = ngram.replace(" ||", "").strip()
+    return ngram
+
 def parse_ngrams(keys_str):
     """Parse n-gram keys from string format."""
     if not keys_str:
@@ -47,7 +53,7 @@ def analyze_query_ngram_overlap_topk(datapath="data/seal_output.json"):
                 for ctx in passages:
                     all_ngrams.extend(parse_ngrams(ctx.get('keys', '')))
 
-                ngram_text = ' '.join([ng[0].lower() for ng in all_ngrams])
+                ngram_text = ' '.join([strip_ngram_markers(ng[0], datapath).lower() for ng in all_ngrams])
                 ngram_tokens = set(ngram_text.split())
 
                 intersection = query_tokens & ngram_tokens
