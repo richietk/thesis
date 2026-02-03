@@ -77,10 +77,10 @@ def display_comparison(entry, index, total):
     print("=" * 80)
     print("\n")
 
-def main():
-    json_path = "data/seal_output.json"
+def main(datapath="data/seal_output.json"):
+    json_path = datapath
     csv_path = "generated_data/answer_location_analysis.csv"
-    
+
     # 1. Load targets
     target_questions = load_target_questions(csv_path)
     
@@ -116,4 +116,6 @@ def main():
     print(f"Done. Displayed {matches_found} cases.")
 
 if __name__ == "__main__":
-    main()
+    import sys
+    datapath = sys.argv[1] if len(sys.argv) > 1 else "data/seal_output.json"
+    main(datapath)

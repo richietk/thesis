@@ -17,7 +17,6 @@ import ijson
 
 # ================= CONFIGURATION =================
 INPUT_CSV = "generated_data/answer_location_analysis.csv"
-INPUT_JSON = "data/seal_output.json"
 OUTPUT_CSV = "generated_data/llm_judge_results.csv"
 
 API_KEY = os.environ["ANTHROPIC_API_KEY"]
@@ -115,13 +114,13 @@ def find_answer_passage(entry: dict, answers: list, top_k: int = 2) -> tuple:
     return None, None
 
 
-def main():
+def main(datapath="data/seal_output.json"):
     if not os.path.exists(INPUT_CSV):
         print(f"Error: {INPUT_CSV} not found. Run answer_location_analysis.py first.")
         return
 
     # Load the full JSON for passage text
-    json_data = load_json_data_stream(INPUT_JSON)
+    json_data = load_json_data_stream(datapath)
 
     # Load CSV and filter for "answer_in_different_passage" cases
     cases_to_verify = []

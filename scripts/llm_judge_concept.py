@@ -17,7 +17,6 @@ import os
 import cohere 
 
 # ================= CONFIGURATION =================
-INPUT_JSON = "data/seal_output.json"
 OUTPUT_VERIFICATION = "generated_data/results_verification_hybrid.csv"
 OUTPUT_CLASSIFICATION = "generated_data/results_failure_classification_hybrid.csv"
 
@@ -136,14 +135,14 @@ def get_ground_truth_ids(entry):
             ids.add(str(ctx.get('passage_id', '')).split('...')[0])
     return ids
 
-def main():
+def main(datapath="data/seal_output.json"):
     print(f"--- STARTING HYBRID ANALYSIS ---")
-    
-    if not os.path.exists(INPUT_JSON):
+
+    if not os.path.exists(datapath):
         print("File not found.")
         return
 
-    with open(INPUT_JSON, 'r', encoding="utf-8") as f:
+    with open(datapath, 'r', encoding="utf-8") as f:
         data = json.load(f)
     
     artifact_cases = []

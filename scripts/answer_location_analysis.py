@@ -15,8 +15,17 @@ Categories:
 
 import ijson
 import os
+import re
 from collections import defaultdict
 import csv
+
+
+def strip_pseudoqueries(text, datapath):
+    """Strip pseudoquery markers from text if using Minder data."""
+    if "minder_output.json" in datapath:
+        # Remove || ... @@ patterns
+        text = re.sub(r'\|\|[^@]*@@', '', text)
+    return text
 
 
 def normalize_text(text):
@@ -38,10 +47,10 @@ def get_ground_truth_ids(query_data):
     return gold_ids
 
 
-def analyze_retrieval_outcome(query_data, top_k=10):
+def analyze_retrieval_outcome(query_data, top_k=10, datapath=""):
     """
     Analyze a single query's retrieval outcome.
-    
+
     Returns dict with:
     - question: the query
     - answers: list of acceptable answers
@@ -51,12 +60,12 @@ def analyze_retrieval_outcome(query_data, top_k=10):
     - answer_found_at_rank: first rank where answer appears (or -1)
     - gt_found_at_rank: first rank where ground-truth appears (or -1)
     """
-    
+
     question = query_data.get('question', '')
     answers = query_data.get('answers', [])
     gold_ids = get_ground_truth_ids(query_data)
     retrieved = query_data.get('ctxs', [])[:top_k]
-    
+
     # Check for ground-truth passage in top-k
     gt_found_at_rank = -1
     for rank, ctx in enumerate(retrieved, 1):
@@ -64,20 +73,21 @@ def analyze_retrieval_outcome(query_data, top_k=10):
         if pid in gold_ids:
             gt_found_at_rank = rank
             break
-    
+
     gt_in_topk = gt_found_at_rank > 0
-    
+
     # Check for answer string in top-k passages
     answer_found_at_rank = -1
     for rank, ctx in enumerate(retrieved, 1):
         passage_text = ctx.get('text', '') + ' ' + ctx.get('title', '')
+        passage_text = strip_pseudoqueries(passage_text, datapath)
         for ans in answers:
             if answer_in_text(ans, passage_text):
                 answer_found_at_rank = rank
                 break
         if answer_found_at_rank > 0:
             break
-    
+
     answer_in_topk = answer_found_at_rank > 0
     
     # Classify outcome
@@ -99,8 +109,8 @@ def analyze_retrieval_outcome(query_data, top_k=10):
     }
 
 
-def main():
-    file_path = "data/seal_output.json"
+def main(datapath="data/seal_output.json"):
+    file_path = datapath
     output_csv = "generated_data/answer_location_analysis.csv"
     diff_passage_csv = "generated_data/answer_in_different_passage.csv"
     top_k = 2

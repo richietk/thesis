@@ -7,8 +7,6 @@ import sys
 import matplotlib.pyplot as plt
 
 
-DATA_PATH = "data/seal_output.json"
-
 def parse_ngrams(keys_str):
     """Parse n-gram keys from string format."""
     import ast
@@ -20,7 +18,7 @@ def parse_ngrams(keys_str):
     except:
         return []
 
-def analyze_ngram_length_bias():
+def analyze_ngram_length_bias(datapath="data/seal_output.json"):
     """Analyze over-generation of unigrams vs multi-grams with bins and deciles."""
     print("\n" + "="*80)
     print("ANALYSIS: N-GRAM LENGTH BIAS")
@@ -28,7 +26,7 @@ def analyze_ngram_length_bias():
 
     results = []
 
-    with open(DATA_PATH, 'r', encoding='utf-8') as f:
+    with open(datapath, 'r', encoding='utf-8') as f:
         for entry in ijson.items(f, 'item'):
             query = entry['question']
 

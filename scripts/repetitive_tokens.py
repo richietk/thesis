@@ -5,8 +5,6 @@ from collections import Counter
 from scipy.stats import spearmanr
 import sys
 
-DATA_PATH = "data/seal_output.json"
-
 def parse_ngrams(keys_str):
     if not keys_str:
         return []
@@ -16,7 +14,7 @@ def parse_ngrams(keys_str):
     except:
         return []
 
-def analyze_repetitive_generation():
+def analyze_repetitive_generation(datapath="data/seal_output.json"):
     """Analyze token diversity in generated n-grams."""
     print("\n" + "="*80)
     print("ANALYSIS 5: REPETITIVE GENERATION")
@@ -24,7 +22,7 @@ def analyze_repetitive_generation():
 
     results = []
 
-    with open(DATA_PATH, 'r', encoding='utf-8') as f:
+    with open(datapath, 'r', encoding='utf-8') as f:
         for entry in ijson.items(f, 'item'):
             query = entry['question']
 

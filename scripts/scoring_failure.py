@@ -5,8 +5,6 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import sys
 
-DATA_PATH = "data/seal_output.json"
-
 # Fix Unicode encoding for Windows
 if sys.platform == 'win32':
     sys.stdout.reconfigure(encoding='utf-8')
@@ -20,7 +18,7 @@ def parse_ngrams(keys_str):
     except:
         return []
 
-def analyze_scoring_failure(output_dir="generated_data"):
+def analyze_scoring_failure(datapath="data/seal_output.json", output_dir="generated_data"):
     output_dir = Path(output_dir)
     output_dir.mkdir(exist_ok=True)
 
@@ -30,7 +28,7 @@ def analyze_scoring_failure(output_dir="generated_data"):
 
     results = []
 
-    with open(DATA_PATH, 'r', encoding='utf-8') as f:
+    with open(datapath, 'r', encoding='utf-8') as f:
         for entry in ijson.items(f, 'item'):
             query = entry['question']
             positive_ids = {ctx['passage_id'] for ctx in entry.get('positive_ctxs', [])}

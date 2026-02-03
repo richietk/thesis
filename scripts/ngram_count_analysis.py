@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import ast
 import os
 
-DATA_PATH = "data/seal_output.json"
 OUTPUT_DIR = "generated_data"
 
 def parse_ngrams(keys_str):
@@ -16,14 +15,14 @@ def parse_ngrams(keys_str):
         return ast.literal_eval(keys_str)
     except: return []
 
-def analyze_ngram_distribution():
+def analyze_ngram_distribution(datapath="data/seal_output.json"):
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
 
     results = []
 
-    print(f"Loading {DATA_PATH}...")
-    with open(DATA_PATH, 'r', encoding='utf-8') as f:
+    print(f"Loading {datapath}...")
+    with open(datapath, 'r', encoding='utf-8') as f:
         for entry in ijson.items(f, 'item'):
             top_ctx = entry['ctxs'][0] if entry.get('ctxs') else None
             if not top_ctx: continue

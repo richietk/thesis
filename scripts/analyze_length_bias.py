@@ -32,7 +32,6 @@ if sys.platform == 'win32':
 # Configuration
 # ============================================================================
 
-SEAL_OUTPUT_PATH = "data/seal_output.json"
 OUTPUT_DIR = "generated_data/length_bias_analysis"
 
 # Tokenization: Use whitespace splitting (close approximation to BART tokens)
@@ -525,7 +524,7 @@ def analyze_retrieval_quality_by_length(df, output_dir):
 # Summary Report
 # ============================================================================
 
-def generate_summary_report(df, corr_df, output_dir):
+def generate_summary_report(df, corr_df, output_dir, datapath):
     """Generate comprehensive summary report."""
     report_path = f'{output_dir}/SUMMARY_REPORT.txt'
 
@@ -544,7 +543,7 @@ def generate_summary_report(df, corr_df, output_dir):
         f.write("SEAL Document Length Bias Analysis - Summary Report\n")
         f.write("="*80 + "\n\n")
 
-        f.write(f"Dataset: {SEAL_OUTPUT_PATH}\n")
+        f.write(f"Dataset: {datapath}\n")
         f.write(f"Total queries: {df['query_id'].nunique()}\n")
         f.write(f"Total passages analyzed: {len(df)}\n")
         f.write(f"Corpus: Natural Questions (~21M passages of 100 words each)\n\n")
@@ -627,7 +626,7 @@ def generate_summary_report(df, corr_df, output_dir):
 # Main Execution
 # ============================================================================
 
-def main():
+def main(datapath="data/seal_output.json"):
     """Run all analyses."""
 
     # Create output directory
@@ -636,7 +635,7 @@ def main():
     print(f"\nOutput directory: {output_dir}\n")
 
     # Load data
-    seal_data = load_seal_output(SEAL_OUTPUT_PATH)
+    seal_data = load_seal_output(datapath)
 
     # Extract analysis data
     df = extract_analysis_data(seal_data)
@@ -650,7 +649,7 @@ def main():
     analyze_retrieval_quality_by_length(df, output_dir)
 
     # Generate summary
-    generate_summary_report(df, corr_df, output_dir)
+    generate_summary_report(df, corr_df, output_dir, datapath)
 
     # Save processed data
     df.to_csv(f'{output_dir}/processed_data.csv', index=False, encoding='utf-8')

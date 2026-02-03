@@ -4,8 +4,6 @@ import pandas as pd
 from pathlib import Path
 import sys
 
-DATA_PATH = "data/seal_output.json"
-
 def parse_ngrams(keys_str):
     if not keys_str:
         return []
@@ -15,7 +13,7 @@ def parse_ngrams(keys_str):
     except:
         return []
 
-def analyze_answer_coverage():
+def analyze_answer_coverage(datapath="data/seal_output.json"):
     """Analyze whether answer string appears in generated n-grams."""
     print("\n" + "="*80)
     print("ANALYSIS 4: ANSWER COVERAGE")
@@ -23,7 +21,7 @@ def analyze_answer_coverage():
 
     results = []
 
-    with open(DATA_PATH, 'r', encoding='utf-8') as f:
+    with open(datapath, 'r', encoding='utf-8') as f:
         for entry in ijson.items(f, 'item'):
             query = entry['question']
             answers = entry.get('answers', [])

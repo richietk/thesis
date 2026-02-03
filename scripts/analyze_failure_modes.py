@@ -33,7 +33,6 @@ if sys.platform == 'win32':
 # Configuration
 # ============================================================================
 
-DATA_PATH = "data/seal_output.json"
 OUTPUT_DIR = "generated_data"
 
 # ============================================================================
@@ -707,7 +706,8 @@ def generate_summary_report(
     answer_coverage_df: pd.DataFrame,
     scoring_failure_df: pd.DataFrame,
     frequency_df: pd.DataFrame,
-    output_dir: Path
+    output_dir: Path,
+    datapath: str
 ):
     """Generate comprehensive summary report."""
 
@@ -718,7 +718,7 @@ def generate_summary_report(
         f.write("SEAL FAILURE MODE ANALYSIS - SUMMARY REPORT\n")
         f.write("="*80 + "\n\n")
 
-        f.write(f"Dataset: {DATA_PATH}\n")
+        f.write(f"Dataset: {datapath}\n")
         f.write(f"Total queries analyzed: {len(repetitive_df)}\n\n")
 
         f.write("-"*80 + "\n")
@@ -811,7 +811,7 @@ def generate_summary_report(
 # Main Execution
 # ============================================================================
 
-def main():
+def main(datapath="data/seal_output.json"):
     """Run all failure mode analyses."""
 
     # Create output directory
@@ -820,7 +820,7 @@ def main():
     print(f"Output directory: {output_dir}\n")
 
     # Load data
-    data = load_data(DATA_PATH)
+    data = load_data(datapath)
 
     # Run analyses
     print("\nRunning failure mode analyses...\n")
@@ -851,7 +851,8 @@ def main():
         answer_coverage_df,
         scoring_failure_df,
         frequency_df,
-        output_dir
+        output_dir,
+        datapath
     )
 
     # Save DataFrames

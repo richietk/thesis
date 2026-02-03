@@ -5,8 +5,6 @@ import pandas as pd
 from scipy.stats import spearmanr
 import sys
 
-DATA_PATH = "data/seal_output.json"
-
 def parse_ngrams(keys_str):
     """Parse n-gram keys from string format."""
     if not keys_str:
@@ -17,7 +15,7 @@ def parse_ngrams(keys_str):
     except:
         return []
 
-def analyze_query_ngram_overlap_topk():
+def analyze_query_ngram_overlap_topk(datapath="data/seal_output.json"):
     """Analyze lexical overlap between query and generated n-grams for top-1, top-2, and top-10."""
     print("\n" + "="*80)
     print("ANALYSIS 3: QUERY-N-GRAM OVERLAP (TOP-K)")
@@ -25,7 +23,7 @@ def analyze_query_ngram_overlap_topk():
 
     results = []
 
-    with open(DATA_PATH, 'r', encoding='utf-8') as f:
+    with open(datapath, 'r', encoding='utf-8') as f:
         for entry in ijson.items(f, 'item'):
             query = entry['question']
             query_tokens = set(query.lower().split())

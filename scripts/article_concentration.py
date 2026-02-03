@@ -2,9 +2,7 @@ import ijson
 from collections import Counter
 import pandas as pd
 
-DATA_PATH = 'data/seal_output.json'  # adjust as needed
-
-def analyze_article_diversity():
+def analyze_article_diversity(datapath='data/seal_output.json'):
     """Exploratory analysis: how many unique article titles appear in top-10 passages."""
     print("\n" + "="*80)
     print("ANALYSIS 6: ARTICLE-LEVEL DIVERSITY (EXPLORATORY)")
@@ -12,7 +10,7 @@ def analyze_article_diversity():
 
     results = []
 
-    with open(DATA_PATH, 'r', encoding='utf-8') as f:
+    with open(datapath, 'r', encoding='utf-8') as f:
         for entry in ijson.items(f, 'item'):
             query = entry['question']
 

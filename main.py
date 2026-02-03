@@ -1,89 +1,162 @@
 """
-SEAL Failure Analysis Pipeline
-==============================
-Runs all analysis scripts in logical order.
+SEAL Thesis Analysis Pipeline - Master Script
 
-Input: data/seal_output.json (6,515 queries with SEAL retrieval results)
+This script runs all analysis code for the thesis in sequence.
+Each analysis module is executed independently with error handling.
+
+The pipeline analyzes both SEAL and MINDER output files:
+    - data/seal_output.json
+    - data/minder_output.json
+
+Usage:
+    python main.py
+
+All analyses are run on both data files automatically.
 """
 
-import subprocess
 import sys
-import os
+from pathlib import Path
+import traceback
+from datetime import datetime
 
-def run(script, description):
-    """Run a script with a description."""
-    print(f"\n{'='*60}")
-    print(f"RUNNING: {script}")
-    print(f"PURPOSE: {description}")
-    print('='*60)
-    
-    if not os.path.exists(script):
-        print(f"ERROR: {script} not found, skipping...")
-        return
-    
-    subprocess.run([sys.executable, script])
+OUTPUT_DIR = Path("generated_data")
+OUTPUT_DIR.mkdir(exist_ok=True)
+
+ANALYSIS_MODULES = [
+    ("answer_location_analysis", "Answer Location Analysis"),
+    ("example_those_in_diff_psg", "Answer in Different Passage - Full Text Examples"),
+    ("seal_analysis_prelim", "Preliminary SEAL Analysis with N-gram Examples"),
+    ("ngram_count_analysis", "N-gram Count Distribution Analysis"),
+    ("single_ngram_dominance", "Single N-gram Dominance Analysis"),
+    ("single_ngram_test", "Single N-gram Dominance vs Success Rate Test"),
+    ("ngram_length_bias", "N-gram Length Bias Analysis"),
+    ("ngram_length_test", "Unigram Fraction vs Success Rate Test"),
+    ("nonspecific_highfreq_ngrams", "N-gram Frequency Analysis"),
+    ("query_n_gram_overlap", "Query-N-gram Overlap Analysis"),
+    ("answer_coverage", "Answer Coverage in N-grams"),
+    ("repetitive_tokens", "Token Diversity Analysis"),
+    ("article_concentration", "Article Diversity Analysis"),
+    ("scoring_failure", "Scoring Failure Analysis"),
+    ("analyze_length_bias", "Document Length Bias Analysis"),
+    ("analyze_failure_modes", "Comprehensive Failure Mode Analysis"),
+    ("llm_judge_answer_verification", "LLM Judge: Answer Verification"),
+    ("llm_judge_concept", "LLM Judge: Failure Classification"),
+]
+
+
+def run_analysis(module_name, description, datapath):
+    print(f"Running: {description}")
+    try:
+        module = __import__(f'scripts.{module_name}', fromlist=[module_name])
+        if hasattr(module, 'main'):
+            module.main(datapath)
+        else:
+            print(f"Warning: No main() function found in {module_name}")
+        print(f"Completed: {description}")
+        return True
+    except Exception as e:
+        print(f"FAILED: {description}")
+        print(f"Error: {str(e)}")
+        traceback.print_exc()
+        return False
 
 
 def main():
-    # Check data exists
-    if not os.path.exists("data/seal_output.json"):
-        print("ERROR: data/seal_output.json not found")
-        sys.exit(1)
-    
-    print("="*60)
-    print("SEAL FAILURE ANALYSIS PIPELINE")
-    print("="*60)
-    
-    # Step 1: Understand the data structure
-    run("print_out_json_structure.py", 
-        "Shows the structure of the JSON data")
-    
-    # Step 2: See sample entries
-    run("sample_output.py", 
-        "Prints sample entries to understand the data format")
-    
-    # Step 3: Verify passage chunking (100-word chunks)
-    run("verify_passage_length.py", 
-        "Confirms passages are 100-word chunks (not truncated)")
-    
-    # Step 4: Core analysis - PP/PN/NP/NN classification
-    run("seal_analysis_v1.py", 
-        "Classifies queries by retrieval outcome and computes n-gram statistics")
-    # Output: seal_unified_analysis.csv
-    
-    # Step 5: Answer location analysis
-    run("answer_location_analysis.py", 
-        "Categorizes: GT found (76.1%) / answer elsewhere (5.7%) / not found (18.2%)")
-    # Output: answer_location_analysis.csv
-    
-    # Step 6: Find specific example queries (Paul, Gorsuch, etc.)
-    run("find_specific_queries.py", 
-        "Finds and displays specific queries for thesis examples")
-    
-    # Step 7: Examine 'answer in different passage' cases
-    run("examine_answer_in_diff_psg.py", 
-        "Shows full comparison for the 369 ambiguous cases")
-    
-    # Step 8: LLM-as-a-judge classification (requires API key)
-    print(f"\n{'='*60}")
-    print("SKIPPING: llm_judge_concept.py")
-    print("PURPOSE: LLM classification of failures (requires Cohere API key)")
-    print("Run manually: python llm_judge_concept.py")
-    print('='*60)
-    
-    # Done
-    print(f"\n{'='*60}")
-    print("PIPELINE COMPLETE")
-    print("="*60)
-    print("""
-Outputs:
-  - generated_data/seal_unified_analysis.csv      : N-gram statistics per query
-  - generated_data/answer_location_analysis.csv   : Answer location classification
+    start_time = datetime.now()
 
-Run manually if needed:
-  - python llm_judge_concept.py    : LLM failure classification (needs API)
-""")
+    data_files = [
+        "data/seal_output.json",
+        "data/minder_output.json"
+    ]
+
+    print("\nSEAL THESIS ANALYSIS PIPELINE")
+    print(f"Start Time: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Output Directory: {OUTPUT_DIR.absolute()}")
+    print(f"Total Analyses: {len(ANALYSIS_MODULES)}")
+    print(f"Data Files: {', '.join(data_files)}\n")
+
+    for datapath in data_files:
+        data_file = Path(datapath)
+        if not data_file.exists():
+            print(f"ERROR: Data file not found at {data_file}")
+            print("Please ensure the output data is available.")
+            sys.exit(1)
+        print(f"Data file found: {data_file}")
+
+    all_results = {}
+
+    for datapath in data_files:
+        print(f"\nANALYZING: {datapath}\n")
+
+        results = {
+            'success': [],
+            'failed': [],
+            'skipped': []
+        }
+
+        for i, (module_name, description) in enumerate(ANALYSIS_MODULES, 1):
+            print(f"\nAnalysis {i}/{len(ANALYSIS_MODULES)}: {description}")
+
+            module_file = Path(f"scripts/{module_name}.py")
+            if not module_file.exists():
+                print(f"Skipping: Module file not found: {module_file}")
+                results['skipped'].append((module_name, description))
+                continue
+
+            success = run_analysis(module_name, description, datapath)
+
+            if success:
+                results['success'].append((module_name, description))
+            else:
+                results['failed'].append((module_name, description))
+
+        all_results[datapath] = results
+
+    end_time = datetime.now()
+    duration = end_time - start_time
+
+    print("\nPIPELINE COMPLETE")
+    print(f"End Time: {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Duration: {duration}")
+
+    total_success = sum(len(all_results[df]['success']) for df in all_results)
+    total_failed = sum(len(all_results[df]['failed']) for df in all_results)
+    total_skipped = sum(len(all_results[df]['skipped']) for df in all_results)
+
+    print(f"\nOverall Results Summary:")
+    print(f"Successful: {total_success}")
+    print(f"Failed: {total_failed}")
+    print(f"Skipped: {total_skipped}")
+
+    for datapath, results in all_results.items():
+        print(f"\n{datapath}:")
+        print(f"Successful: {len(results['success'])}")
+        print(f"Failed: {len(results['failed'])}")
+        print(f"Skipped: {len(results['skipped'])}")
+
+        if results['failed']:
+            print("Failed Analyses:")
+            for module_name, description in results['failed']:
+                print(f"  {description}")
+
+    print(f"\nAll results saved to: {OUTPUT_DIR.absolute()}")
+
+    if total_failed > 0:
+        print(f"\nWarning: {total_failed} analyses failed. Please review the errors above.")
+        sys.exit(1)
+    else:
+        print("\nAll analyses completed successfully!")
+        sys.exit(0)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nPipeline interrupted by user (Ctrl+C)")
+        sys.exit(130)
+    except Exception as e:
+        print(f"\nUnexpected error in pipeline:")
+        print(f"{str(e)}")
+        traceback.print_exc()
+        sys.exit(1)

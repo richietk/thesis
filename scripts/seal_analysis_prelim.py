@@ -403,29 +403,28 @@ def load_data(file_path: str) -> List[Dict]:
     return data
 
 
-if __name__ == "__main__":
-
-    INPUT_FILE = "data/seal_output.json"
+def main(datapath="data/seal_output.json"):
+    INPUT_FILE = datapath
     OUTPUT_CSV = "generated_data/seal_unified_analysis.csv"
     TOP_K = 10
-    
+
     all_results = []
-    
+
     if os.path.exists(INPUT_FILE):
         data = load_data(INPUT_FILE)
     else:
         raise Exception
-    
+
     print(f"\nAnalyzing {len(data)} queries (top_k={TOP_K})...")
     for i, entry in enumerate(data):
         if i > 0 and i % 1000 == 0:
             print(f"  Processing query {i}...")
-        
+
         result = analyze_query_sets(entry, top_k=TOP_K)
         all_results.append(result)
-    
+
     print(f"Analysis complete. Processed {len(all_results)} queries.")
-    
+
     if all_results:
         save_results_to_csv(all_results, OUTPUT_CSV)
 
@@ -463,3 +462,7 @@ if __name__ == "__main__":
                 print_ngram_examples(examples, max_examples=15)
             else:
                 print(f"\nQuery not found: '{query_substring}'")
+
+
+if __name__ == "__main__":
+    main()
