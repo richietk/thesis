@@ -17,8 +17,7 @@ import ijson
 import re
 
 # ================= CONFIGURATION =================
-INPUT_CSV = "generated_data/answer_location_analysis.csv"
-OUTPUT_CSV = "generated_data/llm_judge_results.csv"
+# Note: INPUT_CSV and OUTPUT_CSV are now set dynamically in main() based on datapath
 
 API_KEY = os.environ["ANTHROPIC_API_KEY"]
 MODEL = "claude-sonnet-4-5-20250929"
@@ -107,6 +106,16 @@ def strip_pseudoqueries(text: str, datapath: str) -> str:
     return text
 
 
+def get_dataset_name(datapath: str) -> str:
+    """Extract dataset name (seal or minder) from datapath."""
+    if "minder" in datapath.lower():
+        return "minder"
+    elif "seal" in datapath.lower():
+        return "seal"
+    else:
+        return os.path.splitext(os.path.basename(datapath))[0]
+
+
 # Change the function to check the whole list
 def find_answer_passage(entry: dict, answers: list, top_k: int = 2, datapath: str = "") -> tuple:
     """Find the first passage containing ANY of the answer strings."""
@@ -126,6 +135,10 @@ def find_answer_passage(entry: dict, answers: list, top_k: int = 2, datapath: st
 
 
 def main(datapath="data/seal_output.json"):
+    dataset_name = get_dataset_name(datapath)
+    INPUT_CSV = f"generated_data/answer_location_analysis_{dataset_name}.csv"
+    OUTPUT_CSV = f"generated_data/llm_judge_results_{dataset_name}.csv"
+
     if not os.path.exists(INPUT_CSV):
         print(f"Error: {INPUT_CSV} not found. Run answer_location_analysis.py first.")
         return

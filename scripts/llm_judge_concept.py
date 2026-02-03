@@ -18,8 +18,7 @@ import re
 import cohere
 
 # ================= CONFIGURATION =================
-OUTPUT_VERIFICATION = "generated_data/results_verification_hybrid.csv"
-OUTPUT_CLASSIFICATION = "generated_data/results_failure_classification_hybrid.csv"
+# Note: OUTPUT paths are now set dynamically in main() based on datapath
 
 API_KEY = "vkNAU8NXHr5ozh9hq2v92JQWOemBpE4iwwAmFr8E" 
 MODEL_NAME = "command-a-03-2025"
@@ -43,6 +42,16 @@ def strip_ngram_markers(ngram: str, datapath: str) -> str:
     if "minder_output.json" in datapath:
         ngram = ngram.replace(" ||", "").strip()
     return ngram
+
+
+def get_dataset_name(datapath: str) -> str:
+    """Extract dataset name (seal or minder) from datapath."""
+    if "minder" in datapath.lower():
+        return "minder"
+    elif "seal" in datapath.lower():
+        return "seal"
+    else:
+        return os.path.splitext(os.path.basename(datapath))[0]
 
 
 def parse_keys_and_get_top(keys_field, top_n=10, datapath=""):
@@ -153,6 +162,10 @@ def get_ground_truth_ids(entry):
     return ids
 
 def main(datapath="data/seal_output.json"):
+    dataset_name = get_dataset_name(datapath)
+    OUTPUT_VERIFICATION = f"generated_data/results_verification_hybrid_{dataset_name}.csv"
+    OUTPUT_CLASSIFICATION = f"generated_data/results_failure_classification_hybrid_{dataset_name}.csv"
+
     print(f"--- STARTING HYBRID ANALYSIS ---")
 
     if not os.path.exists(datapath):

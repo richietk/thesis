@@ -15,6 +15,16 @@ def strip_ngram_markers(ngram: str, datapath: str) -> str:
     return ngram
 
 
+def get_dataset_name(datapath: str) -> str:
+    """Extract dataset name (seal or minder) from datapath."""
+    if "minder" in datapath.lower():
+        return "minder"
+    elif "seal" in datapath.lower():
+        return "seal"
+    else:
+        return os.path.splitext(os.path.basename(datapath))[0]
+
+
 def parse_keys_field(keys_field: Any) -> List:
     """
     Parse the keys field
@@ -413,7 +423,8 @@ def load_data(file_path: str) -> List[Dict]:
 
 def main(datapath="data/seal_output.json"):
     INPUT_FILE = datapath
-    OUTPUT_CSV = "generated_data/seal_unified_analysis.csv"
+    dataset_name = get_dataset_name(datapath)
+    OUTPUT_CSV = f"generated_data/seal_unified_analysis_{dataset_name}.csv"
     TOP_K = 10
 
     all_results = []

@@ -28,6 +28,16 @@ def strip_pseudoqueries(text, datapath):
     return text
 
 
+def get_dataset_name(datapath: str) -> str:
+    """Extract dataset name (seal or minder) from datapath."""
+    if "minder" in datapath.lower():
+        return "minder"
+    elif "seal" in datapath.lower():
+        return "seal"
+    else:
+        return os.path.splitext(os.path.basename(datapath))[0]
+
+
 def normalize_text(text):
     """Normalize text for matching: lowercase, strip whitespace."""
     return text.lower().strip()
@@ -111,8 +121,9 @@ def analyze_retrieval_outcome(query_data, top_k=10, datapath=""):
 
 def main(datapath="data/seal_output.json"):
     file_path = datapath
-    output_csv = "generated_data/answer_location_analysis.csv"
-    diff_passage_csv = "generated_data/answer_in_different_passage.csv"
+    dataset_name = get_dataset_name(datapath)
+    output_csv = f"generated_data/answer_location_analysis_{dataset_name}.csv"
+    diff_passage_csv = f"generated_data/answer_in_different_passage_{dataset_name}.csv"
     top_k = 2
     
     if not os.path.exists(file_path):

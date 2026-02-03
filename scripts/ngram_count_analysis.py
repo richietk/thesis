@@ -14,6 +14,16 @@ def strip_ngram_markers(ngram: str, datapath: str) -> str:
         ngram = ngram.replace(" ||", "").strip()
     return ngram
 
+def get_dataset_name(datapath: str) -> str:
+    """Extract dataset name (seal or minder) from datapath."""
+    if "minder" in datapath.lower():
+        return "minder"
+    elif "seal" in datapath.lower():
+        return "seal"
+    else:
+        import os
+        return os.path.splitext(os.path.basename(datapath))[0]
+
 def parse_ngrams(keys_str):
     if not keys_str: return []
     try:
@@ -25,6 +35,7 @@ def analyze_ngram_distribution(datapath="data/seal_output.json"):
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
 
+    dataset_name = get_dataset_name(datapath)
     results = []
 
     print(f"Loading {datapath}...")
@@ -123,8 +134,9 @@ def analyze_ngram_distribution(datapath="data/seal_output.json"):
     ax2.grid(axis='y', linestyle='--', alpha=0.7)
 
     plt.tight_layout()
-    plt.savefig(f"{OUTPUT_DIR}/ngram_distribution_analysis.png", dpi=300)
-    print(f"\nPlots saved to {OUTPUT_DIR}/ngram_distribution_analysis.png")
+    output_file = f"{OUTPUT_DIR}/ngram_distribution_analysis_{dataset_name}.png"
+    plt.savefig(output_file, dpi=300)
+    print(f"\nPlots saved to {output_file}")
     plt.show()
 
 if __name__ == "__main__":

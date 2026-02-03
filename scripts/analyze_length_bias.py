@@ -44,6 +44,17 @@ def strip_pseudoqueries(text: str, datapath: str) -> str:
     return text
 
 
+def get_dataset_name(datapath: str) -> str:
+    """Extract dataset name (seal or minder) from datapath."""
+    if "minder" in datapath.lower():
+        return "minder"
+    elif "seal" in datapath.lower():
+        return "seal"
+    else:
+        import os
+        return os.path.splitext(os.path.basename(datapath))[0]
+
+
 # Tokenization: Use whitespace splitting (close approximation to BART tokens)
 # For 100-word passages, word count ≈ BPE token count within ~10% margin
 def get_token_count(text, datapath=""):
@@ -156,7 +167,7 @@ def extract_analysis_data(seal_data, datapath=""):
 # Analysis 1: Length vs Rank Correlation
 # ============================================================================
 
-def analyze_length_rank_correlation(df, output_dir):
+def analyze_length_rank_correlation(df, output_dir, dataset_name="seal"):
     """
     Analyze correlation between passage length and retrieval rank.
 
@@ -246,8 +257,9 @@ def analyze_length_rank_correlation(df, output_dir):
         axes[1, 1].grid(alpha=0.3)
 
     plt.tight_layout()
-    plt.savefig(f'{output_dir}/01_length_rank_correlation.png', dpi=300, bbox_inches='tight')
-    print(f"\n  Saved: {output_dir}/01_length_rank_correlation.png")
+    output_file = f'{output_dir}/01_length_rank_correlation_{dataset_name}.png'
+    plt.savefig(output_file, dpi=300, bbox_inches='tight')
+    print(f"\n  Saved: {output_file}")
 
     return corr_df
 
@@ -256,7 +268,7 @@ def analyze_length_rank_correlation(df, output_dir):
 # Analysis 2: Length vs Score Correlation
 # ============================================================================
 
-def analyze_length_score_correlation(df, output_dir):
+def analyze_length_score_correlation(df, output_dir, dataset_name="seal"):
     """
     Analyze correlation between passage length and SEAL's aggregate score.
 
@@ -299,15 +311,16 @@ def analyze_length_score_correlation(df, output_dir):
     plt.suptitle('')
 
     plt.tight_layout()
-    plt.savefig(f'{output_dir}/02_length_score_correlation.png', dpi=300, bbox_inches='tight')
-    print(f"\n  Saved: {output_dir}/02_length_score_correlation.png")
+    output_file = f'{output_dir}/02_length_score_correlation_{dataset_name}.png'
+    plt.savefig(output_file, dpi=300, bbox_inches='tight')
+    print(f"\n  Saved: {output_file}")
 
 
 # ============================================================================
 # Analysis 3: Positive vs Negative Passage Lengths
 # ============================================================================
 
-def analyze_positive_vs_negative_lengths(df, output_dir):
+def analyze_positive_vs_negative_lengths(df, output_dir, dataset_name="seal"):
     """
     Compare passage lengths: ground truth (positive) vs retrieved (negative).
 
@@ -373,15 +386,16 @@ def analyze_positive_vs_negative_lengths(df, output_dir):
     axes[1].grid(alpha=0.3)
 
     plt.tight_layout()
-    plt.savefig(f'{output_dir}/03_positive_vs_negative_lengths.png', dpi=300, bbox_inches='tight')
-    print(f"\n  Saved: {output_dir}/03_positive_vs_negative_lengths.png")
+    output_file = f'{output_dir}/03_positive_vs_negative_lengths_{dataset_name}.png'
+    plt.savefig(output_file, dpi=300, bbox_inches='tight')
+    print(f"\n  Saved: {output_file}")
 
 
 # ============================================================================
 # Analysis 4: N-grams vs Length (Accumulation Effect)
 # ============================================================================
 
-def analyze_ngrams_vs_length(df, output_dir):
+def analyze_ngrams_vs_length(df, output_dir, dataset_name="seal"):
     """
     Analyze relationship between passage length and number of matched n-grams.
 
@@ -455,15 +469,16 @@ def analyze_ngrams_vs_length(df, output_dir):
     plt.colorbar(hb3, ax=axes[1, 1])
 
     plt.tight_layout()
-    plt.savefig(f'{output_dir}/04_ngrams_vs_length.png', dpi=300, bbox_inches='tight')
-    print(f"\n  Saved: {output_dir}/04_ngrams_vs_length.png")
+    output_file = f'{output_dir}/04_ngrams_vs_length_{dataset_name}.png'
+    plt.savefig(output_file, dpi=300, bbox_inches='tight')
+    print(f"\n  Saved: {output_file}")
 
 
 # ============================================================================
 # Analysis 5: Retrieval Quality by Length
 # ============================================================================
 
-def analyze_retrieval_quality_by_length(df, output_dir):
+def analyze_retrieval_quality_by_length(df, output_dir, dataset_name="seal"):
     """
     Analyze whether length affects retrieval precision.
 
@@ -527,17 +542,18 @@ def analyze_retrieval_quality_by_length(df, output_dir):
     ax.grid(alpha=0.3)
 
     plt.tight_layout()
-    plt.savefig(f'{output_dir}/05_precision_by_length.png', dpi=300, bbox_inches='tight')
-    print(f"\n  Saved: {output_dir}/05_precision_by_length.png")
+    output_file = f'{output_dir}/05_precision_by_length_{dataset_name}.png'
+    plt.savefig(output_file, dpi=300, bbox_inches='tight')
+    print(f"\n  Saved: {output_file}")
 
 
 # ============================================================================
 # Summary Report
 # ============================================================================
 
-def generate_summary_report(df, corr_df, output_dir, datapath):
+def generate_summary_report(df, corr_df, output_dir, datapath, dataset_name="seal"):
     """Generate comprehensive summary report."""
-    report_path = f'{output_dir}/SUMMARY_REPORT.txt'
+    report_path = f'{output_dir}/SUMMARY_REPORT_{dataset_name}.txt'
 
     # Calculate key metrics
     df_with_keys = df[df['num_keys'] > 0]
@@ -641,9 +657,11 @@ def main(datapath="data/seal_output.json"):
     """Run all analyses."""
 
     # Create output directory
+    dataset_name = get_dataset_name(datapath)
     output_dir = Path(OUTPUT_DIR)
     output_dir.mkdir(exist_ok=True)
     print(f"\nOutput directory: {output_dir}\n")
+    print(f"Dataset: {dataset_name}\n")
 
     # Load data
     seal_data = load_seal_output(datapath)
@@ -653,21 +671,23 @@ def main(datapath="data/seal_output.json"):
 
     # Run analyses
     print("\nRunning analyses...")
-    corr_df = analyze_length_rank_correlation(df, output_dir)
-    analyze_length_score_correlation(df, output_dir)
-    analyze_positive_vs_negative_lengths(df, output_dir)
-    analyze_ngrams_vs_length(df, output_dir)
-    analyze_retrieval_quality_by_length(df, output_dir)
+    corr_df = analyze_length_rank_correlation(df, output_dir, dataset_name)
+    analyze_length_score_correlation(df, output_dir, dataset_name)
+    analyze_positive_vs_negative_lengths(df, output_dir, dataset_name)
+    analyze_ngrams_vs_length(df, output_dir, dataset_name)
+    analyze_retrieval_quality_by_length(df, output_dir, dataset_name)
 
     # Generate summary
-    generate_summary_report(df, corr_df, output_dir, datapath)
+    generate_summary_report(df, corr_df, output_dir, datapath, dataset_name)
 
     # Save processed data
-    df.to_csv(f'{output_dir}/processed_data.csv', index=False, encoding='utf-8')
+    processed_file = f'{output_dir}/processed_data_{dataset_name}.csv'
+    correlations_file = f'{output_dir}/correlations_{dataset_name}.csv'
+    df.to_csv(processed_file, index=False, encoding='utf-8')
     if len(corr_df) > 0:
-        corr_df.to_csv(f'{output_dir}/correlations.csv', index=False, encoding='utf-8')
-    print(f"\n  Saved: {output_dir}/processed_data.csv")
-    print(f"  Saved: {output_dir}/correlations.csv")
+        corr_df.to_csv(correlations_file, index=False, encoding='utf-8')
+    print(f"\n  Saved: {processed_file}")
+    print(f"  Saved: {correlations_file}")
 
     print("\n" + "="*80)
     print("ANALYSIS COMPLETE")
@@ -679,4 +699,6 @@ def main(datapath="data/seal_output.json"):
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    datapath = sys.argv[1] if len(sys.argv) > 1 else 'data/seal_output.json'
+    main(datapath)

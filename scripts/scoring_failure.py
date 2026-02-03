@@ -9,6 +9,16 @@ import sys
 if sys.platform == 'win32':
     sys.stdout.reconfigure(encoding='utf-8')
 
+def get_dataset_name(datapath: str) -> str:
+    """Extract dataset name (seal or minder) from datapath."""
+    if "minder" in datapath.lower():
+        return "minder"
+    elif "seal" in datapath.lower():
+        return "seal"
+    else:
+        import os
+        return os.path.splitext(os.path.basename(datapath))[0]
+
 def parse_ngrams(keys_str):
     if not keys_str:
         return []
@@ -21,6 +31,8 @@ def parse_ngrams(keys_str):
 def analyze_scoring_failure(datapath="data/seal_output.json", output_dir="generated_data"):
     output_dir = Path(output_dir)
     output_dir.mkdir(exist_ok=True)
+
+    dataset_name = get_dataset_name(datapath)
 
     print("\n" + "="*80)
     print("ANALYSIS 2: SCORING FAILURE")
@@ -101,7 +113,7 @@ def analyze_scoring_failure(datapath="data/seal_output.json", output_dir="genera
         plt.ylabel("Relative Score Diff (Rank1 - GT) / Rank1")
         plt.xticks([1], ["Mis-ranked Queries"])
         plt.grid(True, axis='y', linestyle='--', alpha=0.6)
-        plt.savefig(output_dir / "score_diff_rel_boxplot.png", bbox_inches='tight')
+        plt.savefig(output_dir / f"score_diff_rel_boxplot_{dataset_name}.png", bbox_inches='tight')
         plt.close()
 
 
@@ -114,4 +126,5 @@ def analyze_scoring_failure(datapath="data/seal_output.json", output_dir="genera
         print(f"  Rank {rank}: {count} ({pct:.1f}%)")
 
 if __name__ == "__main__":
-    analyze_scoring_failure()
+    datapath = sys.argv[1] if len(sys.argv) > 1 else 'data/seal_output.json'
+    analyze_scoring_failure(datapath)

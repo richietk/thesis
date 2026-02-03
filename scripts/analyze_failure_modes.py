@@ -55,6 +55,17 @@ def strip_ngram_markers(ngram: str, datapath: str) -> str:
     return ngram
 
 
+def get_dataset_name(datapath: str) -> str:
+    """Extract dataset name (seal or minder) from datapath."""
+    if "minder" in datapath.lower():
+        return "minder"
+    elif "seal" in datapath.lower():
+        return "seal"
+    else:
+        import os
+        return os.path.splitext(os.path.basename(datapath))[0]
+
+
 def parse_ngrams(keys_str: str) -> List[Tuple[str, int, float]]:
     """
     Parse n-gram keys from string format.
@@ -611,7 +622,8 @@ def create_visualizations(
     answer_coverage_df: pd.DataFrame,
     scoring_failure_df: pd.DataFrame,
     frequency_df: pd.DataFrame,
-    output_dir: Path
+    output_dir: Path,
+    dataset_name: str = "seal"
 ):
     """Create comprehensive visualizations for all failure modes."""
 
@@ -698,8 +710,9 @@ def create_visualizations(
     ax.grid(alpha=0.3)
 
     plt.tight_layout()
-    plt.savefig(output_dir / 'failure_mode_analysis.png', dpi=300, bbox_inches='tight')
-    print(f"  Saved: {output_dir / 'failure_mode_analysis.png'}")
+    output_file = output_dir / f'failure_mode_analysis_{dataset_name}.png'
+    plt.savefig(output_file, dpi=300, bbox_inches='tight')
+    print(f"  Saved: {output_file}")
 
 
 # ============================================================================
@@ -714,11 +727,12 @@ def generate_summary_report(
     scoring_failure_df: pd.DataFrame,
     frequency_df: pd.DataFrame,
     output_dir: Path,
-    datapath: str
+    datapath: str,
+    dataset_name: str = "seal"
 ):
     """Generate comprehensive summary report."""
 
-    report_path = output_dir / 'FAILURE_MODE_SUMMARY.txt'
+    report_path = output_dir / f'FAILURE_MODE_SUMMARY_{dataset_name}.txt'
 
     with open(report_path, 'w', encoding='utf-8') as f:
         f.write("="*80 + "\n")
@@ -822,9 +836,11 @@ def main(datapath="data/seal_output.json"):
     """Run all failure mode analyses."""
 
     # Create output directory
+    dataset_name = get_dataset_name(datapath)
     output_dir = Path(OUTPUT_DIR)
     output_dir.mkdir(exist_ok=True)
     print(f"Output directory: {output_dir}\n")
+    print(f"Dataset: {dataset_name}\n")
 
     # Load data
     data = load_data(datapath)
@@ -847,7 +863,8 @@ def main(datapath="data/seal_output.json"):
         answer_coverage_df,
         scoring_failure_df,
         frequency_df,
-        output_dir
+        output_dir,
+        dataset_name
     )
 
     # Generate summary
@@ -859,16 +876,17 @@ def main(datapath="data/seal_output.json"):
         scoring_failure_df,
         frequency_df,
         output_dir,
-        datapath
+        datapath,
+        dataset_name
     )
 
     # Save DataFrames
-    repetitive_df.to_csv(output_dir / '01_repetitive_generation.csv', index=False)
-    scoring_bias_df.to_csv(output_dir / '02_additive_scoring_bias.csv', index=False)
-    query_overlap_df.to_csv(output_dir / '03_query_ngram_overlap.csv', index=False)
-    answer_coverage_df.to_csv(output_dir / '04_answer_coverage.csv', index=False)
-    scoring_failure_df.to_csv(output_dir / '05_scoring_failure.csv', index=False)
-    frequency_df.to_csv(output_dir / '06_ngram_frequency.csv', index=False)
+    repetitive_df.to_csv(output_dir / f'01_repetitive_generation_{dataset_name}.csv', index=False)
+    scoring_bias_df.to_csv(output_dir / f'02_additive_scoring_bias_{dataset_name}.csv', index=False)
+    query_overlap_df.to_csv(output_dir / f'03_query_ngram_overlap_{dataset_name}.csv', index=False)
+    answer_coverage_df.to_csv(output_dir / f'04_answer_coverage_{dataset_name}.csv', index=False)
+    scoring_failure_df.to_csv(output_dir / f'05_scoring_failure_{dataset_name}.csv', index=False)
+    frequency_df.to_csv(output_dir / f'06_ngram_frequency_{dataset_name}.csv', index=False)
 
     print("\n" + "="*80)
     print("ANALYSIS COMPLETE")
