@@ -87,40 +87,83 @@ def display_comparison(entry, index, total, datapath=""):
     print("\n")
 
 def main(datapath="data/seal_output.json"):
-    json_path = datapath
-    csv_path = "generated_data/answer_location_analysis.csv"
+    import sys
+    import re
 
-    # 1. Load targets
-    target_questions = load_target_questions(csv_path)
-    
-    if not target_questions:
-        print("No targets found. Check CSV path and column names.")
-        return
+    script_name = "example_those_in_diff_psg"
+    print(f"running {script_name}")
 
-    # 2. Stream JSON
-    if not os.path.exists(json_path):
-        print(f"Error: JSON file not found at {json_path}")
-        return
+    try:
+        # Determine dataset name
+        dataset_name = "seal"
+        if "minder" in datapath.lower():
+            dataset_name = "minder"
+        elif "seal" in datapath.lower():
+            dataset_name = "seal"
 
-    print(f"Streaming data from {json_path}...")
+        # Create output directory and log file
+        output_dir = f"generated_data/{dataset_name}"
+        os.makedirs(output_dir, exist_ok=True)
+        log_file = os.path.join(output_dir, f"{script_name}_log.txt")
 
-    # 3. Find matches and display
-    print("Finding matches...\n")
+        # Redirect stdout to log file
+        original_stdout = sys.stdout
+        sys.stdout = open(log_file, 'w', encoding='utf-8')
 
-    matches_found = 0
-    total_targets = len(target_questions)
+        json_path = datapath
+        csv_path = f"generated_data/{dataset_name}/answer_location_analysis_{dataset_name}.csv"
 
-    with open(json_path, "rb") as f:
-        parser = ijson.items(f, 'item')
+        # 1. Load targets
+        target_questions = load_target_questions(csv_path)
 
-        for entry in parser:
-            q_text = entry.get('question', '').strip()
+        if not target_questions:
+            print("No targets found. Check CSV path and column names.")
+            sys.stdout.close()
+            sys.stdout = original_stdout
+            print(f"error: running {script_name} No targets found")
+            return
 
-            if q_text in target_questions:
-                matches_found += 1
-                display_comparison(entry, matches_found, total_targets, datapath)
+        # 2. Stream JSON
+        if not os.path.exists(json_path):
+            print(f"Error: JSON file not found at {json_path}")
+            sys.stdout.close()
+            sys.stdout = original_stdout
+            print(f"error: running {script_name} JSON file not found")
+            return
 
-    print(f"Done. Displayed {matches_found} cases.")
+        print(f"Streaming data from {json_path}...")
+
+        # 3. Find matches and display
+        print("Finding matches...\n")
+
+        matches_found = 0
+        total_targets = len(target_questions)
+
+        with open(json_path, "rb") as f:
+            parser = ijson.items(f, 'item')
+
+            for entry in parser:
+                q_text = entry.get('question', '').strip()
+
+                if q_text in target_questions:
+                    matches_found += 1
+                    display_comparison(entry, matches_found, total_targets, datapath)
+
+        print(f"Done. Displayed {matches_found} cases.")
+
+        # Restore stdout
+        sys.stdout.close()
+        sys.stdout = original_stdout
+
+        print(f"success running {script_name}")
+
+    except Exception as e:
+        # Restore stdout in case of error
+        if sys.stdout != original_stdout:
+            sys.stdout.close()
+            sys.stdout = original_stdout
+        print(f"error: running {script_name} {e}")
+        raise
 
 if __name__ == "__main__":
     import sys

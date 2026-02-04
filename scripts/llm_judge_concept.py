@@ -164,156 +164,186 @@ def get_ground_truth_ids(entry):
     return ids
 
 def main(datapath="data/seal_output.json"):
-    dataset_name = get_dataset_name(datapath)
-    OUTPUT_VERIFICATION = f"generated_data/results_verification_hybrid_{dataset_name}.csv"
-    OUTPUT_CLASSIFICATION = f"generated_data/results_failure_classification_hybrid_{dataset_name}.csv"
+    import sys
 
-    print(f"--- STARTING HYBRID ANALYSIS ---")
+    script_name = "llm_judge_concept"
+    print(f"running {script_name}")
 
-    if not os.path.exists(datapath):
-        print("File not found.")
-        return
+    try:
+        dataset_name = get_dataset_name(datapath)
+        output_dir = f"generated_data/{dataset_name}"
+        os.makedirs(output_dir, exist_ok=True)
 
-    print(f"Streaming data from {datapath}...")
-    artifact_cases = []
-    failure_cases = []
+        OUTPUT_VERIFICATION = f"{output_dir}/results_verification_hybrid_{dataset_name}.csv"
+        OUTPUT_CLASSIFICATION = f"{output_dir}/results_failure_classification_hybrid_{dataset_name}.csv"
 
-    # 1. Prepare Data (streaming)
-    total = 0
-    with open(datapath, 'rb') as f:
-        parser = ijson.items(f, 'item')
+        # Redirect stdout to log file
+        log_file = os.path.join(output_dir, f"{script_name}_log.txt")
+        original_stdout = sys.stdout
+        sys.stdout = open(log_file, 'w', encoding='utf-8')
 
-        for entry in parser:
-            total += 1
-            if total % 1000 == 0:
-                print(f"  Processed {total} entries...")
-            gold_ids = get_ground_truth_ids(entry)
-            top_k = entry.get('ctxs', [])[:10]
+        print(f"--- STARTING HYBRID ANALYSIS ---")
 
-            # Check if GT is in Top 10
-            gt_found_idx = -1
-            for idx, ctx in enumerate(top_k):
-                if str(ctx.get('passage_id')) in gold_ids:
-                    gt_found_idx = idx
-                    break
+        if not os.path.exists(datapath):
+            sys.stdout.close()
+            sys.stdout = original_stdout
+            print(f"error: running {script_name} File not found")
+            return
 
-            gt_in_top_k = (gt_found_idx != -1)
+        print(f"Streaming data from {datapath}...")
+        artifact_cases = []
+        failure_cases = []
 
-            # Check answer string
-            ans_in_top_k = False
-            answers = entry.get('answers', [])
-            found_text = ""
-            for c in top_k:
-                txt = c.get('text', '') + ' ' + c.get('title', '')
-                txt = strip_pseudoqueries(txt, datapath)
-                if any(a.lower().strip() in txt.lower() for a in answers):
-                    ans_in_top_k = True
-                    found_text = txt
-                    break
+        # 1. Prepare Data (streaming)
+        total = 0
+        with open(datapath, 'rb') as f:
+            parser = ijson.items(f, 'item')
 
-            # EXP 1 Pool: Answer found, but NOT GT ID
-            if not gt_in_top_k and ans_in_top_k:
-                entry['eval_text'] = found_text
-                artifact_cases.append(entry)
+            for entry in parser:
+                total += 1
+                if total % 1000 == 0:
+                    print(f"  Processed {total} entries...")
+                gold_ids = get_ground_truth_ids(entry)
+                top_k = entry.get('ctxs', [])[:10]
 
-            # EXP 2 Pool: Rank 1 is NOT GT ID
-            if top_k and (gt_found_idx != 0): # Rank 1 (index 0) is not GT
-                entry['gt_found_index'] = gt_found_idx # Save where we found it (or -1)
-                failure_cases.append(entry)
+                # Check if GT is in Top 10
+                gt_found_idx = -1
+                for idx, ctx in enumerate(top_k):
+                    if str(ctx.get('passage_id')) in gold_ids:
+                        gt_found_idx = idx
+                        break
 
-    # 2. Sample
-    random.seed(42)
-    verify_sample = random.sample(artifact_cases, min(SAMPLE_SIZE_VERIFICATION, len(artifact_cases)))
-    class_sample = random.sample(failure_cases, min(SAMPLE_SIZE_FAILURES, len(failure_cases)))
-    
-    print(f"Sampled {len(verify_sample)} for Verification.")
-    print(f"Sampled {len(class_sample)} for Classification.")
+                gt_in_top_k = (gt_found_idx != -1)
 
-    # ---------------------------------------------------------
-    # EXP 1: VERIFICATION
-    # ---------------------------------------------------------
-    print("\n=== RUNNING EXP 1: VERIFICATION ===")
-    with open(OUTPUT_VERIFICATION, 'w', newline='', encoding='utf-8') as f:
-        writer = csv.DictWriter(f, fieldnames=['question', 'answers', 'verdict', 'raw_response'])
-        writer.writeheader()
-        
-        for i, case in enumerate(verify_sample):
-            print(f"Verifying {i+1}...")
-            sys, user = get_ver_prompts(case['question'], case['answers'], case['eval_text'])
-            resp = query_cohere(sys, user)
-            
-            verdict = "UNKNOWN"
-            if "VERDICT: YES" in resp.upper(): verdict = "YES"
-            elif "VERDICT: NO" in resp.upper(): verdict = "NO"
-            
-            writer.writerow({'question': case['question'], 'answers': case['answers'], 'verdict': verdict, 'raw_response': resp})
-            f.flush()
-            time.sleep(4)
+                # Check answer string
+                ans_in_top_k = False
+                answers = entry.get('answers', [])
+                found_text = ""
+                for c in top_k:
+                    txt = c.get('text', '') + ' ' + c.get('title', '')
+                    txt = strip_pseudoqueries(txt, datapath)
+                    if any(a.lower().strip() in txt.lower() for a in answers):
+                        ans_in_top_k = True
+                        found_text = txt
+                        break
 
-    # ---------------------------------------------------------
-    # EXP 2: CLASSIFICATION
-    # ---------------------------------------------------------
-    print("\n=== RUNNING EXP 2: CLASSIFICATION ===")
-    with open(OUTPUT_CLASSIFICATION, 'w', newline='', encoding='utf-8') as f:
-        # Added 'scenario' to output so you know if it was NP or NN
-        writer = csv.DictWriter(f, fieldnames=['question', 'scenario', 'failure_type', 'raw_response'])
-        writer.writeheader()
-        
-        for i, case in enumerate(class_sample):
-            print(f"Classifying {i+1}...")
-            
-            # [A] Wrong Passage (Rank 1)
-            wrong_doc = case['ctxs'][0]
-            wrong_text = wrong_doc.get('title', '') + ": " + strip_pseudoqueries(wrong_doc.get('text', ''), datapath)
+                # EXP 1 Pool: Answer found, but NOT GT ID
+                if not gt_in_top_k and ans_in_top_k:
+                    entry['eval_text'] = found_text
+                    artifact_cases.append(entry)
 
-            # [B] Correct Passage
-            gt_idx = case.get('gt_found_index', -1)
+                # EXP 2 Pool: Rank 1 is NOT GT ID
+                if top_k and (gt_found_idx != 0): # Rank 1 (index 0) is not GT
+                    entry['gt_found_index'] = gt_found_idx # Save where we found it (or -1)
+                    failure_cases.append(entry)
 
-            scenario = "UNRECOVERABLE (NN)"
-            correct_text = ""
+        # 2. Sample
+        random.seed(42)
+        verify_sample = random.sample(artifact_cases, min(SAMPLE_SIZE_VERIFICATION, len(artifact_cases)))
+        class_sample = random.sample(failure_cases, min(SAMPLE_SIZE_FAILURES, len(failure_cases)))
 
-            if gt_idx > 0:
-                # RECOVERABLE (NP): The correct doc IS in the list (e.g. Rank 2)
-                scenario = f"RECOVERABLE (Rank {gt_idx+1})"
-                correct_doc = case['ctxs'][gt_idx]
-                correct_text = correct_doc.get('title', '') + ": " + strip_pseudoqueries(correct_doc.get('text', ''), datapath)
-            else:
-                # UNRECOVERABLE (NN): Correct doc NOT in list. Use Dataset GT.
-                if case.get('positive_ctxs'):
-                    p = case['positive_ctxs'][0]
-                    correct_text = p.get('title', '') + ": " + strip_pseudoqueries(p.get('text', ''), datapath)
+        print(f"Sampled {len(verify_sample)} for Verification.")
+        print(f"Sampled {len(class_sample)} for Classification.")
+
+        # ---------------------------------------------------------
+        # EXP 1: VERIFICATION
+        # ---------------------------------------------------------
+        print("\n=== RUNNING EXP 1: VERIFICATION ===")
+        with open(OUTPUT_VERIFICATION, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=['question', 'answers', 'verdict', 'raw_response'])
+            writer.writeheader()
+
+            for i, case in enumerate(verify_sample):
+                print(f"Verifying {i+1}...")
+                sys_prompt, user = get_ver_prompts(case['question'], case['answers'], case['eval_text'])
+                resp = query_cohere(sys_prompt, user)
+
+                verdict = "UNKNOWN"
+                if "VERDICT: YES" in resp.upper(): verdict = "YES"
+                elif "VERDICT: NO" in resp.upper(): verdict = "NO"
+
+                writer.writerow({'question': case['question'], 'answers': case['answers'], 'verdict': verdict, 'raw_response': resp})
+                f.flush()
+                time.sleep(4)
+
+        # ---------------------------------------------------------
+        # EXP 2: CLASSIFICATION
+        # ---------------------------------------------------------
+        print("\n=== RUNNING EXP 2: CLASSIFICATION ===")
+        with open(OUTPUT_CLASSIFICATION, 'w', newline='', encoding='utf-8') as f:
+            # Added 'scenario' to output so you know if it was NP or NN
+            writer = csv.DictWriter(f, fieldnames=['question', 'scenario', 'failure_type', 'raw_response'])
+            writer.writeheader()
+
+            for i, case in enumerate(class_sample):
+                print(f"Classifying {i+1}...")
+
+                # [A] Wrong Passage (Rank 1)
+                wrong_doc = case['ctxs'][0]
+                wrong_text = wrong_doc.get('title', '') + ": " + strip_pseudoqueries(wrong_doc.get('text', ''), datapath)
+
+                # [B] Correct Passage
+                gt_idx = case.get('gt_found_index', -1)
+
+                scenario = "UNRECOVERABLE (NN)"
+                correct_text = ""
+
+                if gt_idx > 0:
+                    # RECOVERABLE (NP): The correct doc IS in the list (e.g. Rank 2)
+                    scenario = f"RECOVERABLE (Rank {gt_idx+1})"
+                    correct_doc = case['ctxs'][gt_idx]
+                    correct_text = correct_doc.get('title', '') + ": " + strip_pseudoqueries(correct_doc.get('text', ''), datapath)
                 else:
-                    correct_text = "No Ground Truth Text Available."
+                    # UNRECOVERABLE (NN): Correct doc NOT in list. Use Dataset GT.
+                    if case.get('positive_ctxs'):
+                        p = case['positive_ctxs'][0]
+                        correct_text = p.get('title', '') + ": " + strip_pseudoqueries(p.get('text', ''), datapath)
+                    else:
+                        correct_text = "No Ground Truth Text Available."
 
-            # Get Top Keys from Rank 1 (Why did this win?)
-            top_keys_str = parse_keys_and_get_top(wrong_doc.get('keys', []), top_n=8, datapath=datapath)
-            
-            sys, user = get_class_prompts(
-                case['question'],
-                case['answers'],
-                wrong_text,
-                correct_text,
-                top_keys_str,
-                "RECOVERABLE" if gt_idx > 0 else "UNRECOVERABLE"
-            )
-            
-            resp = query_cohere(sys, user)
-            
-            ftype = "OTHER"
-            if "TYPE:" in resp:
-                try: ftype = resp.split("TYPE:")[1].split()[0].strip()
-                except: pass
-            
-            writer.writerow({
-                'question': case['question'], 
-                'scenario': scenario,
-                'failure_type': ftype, 
-                'raw_response': resp
-            })
-            f.flush()
-            time.sleep(4)
+                # Get Top Keys from Rank 1 (Why did this win?)
+                top_keys_str = parse_keys_and_get_top(wrong_doc.get('keys', []), top_n=8, datapath=datapath)
 
-    print("\nDone.")
+                sys_prompt, user = get_class_prompts(
+                    case['question'],
+                    case['answers'],
+                    wrong_text,
+                    correct_text,
+                    top_keys_str,
+                    "RECOVERABLE" if gt_idx > 0 else "UNRECOVERABLE"
+                )
+
+                resp = query_cohere(sys_prompt, user)
+
+                ftype = "OTHER"
+                if "TYPE:" in resp:
+                    try: ftype = resp.split("TYPE:")[1].split()[0].strip()
+                    except: pass
+
+                writer.writerow({
+                    'question': case['question'],
+                    'scenario': scenario,
+                    'failure_type': ftype,
+                    'raw_response': resp
+                })
+                f.flush()
+                time.sleep(4)
+
+        print("\nDone.")
+
+        # Restore stdout
+        sys.stdout.close()
+        sys.stdout = original_stdout
+
+        print(f"success running {script_name}")
+
+    except Exception as e:
+        # Restore stdout in case of error
+        if sys.stdout != original_stdout:
+            sys.stdout.close()
+            sys.stdout = original_stdout
+        print(f"error: running {script_name} {e}")
+        raise
 
 if __name__ == "__main__":
     import sys

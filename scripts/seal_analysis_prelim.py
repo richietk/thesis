@@ -425,65 +425,95 @@ def find_query_by_substring_streaming(file_path: str, query_substring: str) -> D
 
 
 def main(datapath="data/seal_output.json"):
-    INPUT_FILE = datapath
-    dataset_name = get_dataset_name(datapath)
-    OUTPUT_CSV = f"generated_data/seal_unified_analysis_{dataset_name}.csv"
-    TOP_K = 10
+    import sys
 
-    all_results = []
+    script_name = "seal_analysis_prelim"
+    print(f"running {script_name}")
 
-    if not os.path.exists(INPUT_FILE):
-        raise Exception(f"File not found: {INPUT_FILE}")
+    try:
+        INPUT_FILE = datapath
+        dataset_name = get_dataset_name(datapath)
+        output_dir = f"generated_data/{dataset_name}"
+        os.makedirs(output_dir, exist_ok=True)
+        OUTPUT_CSV = f"{output_dir}/seal_unified_analysis_{dataset_name}.csv"
+        TOP_K = 10
 
-    print(f"\nStreaming and analyzing data (top_k={TOP_K})...")
-    i = 0
-    for entry in stream_data(INPUT_FILE):
-        i += 1
-        if i > 0 and i % 1000 == 0:
-            print(f"  Processing query {i}...")
+        # Redirect stdout to log file
+        log_file = os.path.join(output_dir, f"{script_name}_log.txt")
+        original_stdout = sys.stdout
+        sys.stdout = open(log_file, 'w', encoding='utf-8')
 
-        result = analyze_query_sets(entry, top_k=TOP_K, datapath=INPUT_FILE)
-        all_results.append(result)
+        all_results = []
 
-    print(f"Analysis complete. Processed {len(all_results)} queries.")
+        if not os.path.exists(INPUT_FILE):
+            sys.stdout.close()
+            sys.stdout = original_stdout
+            print(f"error: running {script_name} File not found: {INPUT_FILE}")
+            raise Exception(f"File not found: {INPUT_FILE}")
 
-    if all_results:
-        save_results_to_csv(all_results, OUTPUT_CSV)
+        print(f"\nStreaming and analyzing data (top_k={TOP_K})...")
+        i = 0
+        for entry in stream_data(INPUT_FILE):
+            i += 1
+            if i > 0 and i % 1000 == 0:
+                print(f"  Processing query {i}...")
 
-        print_global_summary(all_results)
-        print_category_summary(all_results)
+            result = analyze_query_sets(entry, top_k=TOP_K, datapath=INPUT_FILE)
+            all_results.append(result)
 
-        # sample output of first 3 queries
-        print("\n" + "=" * 80)
-        print("SAMPLE OUTPUT (First 3 queries)")
-        print("=" * 80)
-        for i, r in enumerate(all_results[:3]):
-            print(f"\n[{i+1}] {r['question'][:60]}...")
-            print(f"    Category: {r['category']}")
-            print(f"    Unique P: {r['count_unique_P']} keys (avg={r['avg_score_unique_P']:.2f}, sum={r['sum_score_unique_P']:.0f})")
-            print(f"    Unique N: {r['count_unique_N']} keys (avg={r['avg_score_unique_N']:.2f}, sum={r['sum_score_unique_N']:.0f})")
-            print(f"    Shared:   {r['count_shared']} keys (avgP={r['avg_score_shared_in_P']:.2f}, avgN={r['avg_score_shared_in_N']:.2f})")
+        print(f"Analysis complete. Processed {len(all_results)} queries.")
 
-        # ============================================================
-        # DETAILED N-GRAM EXAMPLES FOR SPECIFIC QUERIES
-        # ============================================================
-        print("\n\n" + "#" * 100)
-        print("# DETAILED N-GRAM EXAMPLES FOR SPECIFIC QUERIES")
-        print("#" * 100)
+        if all_results:
+            save_results_to_csv(all_results, OUTPUT_CSV)
 
-        # List of queries to examine in detail
-        example_queries = [
-            "who sings does he love me with reba",  # NN case from thesis
-            "when does the new my hero academia movie come out",  # Another example
-        ]
+            print_global_summary(all_results)
+            print_category_summary(all_results)
 
-        for query_substring in example_queries:
-            query_entry = find_query_by_substring_streaming(INPUT_FILE, query_substring)
-            if query_entry:
-                examples = extract_ngram_examples(query_entry, top_k=TOP_K, datapath=INPUT_FILE)
-                print_ngram_examples(examples, max_examples=15)
-            else:
-                print(f"\nQuery not found: '{query_substring}'")
+            # sample output of first 3 queries
+            print("\n" + "=" * 80)
+            print("SAMPLE OUTPUT (First 3 queries)")
+            print("=" * 80)
+            for i, r in enumerate(all_results[:3]):
+                print(f"\n[{i+1}] {r['question'][:60]}...")
+                print(f"    Category: {r['category']}")
+                print(f"    Unique P: {r['count_unique_P']} keys (avg={r['avg_score_unique_P']:.2f}, sum={r['sum_score_unique_P']:.0f})")
+                print(f"    Unique N: {r['count_unique_N']} keys (avg={r['avg_score_unique_N']:.2f}, sum={r['sum_score_unique_N']:.0f})")
+                print(f"    Shared:   {r['count_shared']} keys (avgP={r['avg_score_shared_in_P']:.2f}, avgN={r['avg_score_shared_in_N']:.2f})")
+
+            # ============================================================
+            # DETAILED N-GRAM EXAMPLES FOR SPECIFIC QUERIES
+            # ============================================================
+            print("\n\n" + "#" * 100)
+            print("# DETAILED N-GRAM EXAMPLES FOR SPECIFIC QUERIES")
+            print("#" * 100)
+
+            # List of queries to examine in detail
+            example_queries = [
+                "who sings does he love me with reba",  # NN case from thesis
+                "when does the new my hero academia movie come out",  # Another example
+            ]
+
+            for query_substring in example_queries:
+                query_entry = find_query_by_substring_streaming(INPUT_FILE, query_substring)
+                if query_entry:
+                    examples = extract_ngram_examples(query_entry, top_k=TOP_K, datapath=INPUT_FILE)
+                    print_ngram_examples(examples, max_examples=15)
+                else:
+                    print(f"\nQuery not found: '{query_substring}'")
+
+        # Restore stdout
+        sys.stdout.close()
+        sys.stdout = original_stdout
+
+        print(f"success running {script_name}")
+
+    except Exception as e:
+        # Restore stdout in case of error
+        if sys.stdout != original_stdout:
+            sys.stdout.close()
+            sys.stdout = original_stdout
+        print(f"error: running {script_name} {e}")
+        raise
 
 
 if __name__ == "__main__":

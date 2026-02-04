@@ -4,6 +4,16 @@ import pandas as pd
 from collections import Counter
 from scipy.stats import spearmanr
 import sys
+import os
+
+def get_dataset_name(datapath: str) -> str:
+    """Extract dataset name (seal or minder) from datapath."""
+    if "minder" in datapath.lower():
+        return "minder"
+    elif "seal" in datapath.lower():
+        return "seal"
+    else:
+        return os.path.splitext(os.path.basename(datapath))[0]
 
 def strip_ngram_markers(ngram: str, datapath: str) -> str:
     """Strip pseudoquery markers from ngrams if using Minder data."""
@@ -22,65 +32,93 @@ def parse_ngrams(keys_str):
 
 def analyze_repetitive_generation(datapath="data/seal_output.json"):
     """Analyze token diversity in generated n-grams."""
-    print("\n" + "="*80)
-    print("ANALYSIS 5: REPETITIVE GENERATION")
-    print("="*80)
+    script_name = "repetitive_tokens"
+    print(f"running {script_name}")
 
-    results = []
+    try:
+        dataset_name = get_dataset_name(datapath)
+        output_dir = f"generated_data/{dataset_name}"
+        os.makedirs(output_dir, exist_ok=True)
 
-    with open(datapath, 'r', encoding='utf-8') as f:
-        for entry in ijson.items(f, 'item'):
-            query = entry['question']
+        # Redirect stdout to log file
+        log_file = os.path.join(output_dir, f"{script_name}_log.txt")
+        original_stdout = sys.stdout
+        sys.stdout = open(log_file, 'w', encoding='utf-8')
 
-            positive_ids = {ctx['passage_id'] for ctx in entry.get('positive_ctxs', [])}
+        print("\n" + "="*80)
+        print("ANALYSIS 5: REPETITIVE GENERATION")
+        print("="*80)
 
-            top_ctx = entry.get('ctxs', [None])[0]
-            if not top_ctx:
-                continue
+        results = []
 
-            success = top_ctx['passage_id'] in positive_ids
+        with open(datapath, 'r', encoding='utf-8') as f:
+            for entry in ijson.items(f, 'item'):
+                query = entry['question']
 
-            ngrams = parse_ngrams(top_ctx.get('keys', ''))
-            if not ngrams:
-                continue
+                positive_ids = {ctx['passage_id'] for ctx in entry.get('positive_ctxs', [])}
 
-            all_ngram_text = ' '.join([strip_ngram_markers(ng[0], datapath) for ng in ngrams])
-            all_tokens = all_ngram_text.split()
-            if not all_tokens:
-                continue
+                top_ctx = entry.get('ctxs', [None])[0]
+                if not top_ctx:
+                    continue
 
-            unique_tokens = set(all_tokens)
-            diversity_ratio = len(unique_tokens) / len(all_tokens)
+                success = top_ctx['passage_id'] in positive_ids
 
-            token_counts = Counter(all_tokens)
-            max_repetition = max(token_counts.values()) if token_counts else 0
+                ngrams = parse_ngrams(top_ctx.get('keys', ''))
+                if not ngrams:
+                    continue
 
-            results.append({
-                'query': query,
-                'success': success,
-                'num_ngrams': len(ngrams),
-                'total_tokens': len(all_tokens),
-                'unique_tokens': len(unique_tokens),
-                'diversity_ratio': diversity_ratio,
-                'max_repetition': max_repetition
-            })
+                all_ngram_text = ' '.join([strip_ngram_markers(ng[0], datapath) for ng in ngrams])
+                all_tokens = all_ngram_text.split()
+                if not all_tokens:
+                    continue
 
-    df = pd.DataFrame(results)
+                unique_tokens = set(all_tokens)
+                diversity_ratio = len(unique_tokens) / len(all_tokens)
 
-    # Statistics by diversity
-    low_div = df[df['diversity_ratio'] < 0.70]
-    mid_div = df[(df['diversity_ratio'] >= 0.70) & (df['diversity_ratio'] < 0.85)]
-    high_div = df[df['diversity_ratio'] >= 0.85]
+                token_counts = Counter(all_tokens)
+                max_repetition = max(token_counts.values()) if token_counts else 0
 
-    print(f"\nAnalyzed {len(df)} queries")
-    print(f"Mean diversity: {df['diversity_ratio'].mean():.3f}")
-    print(f"\nSuccess Rate by Diversity:")
-    print(f"  Low (<0.70): {low_div['success'].mean():.2%} ({len(low_div)} queries)")
-    print(f"  Mid (0.70-0.85): {mid_div['success'].mean():.2%} ({len(mid_div)} queries)")
-    print(f"  High (>0.85): {high_div['success'].mean():.2%} ({len(high_div)} queries)")
+                results.append({
+                    'query': query,
+                    'success': success,
+                    'num_ngrams': len(ngrams),
+                    'total_tokens': len(all_tokens),
+                    'unique_tokens': len(unique_tokens),
+                    'diversity_ratio': diversity_ratio,
+                    'max_repetition': max_repetition
+                })
 
-    corr, p_val = spearmanr(df['diversity_ratio'], df['success'])
-    print(f"\nSpearman correlation: ρ = {corr:.3f}, p = {p_val:.4e}")
+        df = pd.DataFrame(results)
+
+        # Statistics by diversity
+        low_div = df[df['diversity_ratio'] < 0.70]
+        mid_div = df[(df['diversity_ratio'] >= 0.70) & (df['diversity_ratio'] < 0.85)]
+        high_div = df[df['diversity_ratio'] >= 0.85]
+
+        print(f"\nAnalyzed {len(df)} queries")
+        print(f"Mean diversity: {df['diversity_ratio'].mean():.3f}")
+        print(f"\nSuccess Rate by Diversity:")
+        print(f"  Low (<0.70): {low_div['success'].mean():.2%} ({len(low_div)} queries)")
+        print(f"  Mid (0.70-0.85): {mid_div['success'].mean():.2%} ({len(mid_div)} queries)")
+        print(f"  High (>0.85): {high_div['success'].mean():.2%} ({len(high_div)} queries)")
+
+        corr, p_val = spearmanr(df['diversity_ratio'], df['success'])
+        print(f"\nSpearman correlation: ρ = {corr:.3f}, p = {p_val:.4e}")
+
+        # Restore stdout
+        sys.stdout.close()
+        sys.stdout = original_stdout
+
+        print(f"success running {script_name}")
+
+    except Exception as e:
+        # Restore stdout in case of error
+        if sys.stdout != original_stdout:
+            sys.stdout.close()
+            sys.stdout = original_stdout
+        print(f"error: running {script_name} {e}")
+        raise
 
 if __name__ == "__main__":
-    analyze_repetitive_generation()
+    datapath = sys.argv[1] if len(sys.argv) > 1 else 'data/seal_output.json'
+    analyze_repetitive_generation(datapath)

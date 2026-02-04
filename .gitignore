@@ -28,3 +28,5 @@ notes.txt
 notes_to_self.md
 
 scripts/__pycache__/
+
+generated_data_old/

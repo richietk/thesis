@@ -33,7 +33,7 @@ if sys.platform == 'win32':
 # Configuration
 # ============================================================================
 
-OUTPUT_DIR = "generated_data/length_bias_analysis"
+# OUTPUT_DIR will be set dynamically based on dataset_name
 
 
 def strip_pseudoqueries(text: str, datapath: str) -> str:
@@ -654,44 +654,70 @@ def generate_summary_report(df, corr_df, output_dir, datapath, dataset_name="sea
 
 def main(datapath="data/seal_output.json"):
     """Run all analyses (streaming version)."""
+    import sys
+    from io import StringIO
 
-    # Create output directory
-    dataset_name = get_dataset_name(datapath)
-    output_dir = Path(OUTPUT_DIR)
-    output_dir.mkdir(exist_ok=True)
-    print(f"\nOutput directory: {output_dir}\n")
-    print(f"Dataset: {dataset_name}\n")
+    script_name = "analyze_length_bias"
+    print(f"running {script_name}")
 
-    # Extract analysis data (streaming)
-    df = extract_analysis_data(datapath, datapath)
+    try:
+        # Create output directory based on dataset name
+        dataset_name = get_dataset_name(datapath)
+        output_dir = Path(f"generated_data/{dataset_name}/length_bias_analysis")
+        output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Run analyses
-    print("\nRunning analyses...")
-    corr_df = analyze_length_rank_correlation(df, output_dir, dataset_name)
-    analyze_length_score_correlation(df, output_dir, dataset_name)
-    analyze_positive_vs_negative_lengths(df, output_dir, dataset_name)
-    analyze_ngrams_vs_length(df, output_dir, dataset_name)
-    analyze_retrieval_quality_by_length(df, output_dir, dataset_name)
+        # Redirect stdout to log file
+        log_file = output_dir / f"{script_name}_log.txt"
+        original_stdout = sys.stdout
+        sys.stdout = open(log_file, 'w', encoding='utf-8')
 
-    # Generate summary
-    generate_summary_report(df, corr_df, output_dir, datapath, dataset_name)
+        print(f"\nOutput directory: {output_dir}\n")
+        print(f"Dataset: {dataset_name}\n")
 
-    # Save processed data
-    processed_file = f'{output_dir}/processed_data_{dataset_name}.csv'
-    correlations_file = f'{output_dir}/correlations_{dataset_name}.csv'
-    df.to_csv(processed_file, index=False, encoding='utf-8')
-    if len(corr_df) > 0:
-        corr_df.to_csv(correlations_file, index=False, encoding='utf-8')
-    print(f"\n  Saved: {processed_file}")
-    print(f"  Saved: {correlations_file}")
+        # Extract analysis data (streaming)
+        df = extract_analysis_data(datapath, datapath)
 
-    print("\n" + "="*80)
-    print("ANALYSIS COMPLETE")
-    print("="*80)
-    print(f"\nResults saved to: {output_dir}/")
-    print(f"  - 5 visualization plots (PNG)")
-    print(f"  - Summary report (TXT)")
-    print(f"  - Processed data (CSV)")
+        # Run analyses
+        print("\nRunning analyses...")
+        corr_df = analyze_length_rank_correlation(df, output_dir, dataset_name)
+        analyze_length_score_correlation(df, output_dir, dataset_name)
+        analyze_positive_vs_negative_lengths(df, output_dir, dataset_name)
+        analyze_ngrams_vs_length(df, output_dir, dataset_name)
+        analyze_retrieval_quality_by_length(df, output_dir, dataset_name)
+
+        # Generate summary
+        generate_summary_report(df, corr_df, output_dir, datapath, dataset_name)
+
+        # Save processed data
+        processed_file = f'{output_dir}/processed_data_{dataset_name}.csv'
+        correlations_file = f'{output_dir}/correlations_{dataset_name}.csv'
+        df.to_csv(processed_file, index=False, encoding='utf-8')
+        if len(corr_df) > 0:
+            corr_df.to_csv(correlations_file, index=False, encoding='utf-8')
+        print(f"\n  Saved: {processed_file}")
+        print(f"  Saved: {correlations_file}")
+
+        print("\n" + "="*80)
+        print("ANALYSIS COMPLETE")
+        print("="*80)
+        print(f"\nResults saved to: {output_dir}/")
+        print(f"  - 5 visualization plots (PNG)")
+        print(f"  - Summary report (TXT)")
+        print(f"  - Processed data (CSV)")
+
+        # Restore stdout
+        sys.stdout.close()
+        sys.stdout = original_stdout
+
+        print(f"success running {script_name}")
+
+    except Exception as e:
+        # Restore stdout in case of error
+        if sys.stdout != original_stdout:
+            sys.stdout.close()
+            sys.stdout = original_stdout
+        print(f"error: running {script_name} {e}")
+        raise
 
 
 if __name__ == "__main__":

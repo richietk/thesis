@@ -120,59 +120,87 @@ def analyze_retrieval_outcome(query_data, top_k=10, datapath=""):
 
 
 def main(datapath="data/seal_output.json"):
-    file_path = datapath
-    dataset_name = get_dataset_name(datapath)
-    output_csv = f"generated_data/answer_location_analysis_{dataset_name}.csv"
-    diff_passage_csv = f"generated_data/answer_in_different_passage_{dataset_name}.csv"
-    top_k = 2
-    
-    if not os.path.exists(file_path):
-        print(f"Error: File not found at {file_path}")
-        return
-    
-    os.makedirs(os.path.dirname(output_csv), exist_ok=True)
-    
-    fieldnames = ['question', 'answers', 'outcome', 'gt_in_topk', 
-                  'answer_in_topk', 'gt_found_at_rank', 'answer_found_at_rank']
-    
-    # Counters
-    outcome_counts = defaultdict(int)
-    total = 0
-    
-    with open(file_path, 'rb') as json_file, \
-         open(output_csv, 'w', newline='', encoding='utf-8') as main_csv_file, \
-         open(diff_passage_csv, 'w', newline='', encoding='utf-8') as diff_csv_file:
-        
-        main_writer = csv.DictWriter(main_csv_file, fieldnames=fieldnames)
-        main_writer.writeheader()
-        
-        diff_writer = csv.DictWriter(diff_csv_file, fieldnames=fieldnames)
-        diff_writer.writeheader()
-        
-        parser = ijson.items(json_file, 'item')
-        
-        for entry in parser:
-            total += 1
-            if total % 1000 == 0:
-                print(f"  Processed {total} queries...")
+    import sys
 
-            result = analyze_retrieval_outcome(entry, top_k=top_k, datapath=file_path)
-            outcome_counts[result['outcome']] += 1
-            
-            csv_row = result.copy()
-            csv_row['answers'] = str(csv_row['answers'])
-            
-            # Write all to main CSV
-            main_writer.writerow(csv_row)
-            
-            # Write the 426 cases to separate CSV
-            if result['outcome'] == 'answer_in_different_passage':
-                diff_writer.writerow(csv_row)
-    
-    # Summary (unchanged)
-    print(f"\nProcessed {total} queries.")
-    print(f"All results saved to: {output_csv}")
-    print(f"'Answer in different passage' cases saved to: {diff_passage_csv}")
+    script_name = "answer_location_analysis"
+    print(f"running {script_name}")
+
+    try:
+        file_path = datapath
+        dataset_name = get_dataset_name(datapath)
+        output_dir = f"generated_data/{dataset_name}"
+        os.makedirs(output_dir, exist_ok=True)
+
+        output_csv = f"{output_dir}/answer_location_analysis_{dataset_name}.csv"
+        diff_passage_csv = f"{output_dir}/answer_in_different_passage_{dataset_name}.csv"
+        top_k = 2
+
+        # Redirect stdout to log file
+        log_file = os.path.join(output_dir, f"{script_name}_log.txt")
+        original_stdout = sys.stdout
+        sys.stdout = open(log_file, 'w', encoding='utf-8')
+
+        if not os.path.exists(file_path):
+            sys.stdout.close()
+            sys.stdout = original_stdout
+            print(f"error: running {script_name} File not found at {file_path}")
+            return
+
+        fieldnames = ['question', 'answers', 'outcome', 'gt_in_topk',
+                      'answer_in_topk', 'gt_found_at_rank', 'answer_found_at_rank']
+
+        # Counters
+        outcome_counts = defaultdict(int)
+        total = 0
+
+        with open(file_path, 'rb') as json_file, \
+             open(output_csv, 'w', newline='', encoding='utf-8') as main_csv_file, \
+             open(diff_passage_csv, 'w', newline='', encoding='utf-8') as diff_csv_file:
+
+            main_writer = csv.DictWriter(main_csv_file, fieldnames=fieldnames)
+            main_writer.writeheader()
+
+            diff_writer = csv.DictWriter(diff_csv_file, fieldnames=fieldnames)
+            diff_writer.writeheader()
+
+            parser = ijson.items(json_file, 'item')
+
+            for entry in parser:
+                total += 1
+                if total % 1000 == 0:
+                    print(f"  Processed {total} queries...")
+
+                result = analyze_retrieval_outcome(entry, top_k=top_k, datapath=file_path)
+                outcome_counts[result['outcome']] += 1
+
+                csv_row = result.copy()
+                csv_row['answers'] = str(csv_row['answers'])
+
+                # Write all to main CSV
+                main_writer.writerow(csv_row)
+
+                # Write the 426 cases to separate CSV
+                if result['outcome'] == 'answer_in_different_passage':
+                    diff_writer.writerow(csv_row)
+
+        # Summary
+        print(f"\nProcessed {total} queries.")
+        print(f"All results saved to: {output_csv}")
+        print(f"'Answer in different passage' cases saved to: {diff_passage_csv}")
+
+        # Restore stdout
+        sys.stdout.close()
+        sys.stdout = original_stdout
+
+        print(f"success running {script_name}")
+
+    except Exception as e:
+        # Restore stdout in case of error
+        if sys.stdout != original_stdout:
+            sys.stdout.close()
+            sys.stdout = original_stdout
+        print(f"error: running {script_name} {e}")
+        raise
 
 
 

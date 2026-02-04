@@ -40,8 +40,8 @@ ANALYSIS_MODULES = [
     ("scoring_failure", "Scoring Failure Analysis"),
     ("analyze_length_bias", "Document Length Bias Analysis"),
     #("analyze_failure_modes", "Comprehensive Failure Mode Analysis"),
-    ("llm_judge_answer_verification", "LLM Judge: Answer Verification"),
-    ("llm_judge_concept", "LLM Judge: Failure Classification"),
+    #("llm_judge_answer_verification", "LLM Judge: Answer Verification"),
+    #("llm_judge_concept", "LLM Judge: Failure Classification"),
 ]
 
 
