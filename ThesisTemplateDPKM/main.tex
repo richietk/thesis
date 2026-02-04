@@ -122,6 +122,12 @@ Architectural constraints pose a significant challenge in many \glsxtrshort{gr} 
 
 \subsubsection{Document Length Bias}
 
+The additive scoring mechanism in \glsxtrshort{SEAL} introduces a potential bias toward longer documents. Since the final document score $W(d, q)$ is a summation of all matched n-grams, longer documents naturally possess more candidate positions to accumulate scores, potentially outscoring shorter, more precise passages. \glsxtrshort{SEAL} attempts to mitigate this through constraints such as a repetition penalty, a "no-overlap" constraint for n-gram token positions, and exponentially weighting higher-scored n-grams score weighting \cite{bevilacqua2022autoregressivesearchenginesgenerating}. However, these measures primarily target lexical redundancy rather than the underlying advantage provided by larger document length.
+
+This theoretical length bias is not empirically measurable in our experimental setup, as the \glsxtrlong{nq} retrieval corpus consists of length-controlled 100-token passages \cite{karpukhin2020densepassageretrievalopendomain}. Because variation in passage length is minimal, any observed differences in n-gram matching counts reflect \textbf{topical breadth} and the dynamic nature of the n-gram generator rather than document length.
+
+\subsubsection{Document Length Bias}
+
 The n-gram aggregation mechanism in \glsxtrshort{SEAL} introduces a theoretical bias toward longer documents in corpora with variable document lengths. Because \glsxtrshort{SEAL}'s default configuration uses pure score aggregation, where each document's final ranking is the sum of scores from all matched n-grams, longer documents have more textual positions available to match different n-grams, potentially accumulating higher scores regardless of their relevance and specificity. A short, highly-relevant passage containing a few highly-specific n-grams could be outscored by a longer, topically-related but less relevant document containing many generic n-grams that individually contribute modest scores but collectively dominate.
 
 The \glsxtrshort{SEAL} paper does not explicitly address this as a potential failure mode, focusing instead on the model's ability to generate diverse n-grams and overcome vocabulary mismatch. However, the implementation includes several mechanisms designed to mitigate score accumulation from redundant or overlapping evidence. First, a repetition penalty $\beta$ reduces scores for n-grams containing tokens already covered by previously-scored n-grams in that document. If an n-gram's tokens have all appeared in earlier matches, its score is multiplied by $(1-\beta)$ where $\beta \in (0,1)$. Second, a no-overlap constraint prevents multiple n-grams from scoring the same token positions within a document so that each piece of text contributes at most once. Third, exponential score weighting $\text{score}^{\alpha}$ amplifies the difference between high-scoring and low-scoring n-grams, theoretically favoring documents with fewer but more relevant matches. Finally, the \texttt{single\_key} parameter allows interpolating between pure score aggregation and ranking by best single n-gram, though it defaults to pure aggregation.
@@ -132,6 +138,29 @@ These countermeasures provide partial mitigation but remain imperfect under defa
 Importantly, this theoretical document length bias cannot be empirically tested in our experimental setup. The \glsxtrlong{nq} retrieval corpus used by \glsxtrshort{SEAL} consists of a Wikipedia dump split into approximately 21 million passages of 100 tokens each \cite{karpukhin2020densepassageretrievalopendomain}. Because all passages are length-controlled by construction, variation in passage length is minimal and any differences in n-gram matching counts between passages cannot be attributed to document length.
 
 Instead, in our length-controlled corpus, the number of n-grams matched to a passage reflects topical breadth rather than document length. A passage that matches many generated n-grams does so because its content is topically broad, containing vocabulary from multiple aspects of the query's semantic domain, not because it is longer. Conversely, a passage matching few n-grams may be highly specific or may simply lack lexical overlap with the generated n-grams. This distinction is important for interpreting the empirical results in Section~\ref{sec:failure-pattern-analysis}, as when we observe that incorrect (``negative'') passages match more n-grams than correct (``positive'') passages, this indicates that \glsxtrshort{SEAL} generates n-grams favoring topically broad but potentially less relevant content, rather than evidence of length-based score inflation.
+
+\subsection{\glsxtrshort{MINDER} Architecture}
+
+The \glsxtrfull{MINDER} (Multiview Identifiers Enhanced Generative Retrieval) framework \cite{li2023multiviewidentifiersenhancedgenerative} extends the n-gram based approach of \glsxtrshort{SEAL} by introducing synthetic and multiview identifiers. \glsxtrshort{MINDER} is motivated by the observation that single-view identifiers, such as document titles or extractive n-grams, often lack the contextualized information necessary to satisfy complex queries, especially if those require rephrasing.
+
+To address this, \glsxtrshort{MINDER} assigns three distinct views of identifiers to each passage:
+\begin{enumerate}
+     \item Title of the document
+     \item N-grams, similar to \glsxtrshort{SEAL}
+     \item Pseudo-queries, i.e. synthetic identifiers generated via a query-generation model that reflect potential queries
+\end{enumerate}
+
+The inclusion of pseudo-queries is intended to bridge the gap between user queries and document content. While \glsxtrshort{SEAL} is limited to the exact word orderings present in the corpus, \glsxtrshort{MINDER}'s synthetic view allows the model to match queries against rephrased or summarized versions of the document.
+
+Unlike \glsxtrshort{SEAL}'s TF-IDF inspired log-odds scoring, \glsxtrshort{MINDER} relies primarily on the conditional probability $P(i|q)$ of the identifier $i$ given query $q$, computed by the autoregressive language model. Because pseudo-queries are typically much longer than extractive n-grams, their raw log-probabilities are naturally lower due to the multiplicative nature of autoregressive decoding. To ensure that pseudo-queries can compete with shorter identifiers, \glsxtrshort{MINDER} introduces a biased score to offset this length penalty. The final relevance score for a passage $p$ is an aggregation of the scores from all predicted identifiers that appear in that passage across all three views:
+\begin{equation}
+   S(q, p) = \sum_{i \in I_p} s(i, q)
+   \label{eq:minder-aggregation}
+\end{equation}
+
+where $I_p$ is the set of identifiers generated by the model that are present in passage $p$, and $s(i, q)$ is the language model score for identifier $i$.
+
+To manage multiple identifier types, \glsxtrshort{MINDER} uses an FM-Index similar to \glsxtrshort{SEAL} but incorporates identifier-specific prefix tokens (e.g., \texttt{<TS>} for titles, \texttt{<QS>} for queries). During inference, the model is prompted with an identifier prefix and the query, and the FM-index constrains the generation to valid sequences within the respective view.
 
 \section{Methodology}
 
@@ -479,7 +508,7 @@ Based on the observable failure modes, Table~\ref{tab:failure-classification} de
             Generated n-grams fail to sufficiently cover query terms & 
             Proportion of unique query tokens present in generated n-grams \\
             \addlinespace
-            Missing Answer Identifiers & 
+            Direct vs. Indirect Identification & 
             Generated n-grams do not contain the answer string & 
             Fraction of queries where at least one top-1 passage n-gram contains the answer string \\
             \addlinespace
@@ -608,16 +637,17 @@ The graph below shows the success rate of the top-1 retrieved passage mapped wit
     \caption{Top-1 retrieval success rate by mean fraction of unigrams among n-grams generated (decile bins)}
 \end{figure}
 
-\subsubsection{Correlated Identifier Generation}
+\subsubsection{Semantic Convergence vs. Identifier Diversity}
 \label{sec:failure-5}
 
-Correlated identifier generation occurs when \glsxtrshort{SEAL} produces semantically redundant n-grams containing repeated tokens across multiple generated sequences. For example, a query about country music might generate ``country,'' ``country music,'' ``country singer,'' and ``country charts,'' all sharing the token ``country.'' While these n-grams are individually valid, their redundancy can inflate scoring for passages containing common topical terms without ensuring those passages contain the specific answer.
+We originally hypothesized that cases where the model produces semantically redundant n-grams with high token overlap would constitute a failure mode by inflating scores without providing new evidence. To test this, we measure the unique tokens divided by total tokens across all generated n-grams.
 
-We measure repetitiveness using the number of unique tokens divided by the total tokens across all generated n-grams for a query. A ratio near 1.0 indicates each token appears only once, while lower ratios indicate repeated tokens across multiple n-grams. We arbitrarily define low diversity as $<$0.7, medium as 0.7-0.85, and high as $>$0.85. Across 6,515 queries, the mean diversity ratio for the top-1 retrieved passage is 0.881, with 114 queries (1.7\%) exhibiting low diversity, 1,941 (29.8\%) showing moderate diversity, and 4,460 (68.5\%) achieving high diversity.
+Contrary to our initial hypothesis, the results reveal a negative correlation between diversity and retrieval success ($\rho = -0.227$, $p < 0.001$). Queries with low-diversity (highly repetitive) n-grams achieved a 55.3\% top-1 success rate, compared to only 35.5\% for high-diversity queries.
 
-Counter-intuitively, the results reveal a weak, but significant \textit{negative} correlation between diversity and success ($\rho = -0.227$, $p < 0.001$). Low-diversity queries achieve a 55.3\% success rate and medium-diversity 55.1\% compared to 35.5\% for high-diversity queries. This +19.8 percentage point advantage for low-diversity generation contradicts the initial hypothesis that correlated identifier generation constitutes a failure mode.
+This finding suggests that repetition is not always a failure of redundancy, but rather an indicator that \glsxtrshort{SEAL} is highly confident in a target document, it generates multiple overlapping n-grams that concentrate score on a specific semantic cluster, which ensures that the additive scoring function accumulates overwhelming evidence for the correct passage.
 
-This unexpected finding suggests that such repetition may actually benefit retrieval. When \glsxtrshort{SEAL} repeatedly uses key topical terms across multiple n-grams (e.g., generating ``Reba,'' ``Reba McEntire,'' ``singer Reba'' for a question about Reba McEntire), it reinforces topical focus and ensures that the scoring function accumulates substantial evidence for passages containing those terms. In contrast, high diversity may indicate that the model is exploring too broad a semantic space, generating n-grams that individually score well but collectively lack the coherent focus on a single target passage. Consequently, rather than classifying correlated identifier generation as a failure mode, it appears to function as a successful retrieval strategy wherein the model concentrates its generated evidence on a specific semantic cluster.
+In contrast, high identifier diversity often indicates a lack of model confidence. In failure cases, the model may generate a wide variety of topically related but lexically distinct tokens that fail to converge on a single passage. Consequently, identifier repetition appears to be a symptom of successful retrieval rather than a cause of failure. This suggests that future scoring functions could potentially use token-overlap not as a penalty, but as a signal of model certainty.
+
 
 \subsubsection{Insufficient Query Coverage}
 \label{sec:failure-3}
@@ -681,16 +711,15 @@ This performance plateau points to a structural vulnerability in \glsxtrshort{SE
 
 Notably, the mean n-gram corpus frequency ($\bar{F}_c$) remains stable across all intervals (ranging from 365,687 to 387,506). This stability indicates that the decline (or increase) in success at higher counts is not caused by the generative component reverting to high-frequency "filler" tokens. Instead, the failure might come from the scoring mechanism failing to distinguish between concentrated, unique n-grams and the aggregate score of multiple, moderately relevant n-grams that may appear in non-relevant but topically-broad documents.
 
-\subsection{Missing Answer Identifiers}
+\subsection{Direct vs. Indirect Document Identification}
 \label{sec:failure-4}
 
-Missing Answer Identifiers assesses whether any generated n-gram contains the target answer string. This metric is particularly revealing because successful retrieval theoretically \textit{requires} that n-grams identify passages containing the answer, yet generation of the answer string itself is neither guaranteed nor strictly necessary, as the model generates n-grams to identify documents, not to answer questions directly.
+We analyze whether retrieval success depends on the model's ability to generate the specific answer string as an identifier, or whether it relies on the surrounding context. While generating the answer string provides a valuable anchor for a passage, the primary goal of \glsxtrshort{SEAL} is document identification, not direct question answering.
 
-Of 6,515 queries analyzed, the answer string appears in at least one generated n-gram for the top-1 retrieved passage for only 1,096 queries (16.8\%), while 5,419 queries (83.2\%) fail to generate any n-gram containing the answer in their respective highest-ranked retrieved passage. When the answer appears in the n-grams, the success rate reaches 75.0\%, compared to 34.9\% when the answer is absent among the n-grams.
+Of 6,515 queries, the answer string appears in at least one generated n-gram for the top-1 retrieved passage in only 1,096 case (16.8\%). When this ``direct identification'' occurs, the success rate is exceptionally high at 75.0\%. However, in the vast majority of cases (83.2\%), the model's top-1 retrieved passage the answer string is never generated. In these cases, the success rate is 34.9\%.
 
-This is revealing, as the model is trained to generate distinctive, query-relevant n-grams, but it is not explicitly trained to generate the answer itself. Consequently, even when the model successfully identifies topically relevant passages (e.g., generating ``Supreme Court,'' ``justices,'' ``current composition'' for a query about the number of justices), it may never generate the specific answer token (e.g., ``nine''). In such cases, the model retrieves passages from the correct topical domain but lacks the precise discriminative n-gram needed to confidnetly isolate the answer-bearing passage from related alternatives.
+This finding suggests that while direct identification is a much stronger predictor of success ($\Delta = 40.1$ pp), the model is able to identify the semantic environment in which an answer is likely to be in. For instance, for a query about a Supreme Court justice, the model may successfully retrieve the correct passage by generating contextual n-grams like ``Supreme Court,'' ``nominated by,'' or ``associate justice,'' even if it never generates the justice's name itself.  However, the performance gap between the two cases suggests that when the model fails to generate the specific answer as an identifier, the remaining contextual cues are oftentimes too generic to distinguish the correct passage from topically similar alternatives.
 
-The low Missing Answer Identifiers rate (16.8\%) suggests that most of the successful retrievals rely on ``indirect'' identification, where the model generates n-grams describing the context surrounding the answer rather than the answer itself. While this approach can succeed when the context is sufficiently distinctive, it may fail when multiple documents share similar contextual terms but differ in their specifics.
 
 \section{Discussion}
 
@@ -744,3 +773,25 @@ The analysis is based on \glsxtrshort{SEAL} model outputs and literature availab
 
 \section*{AI Use Disclosure}
 Some portions of code for this thesis were generated with the assistance of \textit{Claude by Antropic} and \textit{ChatGPT by OpenAI} large language models. All AI-generated code was reviewed, edited, and verified by the author.
+
+
+\clearpage
+\appendix
+
+\section{LLM-as-Judge prompt}
+
+The prompt used for the LLM-as-Ludge component in \section{llm-judge} is pasted below:
+
+\begin{verbatim}
+Question: [QUESTION]
+Expected answer: [ANSWER]
+Retrieved passage title: [PASSAGE TITLE]
+Retrieved passage text: [PASSAGE TEXT]
+
+Does this passage answer the question?
+- YES: The passage directly answers the question.
+- NO: The answer string appears coincidentally but does not answer the question.
+- PARTIAL: Contains relevant information but requires inference.
+
+The answer explanation should not exceed 100 words. 
+\end{verbatim}
