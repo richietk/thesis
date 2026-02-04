@@ -686,30 +686,33 @@ This finding aligns with \glsxtrshort{SEAL}'s intersective scoring design, which
 
 While not a failure mode, given that \glsxtrshort{SEAL}'s scoring mechanism aggregates evidence from multiple n-grams, it is essential to examine whether the quantity of matched n-grams correlates with retrieval success. Intuitively, a higher number of matched n-grams should provide stronger cumulative evidence for a passage, considering that SEAL's score is sum-based, and therefore a passage with more matched n-grams has a mathematical advantage over a passage with fewer matched n-grams. However, excessive generation may also introduce noise if additional n-grams are redundant or non-discriminative.
 
-Across 6,515 queries, the number of n-grams matched to the top-1 retrieved passage has a mean of 41.5 (median: 42.0, $\sigma$: 6.3), with a range of 11 to 65. Table~\ref{tab:ngram-count} presents retrieval performance stratified by n-gram count intervals.
+Across 6,515 queries, the number of n-grams matched to the top-1 retrieved passage has a mean of 41.5 (median: 42.0, $\sigma$: 6.3), with a range of 11 to 65. Table~\ref{tab:ngram-count} presents retrieval performance stratified by n-gram count deciles.
 
 \begin{table}[htbp]
     \centering
-    \caption{Retrieval success rate and mean n-gram corpus frequency ($\bar{F}_c$) by number of matched n-grams in the top-1 passage.}
+    \caption{Retrieval success rate and mean n-gram corpus frequency ($\bar{F}_c$) by n-gram count deciles for the top-1 passage.}
     \label{tab:ngram-count}
-    \begin{tabular}{lrrr}
+    \begin{tabular}{lrrrr}
         \toprule
-        \textbf{N-gram Count Range} & \textbf{Queries} & \textbf{Success@1} & \textbf{Mean $\bar{F}_c$} \\
+        \textbf{Decile} & \textbf{Count Range} & \textbf{Queries} & \textbf{Success@1} & \textbf{Mean $\bar{F}_c$} \\
         \midrule
-        $<$30   & 273   & 31.5\% & 387,506 \\
-        31--38  & 1,668 & 38.9\% & 379,866 \\
-        39--44  & 2,554 & 44.4\% & 385,187 \\
-        45--52  & 1,798 & 42.3\% & 381,124 \\
-        $>$52   & 222   & 38.7\% & 365,687 \\
+        D1  & 11--34 & 828  & 36.0\% & 384,785 \\
+        D2  & 35--36 & 495  & 37.4\% & 378,346 \\
+        D3  & 37--39 & 1,017 & 39.5\% & 380,174 \\
+        D4  & 40--40 & 425  & 46.1\% & 392,012 \\
+        D5  & 41--42 & 861  & 45.2\% & 382,931 \\
+        D6  & 43--43 & 448  & 43.8\% & 382,506 \\
+        D7  & 44--45 & 795  & 45.0\% & 385,779 \\
+        D8  & 46--47 & 622  & 42.4\% & 382,767 \\
+        D9  & 48--49 & 432  & 41.7\% & 380,999 \\
+        D10 & 50--65 & 592  & 41.6\% & 371,719 \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-The relationship between n-gram count and retrieval success is notably weak (Spearman $\rho = 0.040$, $p = 0.001$), exhibiting a non-monotonic, inverted-U pattern. Success rates increase from 31.5\% for passages with low identifier counts ($<$30) to a peak of 44.4\% in the 39--44 range, subsequently declining to 38.7\% for passages exceeding 52 matched n-grams. This trend suggests that while a minimum amount of evidence is required to identify a passage, accumulating n-grams beyond a moderate threshold yields diminishing or negative returns.
+The relationship between n-gram count and retrieval success is notably weak (Spearman $\rho = 0.040$, $p = 0.001$), exhibiting a non-monotonic, inverted-U pattern. Precision\@1 increases from 36.0\% for passages with low identifier counts (D1, $<$34) to a peak of 46.1\% in the fourth decile, subsequently plateauing and slightly declining to 41.6\% for passages in the highest decile (D10, $>$50). This trend suggests that while a minimum amount of evidence is required to identify a passage, accumulating n-grams beyond a moderate threshold yields diminishing returns and does not significantly influence precision\@1.
 
-This performance plateau points to a structural vulnerability in \glsxtrshort{SEAL}'s additive scoring function, $W(d, q)$. Because the document score is computed as a summation of individual n-gram weights without normalization for quantity, in high-count scenarios, a passage may be ranked first not due to high precision, but because it contains a large volume of generic domain vocabulary that the model associates with the query context.
-
-Notably, the mean n-gram corpus frequency ($\bar{F}_c$) remains stable across all intervals (ranging from 365,687 to 387,506). This stability indicates that the decline (or increase) in success at higher counts is not caused by the generative component reverting to high-frequency "filler" tokens. Instead, the failure might come from the scoring mechanism failing to distinguish between concentrated, unique n-grams and the aggregate score of multiple, moderately relevant n-grams that may appear in non-relevant but topically-broad documents.
+This performance plateau points to a structural vulnerability in \glsxtrshort{SEAL}'s additive scoring function, $W(d, q)$. Because the document score is computed as a summation of individual n-gram weights without normalization for quantity, in high-count scenarios, a passage may be ranked first not due to high precision, but because it contains a large volume of moderately relevant vocabulary that the model associates with the query context. Notably, the mean n-gram corpus frequency ($\bar{F}_c$) remains stable across all deciles (ranging from 371,719 to 392,012). This stability indicates that the performance plateau is not caused by the model reverting to generic "filler" tokens at higher counts. Instead, the failure likely stems from the scoring mechanism's inability to distinguish between a small set of highly discriminative n-grams and a large aggregate score from multiple, less specific identifiers.
 
 \subsection{Direct vs. Indirect Document Identification}
 \label{sec:failure-4}
