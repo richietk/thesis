@@ -596,7 +596,7 @@ Table~\ref{tab:failure-summary} consolidates the empirical findings across all a
  \vspace{0.5em}
  \footnotesize
  \textsuperscript{\dag} Diversity is measured as the ratio of unique tokens to total tokens. \\
- pp = percentage points. $\Delta$ = difference in top-1 success rate between the compared cohorts.
+ pp = percentage points. $\Delta$ = difference in precision\@1 between the compared cohorts.
 \end{table}
 
 The strongest predictors of retrieval failure are bias toward short identifiers ($\rho = -0.278$) and low Insufficient Query Coverage ($\rho = +0.290$). When \glsxtrshort{SEAL} generates predominantly unigrams, success drops from 80.8\% to 27.5\%; when n-grams fail to cover query terms, success drops from 60.2\% to 20.2\%. High-frequency n-grams and Overreliance on a Single Identifier show weaker but still significant effects.
@@ -610,7 +610,7 @@ Notably, correlated identifier generation exhibits a counter-intuitive pattern: 
 
 N-gram corpus frequency reflects how distinctive a generated n-gram is. Rare n-grams provide stronger evidence for specific documents, while common n-grams match many topically-related passages. We analyze the average corpus frequency of the top-scored n-grams (ranked by \glsxtrshort{SEAL}'s scoring function) to determine whether high-frequency n-grams contribute to retrieval failures.
 
-Across 6,515 queries, the average mean corpus frequency of the top-5 scored n-grams is 28753. When stratified by frequency, for queries whose rank-1 retrieved passage has an average corpus frequency of its top-5 scored n-grams below 500, 59.8\% of those queries contain at least one positive (ground truth) passage (somewhere) in the top-1, 69.2\% in the top-2, 88.3\% in the top-10 retrieved results. Interestingly, for queries whose rank-1 retrieved passage has an average corpus frequency of its top-5 scored n-grams over 5000, 32.5\% of those queries contain at least one positive (ground truth) passage (somewhere) in the top-1, 43.7\% in the top-2, 70.1\% in the top-10 retrieved results. Please note thresholds like 500 and 5000 are arbitrary and can be freely adjusted. We can observe a significant drop in retrieval quality when the lexical uniqueness of the top scoring n-grams increase. Across all queries, the average corpus frequency of the top-5 scored n-grams in the rank-1 passage is weakly negatively correlated with top-1 retrieval success (Spearman $\rho = -0.238$, $p < 0.001$).
+Across 6,515 queries, the average mean corpus frequency of the top-5 scored n-grams is 28753. When stratified by frequency, for queries whose rank-1 retrieved passage has an average corpus frequency of its top-5 scored n-grams below 500, 59.8\% of those queries contain at least one positive (ground truth) passage (somewhere) in the top-1, 69.2\% in the top-2, 88.3\% in the top-10 retrieved results. Interestingly, for queries whose rank-1 retrieved passage has an average corpus frequency of its top-5 scored n-grams over 5000, 32.5\% of those queries contain at least one positive (ground truth) passage (somewhere) in the top-1, 43.7\% in the top-2, 70.1\% in the top-10 retrieved results. Please note thresholds like 500 and 5000 are arbitrary and can be freely adjusted. We can observe a significant drop in retrieval quality when the lexical uniqueness of the top scoring n-grams increase. Across all queries, the average corpus frequency of the top-5 scored n-grams in the rank-1 passage is weakly negatively correlated with precision\@1 (Spearman $\rho = -0.238$, $p < 0.001$).
 
 This finding confirms that when \glsxtrshort{SEAL} generates high-frequency n-grams as its top-ranked identifiers, these n-grams match many topically-related passages, diluting discriminative power. In queries where top-scored n-grams has very high corpus frequency, the model struggles to distinguish the target passage from hundreds of similar alternatives. While \glsxtrshort{SEAL}'s scoring function theoretically downweights common n-grams through the $P(n)$ term in Equation~\ref{eq:ngram-score}, this analysis reveals that high-frequency n-grams still frequently dominate the top-ranked positions, suggesting that the conditional probability $P(n|q)$ assigned by the language model can override frequency-based penalties when the model strongly associates common terms with the query.
 
@@ -625,14 +625,14 @@ We quantify this bias by measuring the fraction of generated n-grams that consis
 
 We further stratify queries into fixed bins based on the unigram fraction. Queries in the low unigram fraction bin (<0.7) achieve a success rate of 80.8\%, compared to 48.3\% for the medium bin (0.7–0.9) and 27.5\% for the high bin (>0.9). This indicates that passages with a higher proportion of multi-word n-grams are substantially more likely to retrieve the correct document, while passages dominated by unigrams correspond to poorer retrieval performance. Interestingly, only 130 queries fit into the low unigram fraction bin, 4103 into the medium, and 2282 into the high fraction bin, consistent with the high mean unigram fraction of 0.869.
 
-Decile-based binning of the unigram fraction similarly shows the success rate decline as the unigram fraction increases, from 67.7\% in the lowest decile (0.51–0.78) to 22.6\% in the highest decile (0.94–1.0). The Spearman correlation $\rho$ between unigram fraction and top-1 retrieval success is $-0.278 \space (p<0.001)$, indicating a statistically significant, but moderate negative relationship between unigram dominance and retrieval effectiveness.
+Decile-based binning of the unigram fraction similarly shows the success rate decline as the unigram fraction increases, from 67.7\% in the lowest decile (0.51–0.78) to 22.6\% in the highest decile (0.94–1.0). The Spearman correlation $\rho$ between unigram fraction and precision\@1 is $-0.278 \space (p<0.001)$, indicating a statistically significant, but moderate negative relationship between unigram dominance and retrieval effectiveness.
 
 The graph below shows the success rate of the top-1 retrieved passage mapped with the mean fraction of unigrams among the generated n-grams for each query, grouped by decile bins. Higher unigram fractions correlate with lower retrieval success, with success rates declining from 67.7\% in the lowest decile to 22.6\% in the highest decile ($\rho = -0.278$, $p < 0.001$)
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.7\textwidth]{assets/unigram_line_plot.png}
-    \caption{Top-1 retrieval success rate by mean fraction of unigrams among n-grams generated (decile bins)}
+    \caption{precision\@1 rate by mean fraction of unigrams among n-grams generated (decile bins)}
 \end{figure}
 
 \subsubsection{Semantic Convergence vs. Identifier Diversity}
@@ -640,7 +640,7 @@ The graph below shows the success rate of the top-1 retrieved passage mapped wit
 
 We originally hypothesized that cases where the model produces semantically redundant n-grams with high token overlap would constitute a failure mode by inflating scores without providing new evidence. To test this, we measure the unique tokens divided by total tokens across all generated n-grams.
 
-Contrary to our initial hypothesis, the results reveal a negative correlation between diversity and retrieval success ($\rho = -0.227$, $p < 0.001$). Queries with low-diversity (highly repetitive) n-grams achieved a 55.3\% top-1 success rate, compared to only 35.5\% for high-diversity queries.
+Contrary to our initial hypothesis, the results reveal a negative correlation between diversity and retrieval success ($\rho = -0.227$, $p < 0.001$). Queries with low-diversity (highly repetitive) n-grams achieved a 55.3\% precision\@1, compared to only 35.5\% for high-diversity queries.
 
 This finding suggests that repetition is not always a failure of redundancy, but rather an indicator that \glsxtrshort{SEAL} is highly confident in a target document, it generates multiple overlapping n-grams that concentrate score on a specific semantic cluster, which ensures that the additive scoring function accumulates overwhelming evidence for the correct passage.
 
@@ -676,7 +676,7 @@ Overreliance on a Single Identifier measures the extent to which the top-1 ranke
 
 Across 6,515 queries, the mean such ratio is 0.438 (median 0.439), indicating that on average, the top-scoring n-gram contributes approximately 44\% of the total score. The distribution reveals that 698 queries (10.7\%) exhibit a ratio of $<$0.35, while 3972 queries (61.8\%) exhibit a ratio between 0.3 and 0.5, and 1845 queries (28.3\%) have more than half of their total score contributed by a single n-gram.
 
-The relationship between such single-query dominance and retrieval success demonstrates a weak but clear negative correlation (Spearman $\rho = -0.115$, $p < 0.001$). Stratified into 10 bins, queries in the lowest ratio bin (0.12–0.30) achieve a top-1 success rate of approximately 48.5\%, while queries in the highest bin (0.57–0.85) achieve only 29.4\%.
+The relationship between such single-query dominance and retrieval success demonstrates a weak but clear negative correlation (Spearman $\rho = -0.115$, $p < 0.001$). Stratified into 10 bins, queries in the lowest ratio bin (0.12–0.30) achieve a precision\@1 of approximately 48.5\%, while queries in the highest bin (0.57–0.85) achieve only 29.4\%.
 
 This finding aligns with \glsxtrshort{SEAL}'s intersective scoring design, which aggregates evidence from multiple n-grams to identify passages. Theoretically, when retrieval succeeds through distributed evidence, multiple n-grams collectively point toward the target passage, providing redundant confirmation and reducing sensitivity to individual n-gram errors. Conversely, when a single n-gram dominates, retrieval might become highly dependent on that one identifier. If the top-scoring n-gram matches many passages or matches the wrong passage, the remaining low-scoring n-grams provide insufficient corrective evidence.
 

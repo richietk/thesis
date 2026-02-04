@@ -1,19 +1,4 @@
-"""
-Analyze correlation between passage length and retrieval performance in SEAL outputs.
-
-This script empirically validates the document length bias hypothesis discussed in
-the thesis (main.tex lines 268-276). It analyzes whether SEAL exhibits systematic
-bias toward longer passages due to score accumulation from multiple n-grams.
-
-Research Questions:
-1. Do longer passages rank higher than shorter passages?
-2. Do longer passages match more n-grams (accumulation effect)?
-3. Are correctly retrieved passages systematically longer/shorter than incorrectly ranked ones?
-4. Does the number of matched n-grams correlate with passage length?
-
-Author: [Your name]
-Date: 2026-01-04
-"""
+"""Analyze correlation between passage length and retrieval performance in SEAL outputs."""
 
 import ijson
 import numpy as np
@@ -25,15 +10,8 @@ from collections import defaultdict
 import sys
 import re
 
-# Fix Unicode encoding issues for Windows console
 if sys.platform == 'win32':
     sys.stdout.reconfigure(encoding='utf-8')
-
-# ============================================================================
-# Configuration
-# ============================================================================
-
-# OUTPUT_DIR will be set dynamically based on dataset_name
 
 
 def strip_pseudoqueries(text: str, datapath: str) -> str:
@@ -55,35 +33,14 @@ def get_dataset_name(datapath: str) -> str:
         return os.path.splitext(os.path.basename(datapath))[0]
 
 
-# Tokenization: Use whitespace splitting (close approximation to BART tokens)
-# For 100-word passages, word count ≈ BPE token count within ~10% margin
 def get_token_count(text, datapath=""):
     """Approximate BART token count using whitespace splitting."""
     text = strip_pseudoqueries(text, datapath)
     return len(text.split())
 
-# ============================================================================
-# Data Loading (Streaming)
-# ============================================================================
 
 def extract_analysis_data(file_path, datapath=""):
-    """
-    Extract data for empirical analysis of length bias (streaming version).
-
-    Returns:
-        pd.DataFrame with columns:
-            - query_id: Index of the query
-            - question: Query text
-            - passage_id: Passage identifier
-            - rank: Rank in SEAL's retrieval results (1-100)
-            - score: SEAL's aggregate score for this passage
-            - passage_length: Passage length in tokens
-            - is_positive: Whether passage is in ground truth (positive_ctxs)
-            - num_keys: Number of n-grams matched in this passage
-            - total_key_score: Sum of all n-gram scores for this passage
-            - avg_key_score: Average n-gram score
-            - max_key_score: Highest-scoring n-gram
-    """
+    """Extract analysis data from SEAL output (streaming)."""
     print(f"Streaming data from {file_path}...")
     rows = []
     query_idx = 0
@@ -97,34 +54,25 @@ def extract_analysis_data(file_path, datapath=""):
                 print(f"  Processed {query_idx} queries...")
             question = item['question']
 
-            # Ground truth positive passages
             positive_ids = set()
             if 'positive_ctxs' in item and item['positive_ctxs']:
                 positive_ids = {ctx['passage_id'] for ctx in item['positive_ctxs']}
 
-            # SEAL's top-100 retrieved passages
             for rank, ctx in enumerate(item.get('ctxs', []), start=1):
                 passage_id = ctx['passage_id']
                 text = ctx['text']
                 score = ctx.get('score', 0.0)
 
-                # Passage length (approximate BART token count)
                 passage_length = get_token_count(text, datapath)
 
-                # N-gram key analysis
                 keys_data = ctx.get('keys', '')
-
                 if keys_data:
-                    # Handle both string and list formats
                     if isinstance(keys_data, list):
-                        # Minder format: already a list [[ngram, freq, score], ...]
                         num_keys = len(keys_data)
                         key_scores = [float(item[2]) for item in keys_data if len(item) >= 3]
                     else:
-                        # SEAL format: string "ngram | freq | score | ngram | freq | score | ..."
                         parts = keys_data.split(' | ')
-                        num_keys = len(parts) // 3  # Each key has 3 parts: ngram, freq, score
-                        # Extract scores (every 3rd element starting from index 2)
+                        num_keys = len(parts) // 3
                         key_scores = []
                         for i in range(2, len(parts), 3):
                             try:
@@ -142,7 +90,7 @@ def extract_analysis_data(file_path, datapath=""):
                     max_key_score = 0.0
 
                 rows.append({
-                    'query_id': query_idx - 1,  # Adjust for 0-based indexing
+                    'query_id': query_idx - 1,
                     'question': question,
                     'passage_id': passage_id,
                     'rank': rank,
@@ -157,7 +105,6 @@ def extract_analysis_data(file_path, datapath=""):
 
     df = pd.DataFrame(rows)
 
-    # Ensure numeric columns are properly typed
     numeric_columns = ['rank', 'score', 'passage_length', 'num_keys', 'total_key_score', 'avg_key_score', 'max_key_score']
     for col in numeric_columns:
         if col in df.columns:
@@ -173,25 +120,15 @@ def extract_analysis_data(file_path, datapath=""):
     return df
 
 
-# ============================================================================
-# Analysis 1: Length vs Rank Correlation
-# ============================================================================
-
 def analyze_length_rank_correlation(df, output_dir, dataset_name="seal"):
-    """
-    Analyze correlation between passage length and retrieval rank.
-
-    Key question: Do longer passages systematically rank higher?
-    A negative correlation means longer passages rank better (rank 1 > rank 100).
-    """
+    """Analyze correlation between passage length and retrieval rank."""
     print("\n" + "="*80)
     print("ANALYSIS 1: Passage Length vs Retrieval Rank")
     print("="*80)
 
-    # Per-query correlation
     correlations = []
     for query_id, group in df.groupby('query_id'):
-        if len(group) > 10:  # Need sufficient data points
+        if len(group) > 10:
             corr, p_value = spearmanr(group['rank'], group['passage_length'])
             correlations.append({
                 'query_id': query_id,
@@ -203,23 +140,18 @@ def analyze_length_rank_correlation(df, output_dir, dataset_name="seal"):
 
     corr_df = pd.DataFrame(correlations)
 
-    # Overall statistics
     print(f"\nPer-Query Spearman Correlation (Rank vs Length):")
     print(f"  Mean: {corr_df['spearman_corr'].mean():.4f}")
     print(f"  Median: {corr_df['spearman_corr'].median():.4f}")
     print(f"  Std: {corr_df['spearman_corr'].std():.4f}")
 
-    # Negative correlation = length bias (longer passages rank higher)
     biased_queries = corr_df[corr_df['spearman_corr'] < 0]
     significant_bias = corr_df[(corr_df['spearman_corr'] < -0.2) & (corr_df['p_value'] < 0.05)]
 
     print(f"\n  Queries with length bias (ρ < 0): {len(biased_queries)} / {len(corr_df)} ({100*len(biased_queries)/len(corr_df):.1f}%)")
     print(f"  Queries with STRONG bias (ρ < -0.2, p < 0.05): {len(significant_bias)} ({100*len(significant_bias)/len(corr_df):.1f}%)")
 
-    # Visualization
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-
-    # (1) Histogram of correlations
     axes[0, 0].hist(corr_df['spearman_corr'], bins=40, edgecolor='black', alpha=0.7, color='steelblue')
     axes[0, 0].axvline(0, color='red', linestyle='--', linewidth=2, label='No correlation')
     axes[0, 0].axvline(corr_df['spearman_corr'].mean(), color='orange', linestyle='--',
@@ -230,16 +162,14 @@ def analyze_length_rank_correlation(df, output_dir, dataset_name="seal"):
     axes[0, 0].legend()
     axes[0, 0].grid(alpha=0.3)
 
-    # (2) Scatter: Overall rank vs length
-    sample = df.sample(min(5000, len(df)))  # Sample for visualization
+    sample = df.sample(min(5000, len(df)))
     axes[0, 1].scatter(sample['passage_length'], sample['rank'], alpha=0.3, s=10)
     axes[0, 1].set_xlabel('Passage Length (tokens)')
     axes[0, 1].set_ylabel('Retrieval Rank (1 = best)')
     axes[0, 1].set_title('Passage Length vs Rank (Overall)')
     axes[0, 1].grid(alpha=0.3)
-    axes[0, 1].invert_yaxis()  # Lower rank numbers at top
+    axes[0, 1].invert_yaxis()
 
-    # (3) Top-k stratified analysis
     rank_strata = [(1, 10), (11, 20), (21, 50), (51, 100)]
     length_by_strata = []
     labels = []
@@ -254,7 +184,6 @@ def analyze_length_rank_correlation(df, output_dir, dataset_name="seal"):
     axes[1, 0].grid(alpha=0.3, axis='y')
     axes[1, 0].tick_params(axis='x', rotation=15)
 
-    # (4) Example query with strong bias
     if len(significant_bias) > 0:
         example_qid = significant_bias.iloc[0]['query_id']
         example = df[df['query_id'] == example_qid].sort_values('rank')
@@ -274,22 +203,12 @@ def analyze_length_rank_correlation(df, output_dir, dataset_name="seal"):
     return corr_df
 
 
-# ============================================================================
-# Analysis 2: Length vs Score Correlation
-# ============================================================================
-
 def analyze_length_score_correlation(df, output_dir, dataset_name="seal"):
-    """
-    Analyze correlation between passage length and SEAL's aggregate score.
-
-    Key question: Do longer passages receive higher scores?
-    Positive correlation = evidence of score accumulation bias.
-    """
+    """Analyze correlation between passage length and SEAL's aggregate score."""
     print("\n" + "="*80)
     print("ANALYSIS 2: Passage Length vs Aggregate Score")
     print("="*80)
 
-    # Overall correlation
     corr_spearman, p_spearman = spearmanr(df['passage_length'], df['score'])
     corr_pearson, p_pearson = pearsonr(df['passage_length'], df['score'])
 
@@ -297,20 +216,13 @@ def analyze_length_score_correlation(df, output_dir, dataset_name="seal"):
     print(f"  Spearman: ρ = {corr_spearman:.4f}, p = {p_spearman:.4e}")
     print(f"  Pearson:  r = {corr_pearson:.4f}, p = {p_pearson:.4e}")
 
-    if corr_spearman > 0.2 and p_spearman < 0.05:
-        print(f"  → SIGNIFICANT POSITIVE CORRELATION: Longer passages receive higher scores")
-
-    # Visualization
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-
-    # Hexbin plot
     hb = axes[0].hexbin(df['passage_length'], df['score'], gridsize=50, cmap='YlOrRd', mincnt=1)
     axes[0].set_xlabel('Passage Length (tokens)')
     axes[0].set_ylabel('SEAL Aggregate Score')
     axes[0].set_title(f'Length vs Score (Spearman ρ = {corr_spearman:.3f})')
     plt.colorbar(hb, ax=axes[0], label='Count')
 
-    # Box plot by length bins
     df['length_bin'] = pd.cut(df['passage_length'],
                                bins=[0, 50, 75, 100, 125, 150, 500],
                                labels=['0-50', '51-75', '76-100', '101-125', '126-150', '150+'])
@@ -326,26 +238,15 @@ def analyze_length_score_correlation(df, output_dir, dataset_name="seal"):
     print(f"\n  Saved: {output_file}")
 
 
-# ============================================================================
-# Analysis 3: Positive vs Negative Passage Lengths
-# ============================================================================
-
 def analyze_positive_vs_negative_lengths(df, output_dir, dataset_name="seal"):
-    """
-    Compare passage lengths: ground truth (positive) vs retrieved (negative).
-
-    Key question: Are incorrectly ranked passages systematically longer than
-    correctly ranked passages?
-    """
+    """Compare passage lengths: ground truth (positive) vs retrieved (negative)."""
     print("\n" + "="*80)
     print("ANALYSIS 3: Ground Truth vs Retrieved Passage Lengths")
     print("="*80)
 
-    # Split by ground truth
     positive = df[df['is_positive'] == True]
     negative = df[df['is_positive'] == False]
 
-    # Focus on top-10 vs all retrieved
     top10 = df[df['rank'] <= 10]
     top10_positive = top10[top10['is_positive'] == True]
     top10_negative = top10[top10['is_positive'] == False]
@@ -356,18 +257,14 @@ def analyze_positive_vs_negative_lengths(df, output_dir, dataset_name="seal"):
     print(f"\n  Top-10 positive: mean={top10_positive['passage_length'].mean():.1f}, median={top10_positive['passage_length'].median():.1f}")
     print(f"  Top-10 negative: mean={top10_negative['passage_length'].mean():.1f}, median={top10_negative['passage_length'].median():.1f}")
 
-    # Statistical test
     if len(positive) > 0 and len(top10_negative) > 0:
         stat, p = mannwhitneyu(positive['passage_length'], top10_negative['passage_length'], alternative='two-sided')
         print(f"\n  Mann-Whitney U test (Ground truth vs Top-10 negative): p = {p:.4e}")
         if p < 0.05:
             mean_diff = top10_negative['passage_length'].mean() - positive['passage_length'].mean()
-            print(f"    → Significant difference! Top-10 negative passages are {mean_diff:+.1f} tokens different on average")
+            print(f"    Mean difference: {mean_diff:+.1f} tokens")
 
-    # Visualization
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-
-    # Histogram
     if len(positive) > 0:
         axes[0].hist(positive['passage_length'], bins=50, alpha=0.6, label='Ground truth (positive)',
                      color='green', edgecolor='black', density=True)
@@ -379,7 +276,6 @@ def analyze_positive_vs_negative_lengths(df, output_dir, dataset_name="seal"):
     axes[0].legend()
     axes[0].grid(alpha=0.3)
 
-    # CDF
     if len(positive) > 0:
         pos_sorted = np.sort(positive['passage_length'])
         axes[1].plot(pos_sorted, np.arange(len(pos_sorted)) / len(pos_sorted),
@@ -401,31 +297,20 @@ def analyze_positive_vs_negative_lengths(df, output_dir, dataset_name="seal"):
     print(f"\n  Saved: {output_file}")
 
 
-# ============================================================================
-# Analysis 4: N-grams vs Length (Accumulation Effect)
-# ============================================================================
-
 def analyze_ngrams_vs_length(df, output_dir, dataset_name="seal"):
-    """
-    Analyze relationship between passage length and number of matched n-grams.
-
-    Key question: Do longer passages match more n-grams (the accumulation hypothesis)?
-    Strong positive correlation = evidence that length bias exists due to more matching opportunities.
-    """
+    """Analyze relationship between passage length and number of matched n-grams."""
     print("\n" + "="*80)
     print("ANALYSIS 4: Matched N-grams vs Passage Length (Accumulation Effect)")
     print("="*80)
 
-    # Filter to passages with n-gram data
     df_with_keys = df[df['num_keys'] > 0].copy()
 
     if len(df_with_keys) == 0:
-        print("  No n-gram data available (keys field empty)")
+        print("  No n-gram data available")
         return
 
     print(f"\nPassages with n-gram data: {len(df_with_keys)} / {len(df)}")
 
-    # Correlation
     corr_spearman, p_spearman = spearmanr(df_with_keys['passage_length'], df_with_keys['num_keys'])
     corr_pearson, p_pearson = pearsonr(df_with_keys['passage_length'], df_with_keys['num_keys'])
 
@@ -433,19 +318,13 @@ def analyze_ngrams_vs_length(df, output_dir, dataset_name="seal"):
     print(f"  Spearman: ρ = {corr_spearman:.4f}, p = {p_spearman:.4e}")
     print(f"  Pearson:  r = {corr_pearson:.4f}, p = {p_pearson:.4e}")
 
-    if corr_spearman > 0.3 and p_spearman < 0.05:
-        print(f"  → STRONG ACCUMULATION EFFECT: Longer passages match significantly more n-grams")
-
-    # Statistics
     print(f"\nN-gram Matching Statistics:")
     print(f"  Mean n-grams per passage: {df_with_keys['num_keys'].mean():.2f}")
     print(f"  Median: {df_with_keys['num_keys'].median():.1f}")
     print(f"  Max: {df_with_keys['num_keys'].max()}")
 
-    # Visualization
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 
-    # (1) Hexbin scatter
     hb = axes[0, 0].hexbin(df_with_keys['passage_length'], df_with_keys['num_keys'],
                            gridsize=40, cmap='YlOrRd', mincnt=1)
     axes[0, 0].set_xlabel('Passage Length (tokens)')
@@ -453,14 +332,12 @@ def analyze_ngrams_vs_length(df, output_dir, dataset_name="seal"):
     axes[0, 0].set_title(f'Length vs N-gram Count (ρ = {corr_spearman:.3f})')
     plt.colorbar(hb, ax=axes[0, 0])
 
-    # (2) Box plot by length bins
     df_with_keys.boxplot(column='num_keys', by='length_bin', ax=axes[0, 1])
     axes[0, 1].set_xlabel('Passage Length Bin (tokens)')
     axes[0, 1].set_ylabel('Number of Matched N-grams')
     axes[0, 1].set_title('N-gram Count by Length Bin')
     plt.suptitle('')
 
-    # (3) Total score vs length
     corr_score_len, _ = spearmanr(df_with_keys['passage_length'], df_with_keys['total_key_score'])
     hb2 = axes[1, 0].hexbin(df_with_keys['passage_length'], df_with_keys['total_key_score'],
                             gridsize=40, cmap='YlGnBu', mincnt=1)
@@ -469,7 +346,6 @@ def analyze_ngrams_vs_length(df, output_dir, dataset_name="seal"):
     axes[1, 0].set_title(f'Length vs Total Score (ρ = {corr_score_len:.3f})')
     plt.colorbar(hb2, ax=axes[1, 0])
 
-    # (4) Average score vs length (quality control)
     corr_avg_len, _ = spearmanr(df_with_keys['passage_length'], df_with_keys['avg_key_score'])
     hb3 = axes[1, 1].hexbin(df_with_keys['passage_length'], df_with_keys['avg_key_score'],
                             gridsize=40, cmap='viridis', mincnt=1)
@@ -484,21 +360,12 @@ def analyze_ngrams_vs_length(df, output_dir, dataset_name="seal"):
     print(f"\n  Saved: {output_file}")
 
 
-# ============================================================================
-# Analysis 5: Retrieval Quality by Length
-# ============================================================================
-
 def analyze_retrieval_quality_by_length(df, output_dir, dataset_name="seal"):
-    """
-    Analyze whether length affects retrieval precision.
-
-    Key question: Do longer passages have lower precision (more false positives)?
-    """
+    """Analyze whether length affects retrieval precision."""
     print("\n" + "="*80)
     print("ANALYSIS 5: Retrieval Precision by Passage Length")
     print("="*80)
 
-    # Calculate precision@k by length bin
     results = []
     for k in [5, 10, 20, 50, 100]:
         topk = df[df['rank'] <= k]
@@ -516,7 +383,6 @@ def analyze_retrieval_quality_by_length(df, output_dir, dataset_name="seal"):
 
     results_df = pd.DataFrame(results)
 
-    # Print table
     print(f"\nPrecision@K by Passage Length Bin:")
     print(f"{'Length Bin':<15} {'P@5':>8} {'P@10':>8} {'P@20':>8} {'P@50':>8} {'P@100':>9}")
     print("-" * 70)
@@ -536,7 +402,6 @@ def analyze_retrieval_quality_by_length(df, output_dir, dataset_name="seal"):
 
         print(f"{length_bin:<15} {p5_str:>8} {p10_str:>8} {p20_str:>8} {p50_str:>8} {p100_str:>9}")
 
-    # Visualization
     fig, ax = plt.subplots(1, 1, figsize=(10, 6))
 
     for k in [5, 10, 20, 50, 100]:
@@ -557,15 +422,10 @@ def analyze_retrieval_quality_by_length(df, output_dir, dataset_name="seal"):
     print(f"\n  Saved: {output_file}")
 
 
-# ============================================================================
-# Summary Report
-# ============================================================================
-
 def generate_summary_report(df, corr_df, output_dir, datapath, dataset_name="seal"):
     """Generate comprehensive summary report."""
     report_path = f'{output_dir}/SUMMARY_REPORT_{dataset_name}.txt'
 
-    # Calculate key metrics
     df_with_keys = df[df['num_keys'] > 0]
     rank_length_corr = corr_df['spearman_corr'].mean() if len(corr_df) > 0 else 0
     score_length_corr, _ = spearmanr(df['passage_length'], df['score'])
@@ -589,7 +449,6 @@ def generate_summary_report(df, corr_df, output_dir, datapath, dataset_name="sea
         f.write("KEY FINDINGS\n")
         f.write("-"*80 + "\n\n")
 
-        # Finding 1: Rank-length correlation
         significant_bias = len(corr_df[(corr_df['spearman_corr'] < -0.2) & (corr_df['p_value'] < 0.05)])
         f.write(f"1. Rank-Length Correlation:\n")
         f.write(f"   Mean Spearman correlation: {rank_length_corr:.4f}\n")
@@ -600,14 +459,12 @@ def generate_summary_report(df, corr_df, output_dir, datapath, dataset_name="sea
             f.write(f"   → Limited systematic bias detected\n")
         f.write("\n")
 
-        # Finding 2: Score-length correlation
         f.write(f"2. Score-Length Correlation:\n")
         f.write(f"   Spearman correlation: {score_length_corr:.4f}\n")
         if score_length_corr > 0.2:
             f.write(f"   → Longer passages receive higher aggregate scores\n")
         f.write("\n")
 
-        # Finding 3: N-gram accumulation
         f.write(f"3. N-gram Accumulation Effect:\n")
         f.write(f"   Correlation (length vs n-gram count): {ngram_length_corr:.4f}\n")
         if ngram_length_corr > 0.3:
@@ -615,7 +472,6 @@ def generate_summary_report(df, corr_df, output_dir, datapath, dataset_name="sea
             f.write(f"   → This confirms the theoretical length bias mechanism\n")
         f.write("\n")
 
-        # Finding 4: Positive vs negative
         positive = df[df['is_positive'] == True]
         top10_negative = df[(df['rank'] <= 10) & (df['is_positive'] == False)]
         if len(positive) > 0 and len(top10_negative) > 0:
@@ -659,10 +515,6 @@ def generate_summary_report(df, corr_df, output_dir, datapath, dataset_name="sea
     print(f"\n  Saved summary: {report_path}")
 
 
-# ============================================================================
-# Main Execution
-# ============================================================================
-
 def main(datapath="data/seal_output.json"):
     """Run all analyses (streaming version)."""
     import sys
@@ -672,12 +524,10 @@ def main(datapath="data/seal_output.json"):
     print(f"running {script_name}")
 
     try:
-        # Create output directory based on dataset name
         dataset_name = get_dataset_name(datapath)
         output_dir = Path(f"generated_data/{dataset_name}/length_bias_analysis")
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Redirect stdout to log file
         log_file = output_dir / f"{script_name}_log.txt"
         original_stdout = sys.stdout
         sys.stdout = open(log_file, 'w', encoding='utf-8')
@@ -685,10 +535,8 @@ def main(datapath="data/seal_output.json"):
         print(f"\nOutput directory: {output_dir}\n")
         print(f"Dataset: {dataset_name}\n")
 
-        # Extract analysis data (streaming)
         df = extract_analysis_data(datapath, datapath)
 
-        # Run analyses
         print("\nRunning analyses...")
         corr_df = analyze_length_rank_correlation(df, output_dir, dataset_name)
         analyze_length_score_correlation(df, output_dir, dataset_name)
@@ -696,10 +544,8 @@ def main(datapath="data/seal_output.json"):
         analyze_ngrams_vs_length(df, output_dir, dataset_name)
         analyze_retrieval_quality_by_length(df, output_dir, dataset_name)
 
-        # Generate summary
         generate_summary_report(df, corr_df, output_dir, datapath, dataset_name)
 
-        # Save processed data
         processed_file = f'{output_dir}/processed_data_{dataset_name}.csv'
         correlations_file = f'{output_dir}/correlations_{dataset_name}.csv'
         df.to_csv(processed_file, index=False, encoding='utf-8')

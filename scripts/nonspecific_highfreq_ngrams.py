@@ -120,24 +120,34 @@ def analyze_ngram_frequency(datapath="data/seal_output.json"):
         print(f"  Top-5 n-grams mean frequency: {df['avg_top5_frequency'].mean():.1f}")
         print(f"  Top-10 n-grams mean frequency: {df['avg_top10_frequency'].mean():.1f}")
 
-        # Determine frequency bins dynamically
+        # Decile-based frequency analysis
         freq_values = df['avg_top5_frequency']
 
-        bins = {
-            'low': freq_values < 500,
-            'mid': (freq_values >= 500) & (freq_values < 5000),
-            'high': freq_values >= 5000
-        }
+        print("\nSuccess Rates by Frequency Decile (avg top-5 n-gram frequency):")
+        print("-" * 80)
+        print(f"{'Decile':8s} | {'Freq Range':20s} | {'Top-1':>8s} | {'Top-2':>8s} | {'Top-10':>8s} | {'Count':>6s}")
+        print("-" * 80)
 
-        for label, mask in bins.items():
+        # Create decile bins
+        df['freq_decile'] = pd.qcut(freq_values, q=10, labels=False, duplicates='drop')
+
+        for decile in sorted(df['freq_decile'].unique()):
+            mask = df['freq_decile'] == decile
             if mask.sum() == 0:
-                continue  # skip empty bins
+                continue
             bin_min = freq_values[mask].min()
             bin_max = freq_values[mask].max()
-            print(f"\nSuccess Rates for {label} frequency (avg top-5 n-gram frequency: {bin_min:.0f}–{bin_max:.0f}):")
-            print(f"  Top-1: {df.loc[mask, 'success_top1'].mean():.2%} ({mask.sum()} queries)")
-            print(f"  Top-2: {df.loc[mask, 'success_top2'].mean():.2%} ({mask.sum()} queries)")
-            print(f"  Top-10: {df.loc[mask, 'success_top10'].mean():.2%} ({mask.sum()} queries)")
+            top1_rate = df.loc[mask, 'success_top1'].mean()
+            top2_rate = df.loc[mask, 'success_top2'].mean()
+            top10_rate = df.loc[mask, 'success_top10'].mean()
+            count = mask.sum()
+
+            print(f"D{int(decile)+1:1d}       | {bin_min:8.0f}–{bin_max:8.0f}    | {top1_rate:7.2%} | {top2_rate:7.2%} | {top10_rate:8.2%} | {count:6d}")
+
+        print("-" * 80)
+
+        # Drop the temporary column
+        df = df.drop(columns=['freq_decile'])
 
         # Spearman correlation
         corr, p_val = spearmanr(df['avg_top5_frequency'], df['success_top1'])

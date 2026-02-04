@@ -109,17 +109,33 @@ def analyze_repetitive_generation(datapath="data/seal_output.json"):
             print(f"success running {script_name}")
             return
 
-        # Statistics by diversity
-        low_div = df[df['diversity_ratio'] < 0.70]
-        mid_div = df[(df['diversity_ratio'] >= 0.70) & (df['diversity_ratio'] < 0.85)]
-        high_div = df[df['diversity_ratio'] >= 0.85]
-
+        # Statistics by diversity deciles
         print(f"\nAnalyzed {len(df)} queries")
         print(f"Mean diversity: {df['diversity_ratio'].mean():.3f}")
-        print(f"\nSuccess Rate by Diversity:")
-        print(f"  Low (<0.70): {low_div['success'].mean():.2%} ({len(low_div)} queries)")
-        print(f"  Mid (0.70-0.85): {mid_div['success'].mean():.2%} ({len(mid_div)} queries)")
-        print(f"  High (>0.85): {high_div['success'].mean():.2%} ({len(high_div)} queries)")
+
+        print(f"\nSuccess Rate by Diversity Decile:")
+        print("-" * 70)
+        print(f"{'Decile':8s} | {'Diversity Range':18s} | {'Success':>10s} | {'Count':>8s}")
+        print("-" * 70)
+
+        # Create decile bins
+        df['diversity_decile'] = pd.qcut(df['diversity_ratio'], q=10, labels=False, duplicates='drop')
+
+        for decile in sorted(df['diversity_decile'].unique()):
+            mask = df['diversity_decile'] == decile
+            if mask.sum() == 0:
+                continue
+            success_rate = df.loc[mask, 'success'].mean()
+            div_min = df.loc[mask, 'diversity_ratio'].min()
+            div_max = df.loc[mask, 'diversity_ratio'].max()
+            count = mask.sum()
+
+            print(f"D{int(decile)+1:1d}       | {div_min:6.3f}–{div_max:6.3f}      | {success_rate:9.2%} | {count:8d}")
+
+        print("-" * 70)
+
+        # Drop the temporary column
+        df = df.drop(columns=['diversity_decile'])
 
         corr, p_val = spearmanr(df['diversity_ratio'], df['success'])
         print(f"\nSpearman correlation: ρ = {corr:.3f}, p = {p_val:.4e}")

@@ -100,56 +100,72 @@ def analyze_query_ngram_overlap_topk(datapath="data/seal_output.json"):
         total_queries = len(df)
         print(f"\nAnalyzed {total_queries} queries\n")
 
-        # Define coverage bins
-        bins = {
-            'low': (0, 0.3),
-            'mid': (0.3, 0.6),
-            'high': (0.6, 1.01)  # Changed to 1.01 to include 1.0
-        }
-
+        # Define decile-based coverage bins
         topk = [1, 2, 10]
+
         for k in topk:
-            print(f"\nSuccess Rate by Query Coverage (Top-{k} passages):")
-            for label, (min_c, max_c) in bins.items():
-                mask = (df[f'query_coverage_top{k}'] >= min_c) & (df[f'query_coverage_top{k}'] < max_c)
+            print(f"\nSuccess Rate by Query Coverage Decile (Top-{k} passages):")
+            print("-" * 70)
+            print(f"{'Decile':8s} | {'Coverage Range':18s} | {'Success':>10s} | {'Count':>8s}")
+            print("-" * 70)
+
+            # Create decile bins for this k
+            df[f'coverage_decile_top{k}'] = pd.qcut(df[f'query_coverage_top{k}'], q=10, labels=False, duplicates='drop')
+
+            for decile in sorted(df[f'coverage_decile_top{k}'].unique()):
+                mask = df[f'coverage_decile_top{k}'] == decile
                 if mask.sum() == 0:
                     continue
                 success_rate = df.loc[mask, f'success_top{k}'].mean()
-                print(f"  {label.capitalize()} ({min_c:.1f}-{max_c:.1f}): {success_rate:.2%} ({mask.sum()} queries)")
+                cov_min = df.loc[mask, f'query_coverage_top{k}'].min()
+                cov_max = df.loc[mask, f'query_coverage_top{k}'].max()
+                count = mask.sum()
+
+                print(f"D{int(decile)+1:1d}       | {cov_min:6.3f}–{cov_max:6.3f}      | {success_rate:9.2%} | {count:8d}")
+
+            print("-" * 70)
 
             # Spearman correlation
             corr, p_val = spearmanr(df[f'query_coverage_top{k}'], df[f'success_top{k}'])
-            print(f"  Spearman correlation: ρ = {corr:.3f}, p = {p_val:.4e}")
+            print(f"Spearman correlation: ρ = {corr:.3f}, p = {p_val:.4e}")
+            print()
 
-        # Print distribution table
+        # Print distribution table (now by deciles)
         print("\n" + "="*80)
-        print("DISTRIBUTION OF QUERIES ACROSS COVERAGE BINS")
+        print("DISTRIBUTION OF QUERIES ACROSS COVERAGE DECILES")
         print("="*80)
-        print(f"\n{'Coverage Bin':<15} {'Top-1':<20} {'Top-2':<20} {'Top-10':<20}")
+        print(f"\n{'Decile':<10} {'Top-1':<20} {'Top-2':<20} {'Top-10':<20}")
         print("-" * 80)
 
-        for label, (min_c, max_c) in bins.items():
-            row = f"{label.capitalize()} ({min_c:.1f}-{max_c:.1f})"
-            print(f"{row:<15}", end=" ")
+        # Get the maximum number of deciles across all k values
+        max_deciles = max(df[f'coverage_decile_top{k}'].nunique() for k in topk)
+
+        for decile in range(max_deciles):
+            print(f"D{decile+1:1d}        ", end=" ")
 
             for k in topk:
-                mask = (df[f'query_coverage_top{k}'] >= min_c) & (df[f'query_coverage_top{k}'] < max_c)
-                count = mask.sum()
-                percentage = (count / total_queries) * 100
-                print(f"{count:>5} ({percentage:>5.2f}%)", end="    ")
+                if f'coverage_decile_top{k}' in df.columns:
+                    mask = df[f'coverage_decile_top{k}'] == decile
+                    count = mask.sum()
+                    percentage = (count / total_queries) * 100 if total_queries > 0 else 0
+                    print(f"{count:>5} ({percentage:>5.2f}%)", end="    ")
+                else:
+                    print(f"{'N/A':>5} ({'N/A':>5s})", end="    ")
 
             print()
-    
+
         print("-" * 80)
-        print(f"{'Total':<15}", end=" ")
+        print(f"{'Total':<10}", end=" ")
         for k in topk:
-            total_in_bins = sum(
-                ((df[f'query_coverage_top{k}'] >= min_c) & (df[f'query_coverage_top{k}'] < max_c)).sum()
-                for label, (min_c, max_c) in bins.items()
-            )
-            percentage = (total_in_bins / total_queries) * 100
+            total_in_bins = len(df[df[f'coverage_decile_top{k}'].notna()])
+            percentage = (total_in_bins / total_queries) * 100 if total_queries > 0 else 0
             print(f"{total_in_bins:>5} ({percentage:>5.2f}%)", end="    ")
         print()
+
+        # Drop temporary columns
+        for k in topk:
+            if f'coverage_decile_top{k}' in df.columns:
+                df = df.drop(columns=[f'coverage_decile_top{k}'])
         print("NOTE TO SELF: top2 and top10 are deprecated and potentially incorrect, remove TODO")
 
         # Restore stdout

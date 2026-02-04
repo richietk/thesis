@@ -27,10 +27,7 @@ def get_dataset_name(datapath: str) -> str:
 
 
 def parse_keys_field(keys_field: Any) -> List:
-    """
-    Parse the keys field and convert Decimal objects to float.
-    Returns a list of parsed key entries with numeric values as floats.
-    """
+    """Parse keys field and convert Decimal to float."""
     if isinstance(keys_field, str):
         try:
             keys_list = json.loads(keys_field)
@@ -42,11 +39,9 @@ def parse_keys_field(keys_field: Any) -> List:
     else:
         keys_list = keys_field if keys_field else []
 
-    # Convert any Decimal objects to float
     result = []
     for item in keys_list:
         if len(item) >= 3:
-            # Ensure numeric values are regular Python floats/ints
             ngram = item[0]
             freq = int(item[1]) if item[1] is not None else 0
             score = float(item[2]) if item[2] is not None else 0.0
@@ -57,13 +52,7 @@ def parse_keys_field(keys_field: Any) -> List:
 
 
 def get_recall_category(retrieved_ctxs: List[Dict], gold_ids: Set[str]) -> str:
-    """
-    Classifies the query based on the top 2 retrieved documents.
-    PP, PN, NP, NN
-    Retrieved ctxs: list of retrieved context dicts
-    Gold_ids: ground truth passage ids
-    Returns the category string
-    """
+    """Classify query based on top 2 retrieved docs (PP, PN, NP, NN)."""
     if len(retrieved_ctxs) < 2:
         return 'X'
         
@@ -85,12 +74,7 @@ def get_recall_category(retrieved_ctxs: List[Dict], gold_ids: Set[str]) -> str:
 
 
 def get_scores_list(id_set: Set[int], source_map: Dict[int, List[float]]) -> List[float]:
-    """
-    Extracts all scores for a set of n-gram id-s.
-    id_set: set of ngram integer id-s
-    source_map: dict mapping id-s to sources
-    returns list of all scores
-    """
+    """Extract all scores for a set of n-gram IDs."""
     scores = []
     for i in id_set:
         scores.extend(source_map[i])
@@ -98,22 +82,15 @@ def get_scores_list(id_set: Set[int], source_map: Dict[int, List[float]]) -> Lis
 
 
 def extract_ngram_examples(query_data: Dict, top_k: int = 10, datapath: str = "") -> Dict:
-    """
-    Extracts detailed n-gram examples for a query, including the actual n-gram strings.
-    Returns dict with lists of (ngram_string, corpus_freq, score) tuples for each category.
-    """
-    # 1. identify the positives
+    """Extract detailed n-gram examples for a query."""
     gold_ids = set()
     if 'positive_ctxs' in query_data:
         for ctx in query_data['positive_ctxs']:
             gold_ids.add(ctx['passage_id'])
 
-    # 2. get retrieved docs
     retrieved_ctxs = query_data.get('ctxs', [])[:top_k]
 
-    # 3. build maps: ngram_id -> (ngram_string, corpus_freq, max_score)
-    # We store the actual ngram strings along with their scores
-    p_keys_details = {}  # {ngram_id: (ngram_string, corpus_freq, score)}
+    p_keys_details = {}
     n_keys_details = {}
 
     for ctx in retrieved_ctxs:
@@ -126,19 +103,17 @@ def extract_ngram_examples(query_data: Dict, top_k: int = 10, datapath: str = ""
             if len(item) < 3:
                 continue
 
-            ngram_string = strip_ngram_markers(item[0], datapath)  # The actual n-gram text
-            ngram_id = item[1]      # Corpus frequency (used as ID)
-            score = item[2]         # Score
+            ngram_string = strip_ngram_markers(item[0], datapath)
+            ngram_id = item[1]
+            score = item[2]
 
             if is_positive:
-                # Keep the highest score for each ngram
                 if ngram_id not in p_keys_details or score > p_keys_details[ngram_id][2]:
                     p_keys_details[ngram_id] = (ngram_string, ngram_id, score)
             else:
                 if ngram_id not in n_keys_details or score > n_keys_details[ngram_id][2]:
                     n_keys_details[ngram_id] = (ngram_string, ngram_id, score)
 
-    # 4. identify unique and shared keys
     set_P = set(p_keys_details.keys())
     set_N = set(n_keys_details.keys())
 
@@ -146,7 +121,6 @@ def extract_ngram_examples(query_data: Dict, top_k: int = 10, datapath: str = ""
     unique_N_ids = set_N - set_P
     shared_ids = set_P & set_N
 
-    # 5. extract details for each category, sorted by score descending
     unique_P_examples = sorted(
         [p_keys_details[i] for i in unique_P_ids],
         key=lambda x: x[2], reverse=True
@@ -163,55 +137,44 @@ def extract_ngram_examples(query_data: Dict, top_k: int = 10, datapath: str = ""
 
     return {
         "question": query_data.get("question", ""),
-        "unique_positive": unique_P_examples,  # List of (ngram, freq, score)
+        "unique_positive": unique_P_examples,
         "unique_negative": unique_N_examples,
-        "shared": shared_examples,  # List of (ngram, freq, score_in_P, score_in_N)
+        "shared": shared_examples,
     }
 
 
 def print_ngram_examples(examples: Dict, max_examples: int = 10) -> None:
-    """
-    Prints detailed n-gram examples for a query.
-    """
+    """Print detailed n-gram examples for a query."""
     print("\n" + "=" * 100)
     print(f"N-GRAM EXAMPLES FOR: {examples['question']}")
     print("=" * 100)
 
-    # Unique Positive Keys
-    print(f"\n--- UNIQUE TO POSITIVE PASSAGES ({len(examples['unique_positive'])} total) ---")
+    print(f"\nUNIQUE TO POSITIVE PASSAGES ({len(examples['unique_positive'])} total)")
     print(f"{'N-gram':<50} {'Corpus Freq':>12} {'Score':>10}")
-    print("-" * 75)
     for ngram, freq, score in examples['unique_positive'][:max_examples]:
-        # Escape/clean the ngram for display
         display_ngram = repr(ngram) if len(ngram) < 45 else repr(ngram[:42]) + "..."
         print(f"{display_ngram:<50} {freq:>12} {score:>10.2f}")
     if len(examples['unique_positive']) > max_examples:
         print(f"  ... and {len(examples['unique_positive']) - max_examples} more")
 
-    # Summary stats for unique positive
     if examples['unique_positive']:
         scores = [x[2] for x in examples['unique_positive']]
         print(f"\n  Total: {len(scores)} keys, Sum={sum(scores):.1f}, Avg={np.mean(scores):.2f}")
 
-    # Unique Negative Keys
-    print(f"\n--- UNIQUE TO NEGATIVE PASSAGES ({len(examples['unique_negative'])} total) ---")
+    print(f"\nUNIQUE TO NEGATIVE PASSAGES ({len(examples['unique_negative'])} total)")
     print(f"{'N-gram':<50} {'Corpus Freq':>12} {'Score':>10}")
-    print("-" * 75)
     for ngram, freq, score in examples['unique_negative'][:max_examples]:
         display_ngram = repr(ngram) if len(ngram) < 45 else repr(ngram[:42]) + "..."
         print(f"{display_ngram:<50} {freq:>12} {score:>10.2f}")
     if len(examples['unique_negative']) > max_examples:
         print(f"  ... and {len(examples['unique_negative']) - max_examples} more")
 
-    # Summary stats for unique negative
     if examples['unique_negative']:
         scores = [x[2] for x in examples['unique_negative']]
         print(f"\n  Total: {len(scores)} keys, Sum={sum(scores):.1f}, Avg={np.mean(scores):.2f}")
 
-    # Shared Keys
-    print(f"\n--- SHARED BETWEEN POSITIVE AND NEGATIVE ({len(examples['shared'])} total) ---")
+    print(f"\nSHARED BETWEEN POSITIVE AND NEGATIVE ({len(examples['shared'])} total)")
     print(f"{'N-gram':<40} {'Freq':>8} {'Score(P)':>10} {'Score(N)':>10}")
-    print("-" * 75)
     for item in examples['shared'][:max_examples]:
         ngram, freq, score_p, score_n = item
         display_ngram = repr(ngram) if len(ngram) < 35 else repr(ngram[:32]) + "..."
@@ -223,9 +186,7 @@ def print_ngram_examples(examples: Dict, max_examples: int = 10) -> None:
 
 
 def find_query_by_substring(data: List[Dict], substring: str) -> Dict:
-    """
-    Finds a query containing the given substring.
-    """
+    """Find a query containing the given substring."""
     substring_lower = substring.lower()
     for entry in data:
         if substring_lower in entry.get('question', '').lower():
@@ -234,24 +195,15 @@ def find_query_by_substring(data: List[Dict], substring: str) -> Dict:
 
 
 def analyze_query_sets(query_data: Dict, top_k: int = 10, datapath: str = "") -> Dict:
-    """
-    Analyzes the n-gram keys for a single query.
-    query_data: a single entry
-    top_k: Number of retrieved documents to consider
-    returns a dictionary containing the statistics
-    """
-
-    # 1. identify the positives
+    """Analyze n-gram keys for a single query."""
     gold_ids = set()
     if 'positive_ctxs' in query_data:
         for ctx in query_data['positive_ctxs']:
             gold_ids.add(ctx['passage_id'])
-            
-    # 2. get retrieved docs and determine category
+
     retrieved_ctxs = query_data.get('ctxs', [])[:top_k]
     category = get_recall_category(retrieved_ctxs, gold_ids)
-    
-    # 3. build key maps for positive and negative scores
+
     p_keys_map = defaultdict(list)
     n_keys_map = defaultdict(list)
     
@@ -273,15 +225,13 @@ def analyze_query_sets(query_data: Dict, top_k: int = 10, datapath: str = "") ->
             else:
                 n_keys_map[ngram_id].append(score)
 
-    # 4. create sets
     set_P = set(p_keys_map.keys())
     set_N = set(n_keys_map.keys())
     
     unique_P_ids = set_P - set_N
     unique_N_ids = set_N - set_P
     intersection_ids = set_P & set_N
-    
-    # 5. get score lists for each set
+
     scores_unique_P = get_scores_list(unique_P_ids, p_keys_map)
     scores_unique_N = get_scores_list(unique_N_ids, n_keys_map)
     scores_shared_in_P = get_scores_list(intersection_ids, p_keys_map)
@@ -290,25 +240,15 @@ def analyze_query_sets(query_data: Dict, top_k: int = 10, datapath: str = "") ->
     stats = {
         "question": query_data.get("question", ""),
         "category": category,
-        
-        # total counts
         "count_P_total": len(set_P),
         "count_N_total": len(set_N),
-        
-        # unique counts
         "count_unique_P": len(unique_P_ids),
         "count_unique_N": len(unique_N_ids),
         "count_shared": len(intersection_ids),
-        
-        # avg scores for unique keys
         "avg_score_unique_P": np.mean(scores_unique_P) if scores_unique_P else 0.0,
         "avg_score_unique_N": np.mean(scores_unique_N) if scores_unique_N else 0.0,
-        
-        # sum scores for unique keys
         "sum_score_unique_P": np.sum(scores_unique_P) if scores_unique_P else 0.0,
         "sum_score_unique_N": np.sum(scores_unique_N) if scores_unique_N else 0.0,
-        
-        # shared key scores
         "avg_score_shared_in_P": np.mean(scores_shared_in_P) if scores_shared_in_P else 0.0,
         "avg_score_shared_in_N": np.mean(scores_shared_in_N) if scores_shared_in_N else 0.0,
         "sum_score_shared_in_P": np.sum(scores_shared_in_P) if scores_shared_in_P else 0.0,
@@ -319,9 +259,7 @@ def analyze_query_sets(query_data: Dict, top_k: int = 10, datapath: str = "") ->
 
 
 def print_category_summary(all_results: List[Dict]) -> None:
-    """
-    Prints summary table
-    """
+    """Print summary table."""
     groups = defaultdict(list)
     for r in all_results:
         groups[r['category']].append(r)
@@ -331,7 +269,6 @@ def print_category_summary(all_results: List[Dict]) -> None:
     print("=" * 120)
     print(f"{'CAT':<5} | {'COUNT':>6} | {'Unique P (Cnt/Avg/Sum)':<25} | "
           f"{'Unique N (Cnt/Avg/Sum)':<25} | {'Shared (Cnt/AvgP/AvgN)':<25}")
-    print("-" * 120)
     
     for cat in ['PP', 'PN', 'NP', 'NN', 'X']:
         entries = groups.get(cat, [])
@@ -364,14 +301,11 @@ def print_category_summary(all_results: List[Dict]) -> None:
 
 
 def print_global_summary(all_results: List[Dict]) -> None:
-    """
-    Prints stats
-    """
+    """Print global stats."""
     print("\n" + "=" * 80)
     print(f"GLOBAL SUMMARY (N={len(all_results)} queries)")
     print("=" * 80)
-    
-    # category distr
+
     cat_counts = defaultdict(int)
     for r in all_results:
         cat_counts[r['category']] += 1
@@ -396,9 +330,7 @@ def print_global_summary(all_results: List[Dict]) -> None:
 
 
 def save_results_to_csv(all_results: List[Dict], output_path: str) -> None:
-    """
-    output to csv
-    """
+    """Save results to CSV."""
     if not all_results:
         print("No results to save.")
         return
@@ -452,7 +384,6 @@ def main(datapath="data/seal_output.json"):
         OUTPUT_CSV = f"{output_dir}/seal_unified_analysis_{dataset_name}.csv"
         TOP_K = 10
 
-        # Redirect stdout to log file
         log_file = os.path.join(output_dir, f"{script_name}_log.txt")
         original_stdout = sys.stdout
         sys.stdout = open(log_file, 'w', encoding='utf-8')
@@ -483,7 +414,6 @@ def main(datapath="data/seal_output.json"):
             print_global_summary(all_results)
             print_category_summary(all_results)
 
-            # sample output of first 3 queries
             print("\n" + "=" * 80)
             print("SAMPLE OUTPUT (First 3 queries)")
             print("=" * 80)
@@ -494,17 +424,13 @@ def main(datapath="data/seal_output.json"):
                 print(f"    Unique N: {r['count_unique_N']} keys (avg={r['avg_score_unique_N']:.2f}, sum={r['sum_score_unique_N']:.0f})")
                 print(f"    Shared:   {r['count_shared']} keys (avgP={r['avg_score_shared_in_P']:.2f}, avgN={r['avg_score_shared_in_N']:.2f})")
 
-            # ============================================================
-            # DETAILED N-GRAM EXAMPLES FOR SPECIFIC QUERIES
-            # ============================================================
             print("\n\n" + "#" * 100)
             print("# DETAILED N-GRAM EXAMPLES FOR SPECIFIC QUERIES")
             print("#" * 100)
 
-            # List of queries to examine in detail
             example_queries = [
-                "who sings does he love me with reba",  # NN case from thesis
-                "when does the new my hero academia movie come out",  # Another example
+                "who sings does he love me with reba",
+                "when does the new my hero academia movie come out",
             ]
 
             for query_substring in example_queries:

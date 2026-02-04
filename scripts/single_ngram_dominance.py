@@ -111,36 +111,31 @@ def analyze_single_ngram_dominance(datapath="data/seal_output.json"):
         print(f"Mean dominance: {mean_dom:.3f}")
         print(f"Median dominance: {median_dom:.3f}")
 
-        # Frequency bins
-        low = df[df['dominance'] < 0.30]
-        mid = df[(df['dominance'] >= 0.30) & (df['dominance'] <= 0.50)]
-        high = df[df['dominance'] > 0.50]
+        # Decile analysis using pd.qcut for proper percentile-based binning
+        print("\nSuccess Rate by Dominance Decile:")
+        print("-" * 70)
+        print(f"{'Decile':8s} | {'Dominance Range':18s} | {'Success':>10s} | {'Count':>8s}")
+        print("-" * 70)
 
-        print("\nDominance bins:")
-        print(f"  Low (<0.30): {len(low)} queries ({100*len(low)/len(df):.1f}%)")
-        print(f"  Medium (0.30–0.50): {len(mid)} queries ({100*len(mid)/len(df):.1f}%)")
-        print(f"  High (>0.50): {len(high)} queries ({100*len(high)/len(df):.1f}%)")
+        # Create decile bins
+        df['dominance_decile'] = pd.qcut(df['dominance'], q=10, labels=False, duplicates='drop')
 
-        # Decile analysis
-        df_sorted = df.sort_values('dominance')
-        num_bins = 10
-        bin_size = len(df_sorted) // num_bins
-
-        print("\nDominance range | Top-1 Success | Count")
-        print("---------------------------------------")
-
-        for i in range(num_bins):
-            start = i * bin_size
-            end = (i + 1) * bin_size if i < num_bins - 1 else len(df_sorted)
-            bin_data = df_sorted.iloc[start:end]
-            if len(bin_data) == 0:
+        for decile in sorted(df['dominance_decile'].unique()):
+            mask = df['dominance_decile'] == decile
+            if mask.sum() == 0:
                 continue
 
-            t1 = 100 * bin_data['success_top1'].mean()
-            d_min = bin_data['dominance'].min()
-            d_max = bin_data['dominance'].max()
+            success_rate = df.loc[mask, 'success_top1'].mean()
+            dom_min = df.loc[mask, 'dominance'].min()
+            dom_max = df.loc[mask, 'dominance'].max()
+            count = mask.sum()
 
-            print(f"{d_min:.2f}–{d_max:.2f}      | {t1:6.2f}% | {len(bin_data)}")
+            print(f"D{int(decile)+1:1d}       | {dom_min:6.3f}–{dom_max:6.3f}      | {success_rate:9.2%} | {count:8d}")
+
+        print("-" * 70)
+
+        # Drop the temporary column
+        df = df.drop(columns=['dominance_decile'])
 
         # Spearman correlation
         corr, p_val = spearmanr(df['dominance'], df['success_top1'])

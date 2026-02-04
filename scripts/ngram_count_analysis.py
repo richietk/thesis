@@ -84,34 +84,34 @@ def analyze_ngram_distribution(datapath="data/seal_output.json"):
         print(f"  Std. Dev:     {df['ngram_count'].std():.2f}")
         print(f"  Range:        [{df['ngram_count'].min()}, {df['ngram_count'].max()}]")
 
-        # Define Intervals
-        intervals = [
-            (-np.inf, 30),
-            (30, 38),
-            (38, 44),
-            (44, 52),
-            (52, np.inf)
-        ]
-
-        print("\nRetrieval Performance by N-gram Count Interval:")
+        # Define Decile-based intervals
+        print("\nRetrieval Performance by N-gram Count Decile:")
         print("-" * 75)
-        header = f"{'Count Interval':18s} | {'N':8s} | {'Success@1':>10s} | {'Mean Corpus Freq'}"
+        header = f"{'Decile':8s} | {'Count Range':15s} | {'N':8s} | {'Success@1':>10s} | {'Mean Corpus Freq'}"
         print(header)
         print("-" * 75)
 
         bin_data = []
-        for lower, upper in intervals:
-            mask = (df['ngram_count'] > lower) & (df['ngram_count'] <= upper)
+
+        # Create decile bins
+        df['ngram_decile'] = pd.qcut(df['ngram_count'], q=10, labels=False, duplicates='drop')
+
+        for decile in sorted(df['ngram_decile'].unique()):
+            mask = df['ngram_decile'] == decile
             count_n = mask.sum()
             if count_n > 0:
                 success = df.loc[mask, 'success_top1'].mean() * 100
                 mean_f = df.loc[mask, 'avg_freq'].mean()
 
-                low_val = int(lower) if lower != -np.inf else 0
-                range_label = f">{low_val}" if upper == np.inf else f"{low_val + 1}–{int(upper)}"
+                count_min = int(df.loc[mask, 'ngram_count'].min())
+                count_max = int(df.loc[mask, 'ngram_count'].max())
+                range_label = f"{count_min}–{count_max}"
 
-                print(f" {range_label:17s} | {count_n:8d} | {success:9.2f}% | {mean_f:,.0f}")
-                bin_data.append({'range': range_label, 'success': success, 'freq': mean_f})
+                print(f" D{int(decile)+1:1d}      | {range_label:15s} | {count_n:8d} | {success:9.2f}% | {mean_f:,.0f}")
+                bin_data.append({'range': range_label, 'success': success, 'freq': mean_f, 'decile': int(decile)+1})
+
+        # Drop the temporary column
+        df = df.drop(columns=['ngram_decile'])
 
         # Spearman Correlation
         rho_success, p_success = spearmanr(df['ngram_count'], df['success_top1'])
