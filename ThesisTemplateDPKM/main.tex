@@ -709,16 +709,36 @@ Of 6,515 queries analyzed, the ground-truth passage appears in the top-100 retri
 
 Among the 6,027 queries, 2,714 (45.0\%) rank the ground truth at position 1, 702 (11.6\%) at position 2, and 449 (7.4\%) at position 3. The fact that 55.0\% of successfully retrieved passages are found but mis-ranked suggests that \glsxtrshort{SEAL}'s generation component can identify relevant passages through n-gram matching, but the scoring function commonly misjudges their relative importance.
 
-\subsubsection{Overreliance on a Single Identifier}
+\subsubsection{Overreliance on a Single Identifier} %maybe change to top-5? or idk, gotta think through this
 \label{sec:failure-6}
 
-Overreliance on a Single Identifier measures the extent to which the top-1 ranked passage's total score is concentrated in one high-scoring n-gram versus distributed across multiple n-grams. We define this ``dominance'' as the ratio of the highest scored n-gram score and the sum of all matched n-gram scores for the passage. A high ratio indicates that a single n-gram contributes more than half the total score, while a low ratio suggests distributed evidence from multiple n-grams (or, alternatively, low model confidence) .
+Overreliance on a single identifier measures the extent to which the top-1 ranked passage's total score is concentrated in one high-scoring n-gram versus distributed across multiple n-grams. We define this as the ratio of the highest scored n-gram score and the sum of all matched n-gram scores for the passage, which we will refer to as ``dominance''.
 
-Across 6,515 queries, the mean such ratio is 0.438 (median 0.439), indicating that on average, the top-scoring n-gram contributes approximately 44\% of the total score. The distribution reveals that 698 queries (10.7\%) exhibit a ratio of $<$0.35, while 3972 queries (61.8\%) exhibit a ratio between 0.3 and 0.5, and 1845 queries (28.3\%) have more than half of their total score contributed by a single n-gram.
+Our analysis across 6,515 queries reveals that lower such ratio correlates with higher retrieval success, as shown in Table~\ref{tab:identifier-dominance}. For \glsxtrshort{SEAL}, we observe a Spearman correlation of $\rho = -0.115$ ($p < 0.001$), with success rates declining from 48.6\% in the lowest dominance decile (D1) to 29.6\% in the highest decile (D10).
 
-The relationship between such single-query dominance and retrieval success demonstrates a weak but clear negative correlation (Spearman $\rho = -0.115$, $p < 0.001$). Stratified into 10 bins, queries in the lowest ratio bin (0.12–0.30) achieve a precision\@1 of approximately 48.5\%, while queries in the highest bin (0.57–0.85) achieve only 29.4\%.
+\begin{table}[htbp]
+    \centering
+    \caption{Top-1 retrieval success rate by top n-gram dominance deciles (max score / sum scores).}
+    \label{tab:identifier-dominance}
+    \begin{tabular}{l|rr|rr}
+        \toprule
+        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}} (Mean: 0.44)} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}} (Mean: 0.36)} \\
+        \textbf{Decile} & \textbf{Dom.\ Range} & \textbf{Success} & \textbf{Dom.\ Range} & \textbf{Success} \\
+        \midrule
+        D1  & 0.12--0.30 & 48.6\% & 0.12--0.25 & 58.0\% \\
+        D2  & 0.30--0.35 & 45.8\% & 0.25--0.28 & 59.3\% \\
+        D3  & 0.35--0.38 & 45.4\% & 0.28--0.31 & 55.8\% \\
+        D5  & 0.41--0.44 & 44.3\% & 0.33--0.35 & 45.1\% \\
+        D8  & 0.50--0.53 & 35.4\% & 0.40--0.43 & 40.2\% \\
+        D10 & 0.57--0.85 & 29.6\% & 0.48--0.94 & 32.5\% \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
-This finding aligns with \glsxtrshort{SEAL}'s intersective scoring design, which aggregates evidence from multiple n-grams to identify passages. Theoretically, when retrieval succeeds through distributed evidence, multiple n-grams collectively point toward the target passage, providing redundant confirmation and reducing sensitivity to individual n-gram errors. Conversely, when a single n-gram dominates, retrieval might become highly dependent on that one identifier. If the top-scoring n-gram matches many passages or matches the wrong passage, the remaining low-scoring n-grams provide insufficient corrective evidence.
+This trend is also noticable in \glsxtrshort{MINDER} ($\rho = -0.169$, $p < 0.001$), which also exhibits a lower mean ratio of 0.36 compared to \glsxtrshort{SEAL}'s 0.44. This shift toward more distributed evidence is assumed to be a consequence of \glsxtrshort{MINDER}'s multiview identifiers, since by aggregating scores from titles, pseudo-queries, and substrings, \glsxtrshort{MINDER} theoretically reduces reliance on any single identifier.
+
+This finding aligns with the intersective scoring design, which benefits from distributed evidence by providing redundant confirmation across multiple n-grams. %TODO SOURCE
+Conversely, if the top-scoring n-gram matches many passages or identifies the wrong one, the remaining low-scoring n-grams may provide insufficient corrective evidence to ensure correct ranking.
 
 \subsubsection{Impact of N-gram Quantity on Retrieval Success}
 
