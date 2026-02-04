@@ -21,11 +21,22 @@ def strip_ngram_markers(ngram: str, datapath: str) -> str:
     return ngram
 
 def parse_ngrams(keys_str):
+    """Parse n-gram keys from string or list format, handling Decimal objects."""
     if not keys_str:
         return []
     try:
-        keys_list = ast.literal_eval(keys_str)
-        return [(ngram, freq, score) for ngram, freq, score in keys_list]
+        # If it's already a list, use it directly
+        if isinstance(keys_str, list):
+            keys_list = keys_str
+        else:
+            # Try to parse string format
+            keys_list = ast.literal_eval(keys_str)
+
+        # Convert Decimal to float for all score values
+        result = []
+        for ngram, freq, score in keys_list:
+            result.append((ngram, int(freq), float(score)))
+        return result
     except:
         return []
 
@@ -84,6 +95,14 @@ def analyze_single_ngram_dominance(datapath="data/seal_output.json"):
                 })
 
         df = pd.DataFrame(results)
+
+        # Check if dataframe is empty
+        if len(df) == 0:
+            print("\nNo data to analyze (empty dataframe)")
+            sys.stdout.close()
+            sys.stdout = original_stdout
+            print(f"success running {script_name}")
+            return
 
         # Summary statistics
         mean_dom = df['dominance'].mean()

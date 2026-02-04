@@ -59,7 +59,15 @@ def main(datapath='data/seal_output.json'):
                 if not keys_str:
                     continue
 
-                keys_list = ast.literal_eval(keys_str)
+                # Handle both string and list formats
+                try:
+                    if isinstance(keys_str, list):
+                        keys_list = keys_str
+                    else:
+                        keys_list = ast.literal_eval(keys_str)
+                except:
+                    continue
+
                 if len(keys_list) == 0:
                     continue
 

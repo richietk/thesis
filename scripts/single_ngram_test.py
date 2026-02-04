@@ -59,11 +59,19 @@ def main(datapath='data/seal_output.json'):
                 if not keys_str:
                     continue
 
-                keys_list = ast.literal_eval(keys_str)
+                # Handle both string and list formats, convert Decimal to float
+                try:
+                    if isinstance(keys_str, list):
+                        keys_list = keys_str
+                    else:
+                        keys_list = ast.literal_eval(keys_str)
+                except:
+                    continue
+
                 if len(keys_list) <= 1:
                     continue
 
-                scores = [score for _, _, score in keys_list]
+                scores = [float(score) for _, _, score in keys_list]
                 total = sum(scores)
                 if total <= 0:
                     continue

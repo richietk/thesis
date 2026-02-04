@@ -112,21 +112,25 @@ def extract_analysis_data(file_path, datapath=""):
                 passage_length = get_token_count(text, datapath)
 
                 # N-gram key analysis
-                keys_str = ctx.get('keys', '')
+                keys_data = ctx.get('keys', '')
 
-                if keys_str:
-                    # Parse keys: format is "ngram | freq | score | ngram | freq | score | ..."
-                    # Split by " | " and group into triplets
-                    parts = keys_str.split(' | ')
-                    num_keys = len(parts) // 3  # Each key has 3 parts: ngram, freq, score
-
-                    # Extract scores (every 3rd element starting from index 2)
-                    key_scores = []
-                    for i in range(2, len(parts), 3):
-                        try:
-                            key_scores.append(float(parts[i]))
-                        except (ValueError, IndexError):
-                            continue
+                if keys_data:
+                    # Handle both string and list formats
+                    if isinstance(keys_data, list):
+                        # Minder format: already a list [[ngram, freq, score], ...]
+                        num_keys = len(keys_data)
+                        key_scores = [float(item[2]) for item in keys_data if len(item) >= 3]
+                    else:
+                        # SEAL format: string "ngram | freq | score | ngram | freq | score | ..."
+                        parts = keys_data.split(' | ')
+                        num_keys = len(parts) // 3  # Each key has 3 parts: ngram, freq, score
+                        # Extract scores (every 3rd element starting from index 2)
+                        key_scores = []
+                        for i in range(2, len(parts), 3):
+                            try:
+                                key_scores.append(float(parts[i]))
+                            except (ValueError, IndexError):
+                                continue
 
                     total_key_score = sum(key_scores) if key_scores else 0.0
                     avg_key_score = np.mean(key_scores) if key_scores else 0.0
@@ -152,6 +156,13 @@ def extract_analysis_data(file_path, datapath=""):
                 })
 
     df = pd.DataFrame(rows)
+
+    # Ensure numeric columns are properly typed
+    numeric_columns = ['rank', 'score', 'passage_length', 'num_keys', 'total_key_score', 'avg_key_score', 'max_key_score']
+    for col in numeric_columns:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+
     print(f"\nExtracted {len(df)} passage retrievals across {df['query_id'].nunique()} queries")
     print(f"Passage length statistics:")
     print(f"  Mean: {df['passage_length'].mean():.1f} tokens")

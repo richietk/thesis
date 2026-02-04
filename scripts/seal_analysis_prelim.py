@@ -28,18 +28,32 @@ def get_dataset_name(datapath: str) -> str:
 
 def parse_keys_field(keys_field: Any) -> List:
     """
-    Parse the keys field
-    Returns a list of parsed key entries
+    Parse the keys field and convert Decimal objects to float.
+    Returns a list of parsed key entries with numeric values as floats.
     """
     if isinstance(keys_field, str):
         try:
-            return json.loads(keys_field)
+            keys_list = json.loads(keys_field)
         except json.JSONDecodeError:
             try:
-                return ast.literal_eval(keys_field)
+                keys_list = ast.literal_eval(keys_field)
             except:
                 return []
-    return keys_field if keys_field else []
+    else:
+        keys_list = keys_field if keys_field else []
+
+    # Convert any Decimal objects to float
+    result = []
+    for item in keys_list:
+        if len(item) >= 3:
+            # Ensure numeric values are regular Python floats/ints
+            ngram = item[0]
+            freq = int(item[1]) if item[1] is not None else 0
+            score = float(item[2]) if item[2] is not None else 0.0
+            result.append([ngram, freq, score])
+        else:
+            result.append(item)
+    return result
 
 
 def get_recall_category(retrieved_ctxs: List[Dict], gold_ids: Set[str]) -> str:

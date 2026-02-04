@@ -3,6 +3,7 @@ temp_data/
 generated_data/
 papers/
 SEAL-main/
+MINDER
 data/
 
 
@@ -30,3 +31,7 @@ notes_to_self.md
 scripts/__pycache__/
 
 generated_data_old/
+
+
+seal_paper.txt
+minder_paper.txt

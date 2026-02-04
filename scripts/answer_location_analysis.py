@@ -205,4 +205,6 @@ def main(datapath="data/seal_output.json"):
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    datapath = sys.argv[1] if len(sys.argv) > 1 else 'data/seal_output.json'
+    main(datapath)
