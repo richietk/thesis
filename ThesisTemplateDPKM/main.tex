@@ -640,13 +640,32 @@ The graph below shows the success rate of the top-1 retrieved passage mapped wit
 \subsubsection{Semantic Convergence vs. Identifier Diversity}
 \label{sec:failure-5}
 
-We originally hypothesized that cases where the model produces semantically redundant n-grams with high token overlap would constitute a failure mode by inflating scores without providing new evidence. To test this, we measure the unique tokens divided by total tokens across all generated n-grams.
+We originally hypothesized that cases where the model produces semantically redundant n-grams with high token overlap would constitute a failure mode by inflating scores without providing new evidence. To test this, we measure a ratio defined as the number of unique tokens divided by the total number of tokens across all generated n-grams for the top-1 retireved query, which we will refer to as ``diversity''.
 
-Contrary to our initial hypothesis, the results reveal a negative correlation between diversity and retrieval success ($\rho = -0.227$, $p < 0.001$). Queries with low-diversity (highly repetitive) n-grams achieved a 55.3\% precision\@1, compared to only 35.5\% for high-diversity queries.
+Contrary to our initial hypothesis, the results reveal a negative correlation between diversity and retrieval success. For \glsxtrshort{SEAL}, we observe a Spearman correlation of $\rho = -0.227$ ($p < 10^{-76}$), where queries with most repetitive n-grams (Decile 1, diversity 0.50--0.78) achieved a 59.1\% success rate, compared to just 25.7\% for the most diverse queries (Decile 10, diversity 0.98--1.00).
 
-This finding suggests that repetition is not always a failure of redundancy, but rather an indicator that \glsxtrshort{SEAL} is highly confident in a target document, it generates multiple overlapping n-grams that concentrate score on a specific semantic cluster, which ensures that the additive scoring function accumulates overwhelming evidence for the correct passage.
+\begin{table}[htbp]
+    \centering
+    \caption{Top-1 retrieval success rate by token diversity deciles (unique / total tokens).}
+    \label{tab:token-diversity}
+    \begin{tabular}{l|rr|rr}
+        \toprule
+        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}} (Mean: 0.88)} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}} (Mean: 0.79)} \\
+        \textbf{Decile} & \textbf{Div.\ Range} & \textbf{Success} & \textbf{Div.\ Range} & \textbf{Success} \\
+        \midrule
+        D1  & 0.50--0.78 & 59.1\% & 0.30--0.58 & 70.8\% \\
+        D2  & 0.78--0.82 & 55.1\% & 0.58--0.67 & 60.9\% \\
+        D3  & 0.82--0.85 & 52.2\% & 0.67--0.74 & 53.9\% \\
+        D5  & 0.87--0.89 & 43.2\% & 0.79--0.83 & 51.5\% \\
+        D8  & 0.93--0.95 & 31.3\% & 0.89--0.92 & 34.0\% \\
+        D10 & 0.98--1.00 & 25.7\% & 0.95--1.00 & 20.6\% \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
-In contrast, high identifier diversity often indicates a lack of model confidence. In failure cases, the model may generate a wide variety of topically related but lexically distinct tokens that fail to converge on a single passage. Consequently, identifier repetition appears to be a symptom of successful retrieval rather than a cause of failure. This suggests that future scoring functions could potentially use token-overlap not as a penalty, but as a signal of model certainty.
+This trend is also visible in \glsxtrshort{MINDER} ($\rho = -0.279$, $p < 0.001$), which exhibits a lower mean diversity of 0.79 compared to \glsxtrshort{SEAL}'s 0.88. This is expected, as \glsxtrshort{MINDER}'s generates titles, pseudo-queries, and substrings simultaneously, which indicates that the model frequently repeats key tokens across these different identifier views. The highest success rate (70.8\%) is found in the lowest diversity decile, which suggests that the model is able to reinforce a specific semantic cluster through multiview identifiers.
+
+These findings suggest that token repetition is not a redundancy failure, but rather a signal of model certainty. When \glsxtrshort{SEAL} or \glsxtrshort{MINDER} is highly confident in a target document, it generates multiple overlapping n-grams that concentrate score on a specific semantic cluster. In contrast, high identifier diversity often indicates a lack of model confidence, where the model produces a wide variety of topically related but lexically distinct tokens that fail to converge.
 
 
 \subsubsection{Insufficient Query Coverage}
