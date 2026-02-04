@@ -570,35 +570,33 @@ Table~\ref{tab:failure-indicators} defines the observable indicator used for eac
 
 Table~\ref{tab:failure-summary} consolidates the empirical findings across all analyzed failure modes, quantifying their correlation with retrieval success and the performance differential between favorable and unfavorable conditions.
 
-\textbf{TODO UPDATE}
 \begin{table}[H]
-    \centering
-    \caption{Summary of failure mode analysis for \glsxtrshort{SEAL} on \glsxtrlong{nq} (N=6,515).}
-    \label{tab:failure-summary}
-    \begin{tabular}{p{0.22\textwidth} r p{0.38\textwidth} r}
-        \toprule
-        \textbf{Failure Mode} & \textbf{Spearman $\rho$} & \textbf{Success Rate Comparison} & \textbf{$\Delta$} \\
-        \midrule
-        Bias Toward Short Identifiers & $-0.278$ & Low unigram frac.: 80.8\% vs.\ high: 27.5\% & +53.3 pp \\
+     \centering
+     \caption{Correlation between measured indicators and retrieval success for \glsxtrshort{SEAL} on \glsxtrlong{nq} (N=6,515).}
+     \label{tab:failure-summary}
+     \begin{tabular}{p{0.25\textwidth} r p{0.35\textwidth} r}
+         \toprule
+         \textbf{Indicator} & \textbf{Spearman $\rho$} & \textbf{Success Rate} & \textbf{$\Delta$} \\
+         \midrule
+         Identifier Length & $-0.278$ & $>30\%$ multi-word: 80.8\% vs.\ $<10\%$: 27.5\% & 53.3 pp \\
         \addlinespace
-        Insufficient Query Coverage & $+0.290$ & High overlap: 60.2\% vs.\ low: 20.2\% & +40.0 pp \\
-        \addlinespace
-        Answer in n-grams & --- & Present: 75.0\% vs.\ absent: 34.9\% & +40.1 pp \\
-        \addlinespace
-        High-freq.\ n-grams & $-0.238$ & Low freq.: 59.8\% vs.\ high freq.: 32.5\% & +27.3 pp \\
-        \addlinespace
-        Correlated identifier generation\textsuperscript{\dag} & $-0.227$ & Low diversity: 55.3\% vs.\ high: 35.5\% & +19.8 pp \\
-        \addlinespace
-        Overreliance on a Single Identifier & $-0.115$ & Distributed: 48.5\% vs.\ concentrated: 29.4\% & +19.1 pp \\
-        \addlinespace
-        Misranking Despite Retrieval & --- & 55.0\% of retrieved passages mis-ranked & --- \\
-        \bottomrule
-    \end{tabular}
+        Query Token Overlap & $+0.290$ & High overlap ($>60\%$): 60.2\% vs.\ Low ($<30\%$): 20.2\% & 40.0 pp \\
+     \addlinespace
+     Answer String Presence & --- & Included: 75.0\% vs.\ Not included: 34.9\% & 40.1 pp \\
+     \addlinespace
+     Corpus Frequency & $-0.238$ & Low freq ($<500$): 59.8\% vs.\ High ($>5000$): 32.5\% & 27.3 pp \\
+     \addlinespace
+     Token Diversity\textsuperscript{\dag} & $-0.227$ & Low diversity: 55.3\% vs.\ High: 35.5\% & 19.8 pp \\
+     \addlinespace
+     Score Concentration & $-0.115$ & Distributed: 48.5\% vs.\ Concentrated: 29.4\% & 19.1 pp \\
+     \addlinespace
+     Retrieval-Ranking Gap & --- & 55.0\% of retrieved passages ranked $>1$ & --- \\       \bottomrule
+ \end{tabular}
 
-    \vspace{0.5em}
-    \footnotesize
-    \textsuperscript{\dag} Correlated identifier generation shows an inverse relationship: lower diversity (more repetition) correlates with \textit{higher} success, suggesting focused n-gram generation benefits retrieval rather than harming it. \\
-    pp = percentage points. $\Delta$ = difference in top-1 success rate between favorable and unfavorable conditions.
+ \vspace{0.5em}
+ \footnotesize
+ \textsuperscript{\dag} Diversity is measured as the ratio of unique tokens to total tokens. \\
+ pp = percentage points. $\Delta$ = difference in top-1 success rate between the compared cohorts.
 \end{table}
 
 The strongest predictors of retrieval failure are bias toward short identifiers ($\rho = -0.278$) and low Insufficient Query Coverage ($\rho = +0.290$). When \glsxtrshort{SEAL} generates predominantly unigrams, success drops from 80.8\% to 27.5\%; when n-grams fail to cover query terms, success drops from 60.2\% to 20.2\%. High-frequency n-grams and Overreliance on a Single Identifier show weaker but still significant effects.
