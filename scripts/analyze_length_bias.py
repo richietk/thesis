@@ -15,7 +15,7 @@ Author: [Your name]
 Date: 2026-01-04
 """
 
-import json
+import ijson
 import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr, pearsonr, mannwhitneyu
@@ -63,21 +63,12 @@ def get_token_count(text, datapath=""):
     return len(text.split())
 
 # ============================================================================
-# Data Loading
+# Data Loading (Streaming)
 # ============================================================================
 
-def load_seal_output(path):
-    """Load SEAL output JSON file."""
-    print(f"Loading SEAL output from {path}")
-    with open(path, 'r', encoding='utf-8') as f:
-        data = json.load(f)
-    print(f"Loaded {len(data)} queries")
-    return data
-
-
-def extract_analysis_data(seal_data, datapath=""):
+def extract_analysis_data(file_path, datapath=""):
     """
-    Extract data for empirical analysis of length bias.
+    Extract data for empirical analysis of length bias (streaming version).
 
     Returns:
         pd.DataFrame with columns:
@@ -93,64 +84,72 @@ def extract_analysis_data(seal_data, datapath=""):
             - avg_key_score: Average n-gram score
             - max_key_score: Highest-scoring n-gram
     """
+    print(f"Streaming data from {file_path}...")
     rows = []
+    query_idx = 0
 
-    for query_idx, item in enumerate(seal_data):
-        question = item['question']
+    with open(file_path, 'rb') as f:
+        parser = ijson.items(f, 'item')
 
-        # Ground truth positive passages
-        positive_ids = set()
-        if 'positive_ctxs' in item and item['positive_ctxs']:
-            positive_ids = {ctx['passage_id'] for ctx in item['positive_ctxs']}
+        for item in parser:
+            query_idx += 1
+            if query_idx % 1000 == 0:
+                print(f"  Processed {query_idx} queries...")
+            question = item['question']
 
-        # SEAL's top-100 retrieved passages
-        for rank, ctx in enumerate(item.get('ctxs', []), start=1):
-            passage_id = ctx['passage_id']
-            text = ctx['text']
-            score = ctx.get('score', 0.0)
+            # Ground truth positive passages
+            positive_ids = set()
+            if 'positive_ctxs' in item and item['positive_ctxs']:
+                positive_ids = {ctx['passage_id'] for ctx in item['positive_ctxs']}
 
-            # Passage length (approximate BART token count)
-            passage_length = get_token_count(text, datapath)
+            # SEAL's top-100 retrieved passages
+            for rank, ctx in enumerate(item.get('ctxs', []), start=1):
+                passage_id = ctx['passage_id']
+                text = ctx['text']
+                score = ctx.get('score', 0.0)
 
-            # N-gram key analysis
-            keys_str = ctx.get('keys', '')
+                # Passage length (approximate BART token count)
+                passage_length = get_token_count(text, datapath)
 
-            if keys_str:
-                # Parse keys: format is "ngram | freq | score | ngram | freq | score | ..."
-                # Split by " | " and group into triplets
-                parts = keys_str.split(' | ')
-                num_keys = len(parts) // 3  # Each key has 3 parts: ngram, freq, score
+                # N-gram key analysis
+                keys_str = ctx.get('keys', '')
 
-                # Extract scores (every 3rd element starting from index 2)
-                key_scores = []
-                for i in range(2, len(parts), 3):
-                    try:
-                        key_scores.append(float(parts[i]))
-                    except (ValueError, IndexError):
-                        continue
+                if keys_str:
+                    # Parse keys: format is "ngram | freq | score | ngram | freq | score | ..."
+                    # Split by " | " and group into triplets
+                    parts = keys_str.split(' | ')
+                    num_keys = len(parts) // 3  # Each key has 3 parts: ngram, freq, score
 
-                total_key_score = sum(key_scores) if key_scores else 0.0
-                avg_key_score = np.mean(key_scores) if key_scores else 0.0
-                max_key_score = max(key_scores) if key_scores else 0.0
-            else:
-                num_keys = 0
-                total_key_score = 0.0
-                avg_key_score = 0.0
-                max_key_score = 0.0
+                    # Extract scores (every 3rd element starting from index 2)
+                    key_scores = []
+                    for i in range(2, len(parts), 3):
+                        try:
+                            key_scores.append(float(parts[i]))
+                        except (ValueError, IndexError):
+                            continue
 
-            rows.append({
-                'query_id': query_idx,
-                'question': question,
-                'passage_id': passage_id,
-                'rank': rank,
-                'score': score,
-                'passage_length': passage_length,
-                'is_positive': passage_id in positive_ids,
-                'num_keys': num_keys,
-                'total_key_score': total_key_score,
-                'avg_key_score': avg_key_score,
-                'max_key_score': max_key_score
-            })
+                    total_key_score = sum(key_scores) if key_scores else 0.0
+                    avg_key_score = np.mean(key_scores) if key_scores else 0.0
+                    max_key_score = max(key_scores) if key_scores else 0.0
+                else:
+                    num_keys = 0
+                    total_key_score = 0.0
+                    avg_key_score = 0.0
+                    max_key_score = 0.0
+
+                rows.append({
+                    'query_id': query_idx - 1,  # Adjust for 0-based indexing
+                    'question': question,
+                    'passage_id': passage_id,
+                    'rank': rank,
+                    'score': score,
+                    'passage_length': passage_length,
+                    'is_positive': passage_id in positive_ids,
+                    'num_keys': num_keys,
+                    'total_key_score': total_key_score,
+                    'avg_key_score': avg_key_score,
+                    'max_key_score': max_key_score
+                })
 
     df = pd.DataFrame(rows)
     print(f"\nExtracted {len(df)} passage retrievals across {df['query_id'].nunique()} queries")
@@ -654,7 +653,7 @@ def generate_summary_report(df, corr_df, output_dir, datapath, dataset_name="sea
 # ============================================================================
 
 def main(datapath="data/seal_output.json"):
-    """Run all analyses."""
+    """Run all analyses (streaming version)."""
 
     # Create output directory
     dataset_name = get_dataset_name(datapath)
@@ -663,11 +662,8 @@ def main(datapath="data/seal_output.json"):
     print(f"\nOutput directory: {output_dir}\n")
     print(f"Dataset: {dataset_name}\n")
 
-    # Load data
-    seal_data = load_seal_output(datapath)
-
-    # Extract analysis data
-    df = extract_analysis_data(seal_data, datapath)
+    # Extract analysis data (streaming)
+    df = extract_analysis_data(datapath, datapath)
 
     # Run analyses
     print("\nRunning analyses...")

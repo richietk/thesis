@@ -7,7 +7,7 @@ Inspect 'Answer in Different Passage' Cases (Full Text)
 3. Prints the full comparison (Question, GT, Top 2 Retrieved) without text truncation.
 """
 
-import json
+import ijson
 import csv
 import os
 import re
@@ -97,30 +97,28 @@ def main(datapath="data/seal_output.json"):
         print("No targets found. Check CSV path and column names.")
         return
 
-    # 2. Load JSON
+    # 2. Stream JSON
     if not os.path.exists(json_path):
         print(f"Error: JSON file not found at {json_path}")
         return
 
-    print(f"Loading full data from {json_path}...")
-    with open(json_path, "r", encoding="utf-8") as f:
-        json_data = json.load(f)
-    
-    if not isinstance(json_data, list):
-        json_data = [json_data]
+    print(f"Streaming data from {json_path}...")
 
     # 3. Find matches and display
     print("Finding matches...\n")
-    
+
     matches_found = 0
     total_targets = len(target_questions)
-    
-    for entry in json_data:
-        q_text = entry.get('question', '').strip()
-        
-        if q_text in target_questions:
-            matches_found += 1
-            display_comparison(entry, matches_found, total_targets, datapath)
+
+    with open(json_path, "rb") as f:
+        parser = ijson.items(f, 'item')
+
+        for entry in parser:
+            q_text = entry.get('question', '').strip()
+
+            if q_text in target_questions:
+                matches_found += 1
+                display_comparison(entry, matches_found, total_targets, datapath)
 
     print(f"Done. Displayed {matches_found} cases.")
 

@@ -15,6 +15,7 @@ All analyses are run on both data files automatically.
 """
 
 import sys
+import subprocess
 from pathlib import Path
 import traceback
 from datetime import datetime
@@ -38,22 +39,45 @@ ANALYSIS_MODULES = [
     ("article_concentration", "Article Diversity Analysis"),
     ("scoring_failure", "Scoring Failure Analysis"),
     ("analyze_length_bias", "Document Length Bias Analysis"),
-    ("analyze_failure_modes", "Comprehensive Failure Mode Analysis"),
+    #("analyze_failure_modes", "Comprehensive Failure Mode Analysis"),
     ("llm_judge_answer_verification", "LLM Judge: Answer Verification"),
     ("llm_judge_concept", "LLM Judge: Failure Classification"),
 ]
 
 
 def run_analysis(module_name, description, datapath):
+    """
+    Run analysis script in a separate subprocess for complete memory isolation.
+    Each script gets fresh memory and is cleaned up after completion.
+    """
     print(f"Running: {description}")
     try:
-        module = __import__(f'scripts.{module_name}', fromlist=[module_name])
-        if hasattr(module, 'main'):
-            module.main(datapath)
+        # Run the script as a subprocess with the datapath argument
+        result = subprocess.run(
+            [sys.executable, '-m', f'scripts.{module_name}', datapath],
+            capture_output=True,
+            text=True,
+            timeout=3600  # 1 hour timeout per script
+        )
+
+        # Print the script's output
+        if result.stdout:
+            print(result.stdout)
+
+        if result.returncode == 0:
+            print(f"Completed: {description}")
+            return True
         else:
-            print(f"Warning: No main() function found in {module_name}")
-        print(f"Completed: {description}")
-        return True
+            print(f"FAILED: {description}")
+            print(f"Exit code: {result.returncode}")
+            if result.stderr:
+                print(f"Error output:\n{result.stderr}")
+            return False
+
+    except subprocess.TimeoutExpired:
+        print(f"FAILED: {description}")
+        print(f"Error: Script timed out after 1 hour")
+        return False
     except Exception as e:
         print(f"FAILED: {description}")
         print(f"Error: {str(e)}")

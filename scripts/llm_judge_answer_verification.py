@@ -19,8 +19,9 @@ import re
 # ================= CONFIGURATION =================
 # Note: INPUT_CSV and OUTPUT_CSV are now set dynamically in main() based on datapath
 
-API_KEY = os.environ["ANTHROPIC_API_KEY"]
-MODEL = "claude-sonnet-4-5-20250929"
+API_KEY = os.environ["NOTHINGITDOENSTEXIST"]
+#ANTHROPIC_API_KEY
+MODEL = "claude-sonnet-4-5-2025-0929"
 
 RATE_LIMIT_DELAY = 0.5  # seconds between requests
 # =================================================

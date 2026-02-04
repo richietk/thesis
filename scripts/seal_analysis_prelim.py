@@ -1,3 +1,4 @@
+import ijson
 import json
 import ast
 import numpy as np
@@ -406,19 +407,21 @@ def save_results_to_csv(all_results: List[Dict], output_path: str) -> None:
     print(f"\nResults saved to: {output_path}")
 
 
-def load_data(file_path: str) -> List[Dict]:
-    """
-    Loads data from unified json
-    """
-    print(f"Loading data from {file_path}...")
-    with open(file_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    
-    if not isinstance(data, list):
-        data = [data]
-    
-    print(f"Loaded {len(data)} queries.")
-    return data
+def stream_data(file_path: str):
+    """Stream data from unified json using ijson."""
+    with open(file_path, 'rb') as f:
+        parser = ijson.items(f, 'item')
+        for entry in parser:
+            yield entry
+
+
+def find_query_by_substring_streaming(file_path: str, query_substring: str) -> Dict:
+    """Find a query by substring in the question field (streaming version)."""
+    query_lower = query_substring.lower()
+    for entry in stream_data(file_path):
+        if query_lower in entry.get('question', '').lower():
+            return entry
+    return None
 
 
 def main(datapath="data/seal_output.json"):
@@ -429,13 +432,13 @@ def main(datapath="data/seal_output.json"):
 
     all_results = []
 
-    if os.path.exists(INPUT_FILE):
-        data = load_data(INPUT_FILE)
-    else:
-        raise Exception
+    if not os.path.exists(INPUT_FILE):
+        raise Exception(f"File not found: {INPUT_FILE}")
 
-    print(f"\nAnalyzing {len(data)} queries (top_k={TOP_K})...")
-    for i, entry in enumerate(data):
+    print(f"\nStreaming and analyzing data (top_k={TOP_K})...")
+    i = 0
+    for entry in stream_data(INPUT_FILE):
+        i += 1
         if i > 0 and i % 1000 == 0:
             print(f"  Processing query {i}...")
 
@@ -475,7 +478,7 @@ def main(datapath="data/seal_output.json"):
         ]
 
         for query_substring in example_queries:
-            query_entry = find_query_by_substring(data, query_substring)
+            query_entry = find_query_by_substring_streaming(INPUT_FILE, query_substring)
             if query_entry:
                 examples = extract_ngram_examples(query_entry, top_k=TOP_K, datapath=INPUT_FILE)
                 print_ngram_examples(examples, max_examples=15)
@@ -484,4 +487,6 @@ def main(datapath="data/seal_output.json"):
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    datapath = sys.argv[1] if len(sys.argv) > 1 else "data/seal_output.json"
+    main(datapath)

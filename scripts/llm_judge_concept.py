@@ -9,6 +9,7 @@ Logic:
 3. Ask LLM: "Why did Rank 1 beat the Correct Passage?"
 """
 
+import ijson
 import json
 import csv
 import random
@@ -20,7 +21,8 @@ import cohere
 # ================= CONFIGURATION =================
 # Note: OUTPUT paths are now set dynamically in main() based on datapath
 
-API_KEY = "vkNAU8NXHr5ozh9hq2v92JQWOemBpE4iwwAmFr8E" 
+API_KEY = "" 
+#vkNAU8NXHr5ozh9hq2v92JQWOemBpE4iwwAmFr8E
 MODEL_NAME = "command-a-03-2025"
 
 SAMPLE_SIZE_VERIFICATION = 30
@@ -172,47 +174,52 @@ def main(datapath="data/seal_output.json"):
         print("File not found.")
         return
 
-    with open(datapath, 'r', encoding="utf-8") as f:
-        data = json.load(f)
-    
+    print(f"Streaming data from {datapath}...")
     artifact_cases = []
     failure_cases = []
-    
-    # 1. Prepare Data
-    for entry in data:
-        gold_ids = get_ground_truth_ids(entry)
-        top_k = entry.get('ctxs', [])[:10]
-        
-        # Check if GT is in Top 10
-        gt_found_idx = -1
-        for idx, ctx in enumerate(top_k):
-            if str(ctx.get('passage_id')) in gold_ids:
-                gt_found_idx = idx
-                break
-        
-        gt_in_top_k = (gt_found_idx != -1)
-        
-        # Check answer string
-        ans_in_top_k = False
-        answers = entry.get('answers', [])
-        found_text = ""
-        for c in top_k:
-            txt = c.get('text', '') + ' ' + c.get('title', '')
-            txt = strip_pseudoqueries(txt, datapath)
-            if any(a.lower().strip() in txt.lower() for a in answers):
-                ans_in_top_k = True
-                found_text = txt
-                break
-        
-        # EXP 1 Pool: Answer found, but NOT GT ID
-        if not gt_in_top_k and ans_in_top_k:
-            entry['eval_text'] = found_text
-            artifact_cases.append(entry)
-            
-        # EXP 2 Pool: Rank 1 is NOT GT ID
-        if top_k and (gt_found_idx != 0): # Rank 1 (index 0) is not GT
-            entry['gt_found_index'] = gt_found_idx # Save where we found it (or -1)
-            failure_cases.append(entry)
+
+    # 1. Prepare Data (streaming)
+    total = 0
+    with open(datapath, 'rb') as f:
+        parser = ijson.items(f, 'item')
+
+        for entry in parser:
+            total += 1
+            if total % 1000 == 0:
+                print(f"  Processed {total} entries...")
+            gold_ids = get_ground_truth_ids(entry)
+            top_k = entry.get('ctxs', [])[:10]
+
+            # Check if GT is in Top 10
+            gt_found_idx = -1
+            for idx, ctx in enumerate(top_k):
+                if str(ctx.get('passage_id')) in gold_ids:
+                    gt_found_idx = idx
+                    break
+
+            gt_in_top_k = (gt_found_idx != -1)
+
+            # Check answer string
+            ans_in_top_k = False
+            answers = entry.get('answers', [])
+            found_text = ""
+            for c in top_k:
+                txt = c.get('text', '') + ' ' + c.get('title', '')
+                txt = strip_pseudoqueries(txt, datapath)
+                if any(a.lower().strip() in txt.lower() for a in answers):
+                    ans_in_top_k = True
+                    found_text = txt
+                    break
+
+            # EXP 1 Pool: Answer found, but NOT GT ID
+            if not gt_in_top_k and ans_in_top_k:
+                entry['eval_text'] = found_text
+                artifact_cases.append(entry)
+
+            # EXP 2 Pool: Rank 1 is NOT GT ID
+            if top_k and (gt_found_idx != 0): # Rank 1 (index 0) is not GT
+                entry['gt_found_index'] = gt_found_idx # Save where we found it (or -1)
+                failure_cases.append(entry)
 
     # 2. Sample
     random.seed(42)
@@ -309,4 +316,6 @@ def main(datapath="data/seal_output.json"):
     print("\nDone.")
 
 if __name__ == "__main__":
-    main()
+    import sys
+    datapath = sys.argv[1] if len(sys.argv) > 1 else "data/seal_output.json"
+    main(datapath)

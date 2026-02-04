@@ -27,3 +27,4 @@ data/
 notes.txt
 notes_to_self.md
 
+scripts/__pycache__/
