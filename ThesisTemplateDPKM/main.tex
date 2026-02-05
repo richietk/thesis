@@ -390,28 +390,29 @@ We also categorize keys into three sets: keys appearing exclusively in positive 
 
 Although the results between the two systems are fairly similar, with \glsxtrshort{MINDER} performing marginally better, it is noticable that both \glsxtrshort{SEAL} and \glsxtrshort{MINDER} generates substantially more keys matching negative passages than positive passages. Second, keys unique to negative passages receive marginally higher average scores than keys unique to positive passages, with keys shared having he highest average score. This pattern indicates that both systems assign higher scores to n-grams that are not discriminative enough, to either way.
 
-\subsection{Data Refinement Results} %(LLM-Judge verdicts and the adjusted recall table) TODO ACCORDINGLY SHOULD I UPDATE THE ORIGINAL DATASET OR NO? SHOULD I DO THE SAME WITH MINDER TOO OR NO?
+\subsection{LLM-as-a-Judge Results}
 \label{sec:llmresults}
 
-According to the methodology explained in Section \ref{sec:llm-judge}, we adjust the estimate of \glsxtrshort{SEAL}'s retrieval performance. Table~\ref{tab:adjusted-recall} presents the adjusted top-2 recall under different inclusion criteria.
+According to the methodology explained in Section \ref{sec:llm-judge}, we adjust the estimate of \glsxtrshort{SEAL}'s and \glsxtrshort{MINDER}'s retrieval performance. Table~\ref{tab:adjusted-recall} presents the adjusted hits@2 under different inclusion criteria. \textbf{MINDER DATA IS TBD. TODO}
 
 \begin{table}[htbp]
     \centering
-    \caption{Adjusted top-2 recall estimates based on LLM-as-a-judge classification.}
+    \caption{Adjusted hits@2 estimates based on LLM-as-a-judge results.}
     \label{tab:adjusted-recall}
-    \begin{tabular}{lrr}
+    \begin{tabular}{l|rr|rr}
         \toprule
-        \textbf{Inclusion Criterion} & \textbf{Successful Retrievals} & \textbf{Recall} \\
+        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
+        \textbf{Inclusion Criterion} & \textbf{Hits@2} & \textbf{\%\textsuperscript{*}} & \textbf{Hits@2} & \textbf{\%\textsuperscript{*}} \\
         \midrule
-        Ground-truth passage only (baseline) & 3,416 & 52.4\% \\
-        + YES verdicts & 3,624 & 55.6\% \\
-        + YES and PARTIAL verdicts & 3,726 & 57.2\% \\
+        GT passage only (baseline) & 3,416 & 52.4\% & 3759 & 57.7\% \\
+        + YES verdicts             & 3,624 & 55.6\% & TBD & TBD \\
+        + YES and PARTIAL verdicts & 3,726 & 57.2\% & TBD & TBD \\
         \bottomrule
+        \multicolumn{5}{l}{\small \textsuperscript{*}Percentage of the total 6,515 queries.}
     \end{tabular}
 \end{table}
 
-When counting only unambiguous successes (YES verdicts), \glsxtrshort{SEAL}'s effective top-2 recall increases from 52.4\% to 55.6\%, a 3.2 percentage point improvement. Including borderline cases (YES + PARTIAL) raises the estimate to 57.2\%. These adjustments suggest that \glsxtrshort{SEAL}'s true retrieval capability may have been underestimated by approximately 3--5 percentage points due to incomplete or inaccurate ground-truth annotations.
-
+When counting only YES verdicts, \glsxtrshort{SEAL}'s effective hits@2 increases from 52.4\% to 55.6\%, a 3.2 percentage point improvement. Including borderline cases (YES + PARTIAL) raises the estimate to 57.2\%. These adjustments suggest that \glsxtrshort{SEAL}'s true retrieval capability may have been underestimated by approximately 3--5 percentage points due to incomplete or inaccurate ground-truth annotations. \textbf{MINDER DATA IS TBD.} Please note that we will refrain from ``updating the dataset'', as that would make our results incomparable with other papers' results on the standard \glsxtrshort{nq} dataset.
 
 \subsection{Quantitative Overview}
 
