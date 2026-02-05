@@ -422,98 +422,6 @@ def analyze_retrieval_quality_by_length(df, output_dir, dataset_name="seal"):
     print(f"\n  Saved: {output_file}")
 
 
-def generate_summary_report(df, corr_df, output_dir, datapath, dataset_name="seal"):
-    """Generate comprehensive summary report."""
-    report_path = f'{output_dir}/SUMMARY_REPORT_{dataset_name}.txt'
-
-    df_with_keys = df[df['num_keys'] > 0]
-    rank_length_corr = corr_df['spearman_corr'].mean() if len(corr_df) > 0 else 0
-    score_length_corr, _ = spearmanr(df['passage_length'], df['score'])
-
-    if len(df_with_keys) > 0:
-        ngram_length_corr, _ = spearmanr(df_with_keys['passage_length'], df_with_keys['num_keys'])
-    else:
-        ngram_length_corr = 0
-
-    with open(report_path, 'w', encoding='utf-8') as f:
-        f.write("="*80 + "\n")
-        f.write("SEAL Document Length Bias Analysis - Summary Report\n")
-        f.write("="*80 + "\n\n")
-
-        f.write(f"Dataset: {datapath}\n")
-        f.write(f"Total queries: {df['query_id'].nunique()}\n")
-        f.write(f"Total passages analyzed: {len(df)}\n")
-        f.write(f"Corpus: Natural Questions (~21M passages of 100 words each)\n\n")
-
-        f.write("-"*80 + "\n")
-        f.write("KEY FINDINGS\n")
-        f.write("-"*80 + "\n\n")
-
-        significant_bias = len(corr_df[(corr_df['spearman_corr'] < -0.2) & (corr_df['p_value'] < 0.05)])
-        f.write(f"1. Rank-Length Correlation:\n")
-        f.write(f"   Mean Spearman correlation: {rank_length_corr:.4f}\n")
-        f.write(f"   Queries with strong bias (ρ < -0.2, p < 0.05): {significant_bias} / {len(corr_df)}\n")
-        if rank_length_corr < -0.15:
-            f.write(f"   → EVIDENCE OF LENGTH BIAS: Longer passages tend to rank higher\n")
-        else:
-            f.write(f"   → Limited systematic bias detected\n")
-        f.write("\n")
-
-        f.write(f"2. Score-Length Correlation:\n")
-        f.write(f"   Spearman correlation: {score_length_corr:.4f}\n")
-        if score_length_corr > 0.2:
-            f.write(f"   → Longer passages receive higher aggregate scores\n")
-        f.write("\n")
-
-        f.write(f"3. N-gram Accumulation Effect:\n")
-        f.write(f"   Correlation (length vs n-gram count): {ngram_length_corr:.4f}\n")
-        if ngram_length_corr > 0.3:
-            f.write(f"   → STRONG ACCUMULATION: Longer passages match more n-grams\n")
-            f.write(f"   → This confirms the theoretical length bias mechanism\n")
-        f.write("\n")
-
-        positive = df[df['is_positive'] == True]
-        top10_negative = df[(df['rank'] <= 10) & (df['is_positive'] == False)]
-        if len(positive) > 0 and len(top10_negative) > 0:
-            f.write(f"4. Passage Length Distributions:\n")
-            f.write(f"   Ground truth: mean={positive['passage_length'].mean():.1f} tokens\n")
-            f.write(f"   Top-10 negative: mean={top10_negative['passage_length'].mean():.1f} tokens\n")
-
-            _, p = mannwhitneyu(positive['passage_length'], top10_negative['passage_length'], alternative='two-sided')
-            if p < 0.05:
-                f.write(f"   → Significant difference (p={p:.4e})\n")
-            f.write("\n")
-
-        f.write("-"*80 + "\n")
-        f.write("IMPLICATIONS FOR THESIS\n")
-        f.write("-"*80 + "\n\n")
-
-        if rank_length_corr < -0.15 or score_length_corr > 0.2:
-            f.write("This analysis provides empirical evidence that SEAL exhibits document length bias:\n\n")
-            f.write("Evidence:\n")
-            f.write("- Longer passages systematically rank higher than shorter passages\n")
-            f.write("- Passage score correlates positively with passage length\n")
-            f.write("- Longer passages match more n-grams (accumulation effect)\n")
-            f.write("- This occurs even when controlling for relevance (ground truth)\n\n")
-
-            f.write("Mechanism:\n")
-            f.write("- SEAL's intersective scoring aggregates scores from multiple n-grams\n")
-            f.write("- Longer passages have more positions available to match different n-grams\n")
-            f.write("- Even with repetition penalty and non-overlapping constraints, bias persists\n\n")
-
-            f.write("Thesis Contributions:\n")
-            f.write("1. Empirically quantify the length bias problem (this analysis)\n")
-            f.write("2. Classify as an observable 'Scoring Failure' in failure taxonomy\n")
-            f.write("3. Note that SEAL paper mentions countermeasures but doesn't discuss them as\n")
-            f.write("   addressing a 'failure mode' - presents them as optimizations\n")
-            f.write("4. Propose stronger length normalization (score / sqrt(length) or score / log(1+length))\n")
-        else:
-            f.write("Analysis suggests SEAL's countermeasures effectively mitigate length bias.\n")
-            f.write("The intersective scoring with repetition penalty and position constraints\n")
-            f.write("appears to prevent systematic bias toward longer passages.\n")
-
-    print(f"\n  Saved summary: {report_path}")
-
 
 def main(datapath="data/seal_output.json"):
     """Run all analyses (streaming version)."""
@@ -544,8 +452,6 @@ def main(datapath="data/seal_output.json"):
         analyze_ngrams_vs_length(df, output_dir, dataset_name)
         analyze_retrieval_quality_by_length(df, output_dir, dataset_name)
 
-        generate_summary_report(df, corr_df, output_dir, datapath, dataset_name)
-
         processed_file = f'{output_dir}/processed_data_{dataset_name}.csv'
         correlations_file = f'{output_dir}/correlations_{dataset_name}.csv'
         df.to_csv(processed_file, index=False, encoding='utf-8')
@@ -553,14 +459,6 @@ def main(datapath="data/seal_output.json"):
             corr_df.to_csv(correlations_file, index=False, encoding='utf-8')
         print(f"\n  Saved: {processed_file}")
         print(f"  Saved: {correlations_file}")
-
-        print("\n" + "="*80)
-        print("ANALYSIS COMPLETE")
-        print("="*80)
-        print(f"\nResults saved to: {output_dir}/")
-        print(f"  - 5 visualization plots (PNG)")
-        print(f"  - Summary report (TXT)")
-        print(f"  - Processed data (CSV)")
 
         # Restore stdout
         sys.stdout.close()
