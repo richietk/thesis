@@ -4,7 +4,7 @@ import pandas as pd
 import sys
 import os
 import json
-from scripts.utils import get_dataset_name
+from scripts.utils.utils import get_dataset_name
 
 def analyze_article_diversity(datapath='data/seal_output.json'):
     """Exploratory analysis: how many unique article titles appear in top-10 passages."""

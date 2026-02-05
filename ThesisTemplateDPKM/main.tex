@@ -675,7 +675,7 @@ Our analysis across 6,515 queries shows that the token-level lexical overlap var
         \bottomrule
     \end{tabular}
 \end{table}
-%TODO WHY 9 bins and not 10, recheck code.
+
 The distribution of coverage reveals that approximately 50\% of queries fall into the D3--D5 range (0.28--0.50 overlap), indicating that for a typical query, \glsxtrshort{SEAL} matches fewer than half of the unique query tokens. Low query coverage typically arises when the model may generate semantically related but lexically distinct n-grams (e.g., for a query containing ``automobile,'' the model could generate n-grams with ``car'') or when the model generates generic topical n-grams that lack the specific query terms needed to isolate the answer (e.g., a query about ``Victorian architecture in London'' generates only ``architecture'' and ``London''). Intended deciles were calculated, but due to tied values at decile boundaries, only nine bins were realized for top-1 coverage. All reported ranges and success rates correspond to these nine bins.
 
 

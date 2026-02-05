@@ -4,7 +4,7 @@ import pandas as pd
 from pathlib import Path
 import sys
 import os
-from scripts.utils import strip_ngram_markers, get_dataset_name, parse_ngrams
+from scripts.utils.utils import strip_ngram_markers, get_dataset_name, parse_ngrams
 
 def analyze_answer_coverage(datapath="data/seal_output.json"):
     """Analyze whether answer string appears in generated n-grams."""

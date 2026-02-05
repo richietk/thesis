@@ -5,7 +5,7 @@ from collections import Counter
 from scipy.stats import spearmanr
 import sys
 import os
-from scripts.utils import get_dataset_name, strip_ngram_markers, parse_ngrams
+from scripts.utils.utils import get_dataset_name, strip_ngram_markers, parse_ngrams
 
 def analyze_repetitive_generation(datapath="data/seal_output.json"):
     """Analyze token diversity in generated n-grams."""

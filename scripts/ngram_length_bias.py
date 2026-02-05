@@ -7,7 +7,7 @@ from scipy.stats import spearmanr
 import sys
 import os
 import matplotlib.pyplot as plt
-from scripts.utils import get_dataset_name, strip_ngram_markers, parse_ngrams
+from scripts.utils.utils import get_dataset_name, strip_ngram_markers, parse_ngrams
 
 def analyze_ngram_length_bias(datapath="data/seal_output.json"):
     """Analyze over-generation of unigrams vs multi-grams with bins and deciles."""

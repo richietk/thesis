@@ -6,7 +6,7 @@ from scipy.stats import spearmanr
 import matplotlib.pyplot as plt
 import ast
 import os
-from scripts.utils import strip_ngram_markers, get_dataset_name, parse_ngrams
+from scripts.utils.utils import strip_ngram_markers, get_dataset_name, parse_ngrams
 
 # OUTPUT_DIR will be set dynamically based on dataset_name
 

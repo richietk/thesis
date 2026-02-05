@@ -3,7 +3,7 @@ import ast
 import sys
 import os
 import json
-from scripts.utils import get_dataset_name, strip_ngram_markers
+from scripts.utils.utils import get_dataset_name, strip_ngram_markers
 
 def main(datapath='data/seal_output.json'):
     script_name = "ngram_length_test"

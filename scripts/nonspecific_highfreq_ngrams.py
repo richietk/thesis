@@ -7,7 +7,7 @@ from pathlib import Path
 from scipy.stats import spearmanr
 import sys
 import os
-from scripts.utils import get_dataset_name, strip_ngram_markers, parse_ngrams
+from scripts.utils.utils import get_dataset_name, strip_ngram_markers, parse_ngrams
 
 def analyze_ngram_frequency(datapath="data/seal_output.json"):
     script_name = "nonspecific_highfreq_ngrams"
