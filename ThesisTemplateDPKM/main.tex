@@ -189,6 +189,7 @@ Lastly, the lack of interpretability in generation processes presents challenges
 
 \textbf{TOBEWRITTEN} %(NQ Dataset details, the 8.46 GT avg, etc)
 
+
 \paragraph{Available Data Structure}
 
 The \glsxtrshort{SEAL} output dataset contains 6,515 queries from the \glsxtrlong{nq} benchmark. For each query, the following relevant information is available:
@@ -262,6 +263,72 @@ Non-differentiable optimization, training instability, and struggles with learni
 
 \paragraph{Failure Mapping} %(Mapping the abstract failures from Section 2.5 to the observable metrics like unigram fraction) EITHER THINK THROUGH THAT OR REWORK THE WHOLE SUBSECTION OR DEBLOAT OR REWRITE OR DELETE OR IDK.
 \textbf{TOBEWRITTEN}
+\textbf{UPDATE AND REWORK THIS TO FIT THIS BUT THIS SHOULD BE IN THE METHODOLOGY}
+\subsection{Failure Analysis }
+
+Table~\ref{tab:failure-indicators} defines the observable indicator used for each failure mode. The Spearman $\rho$ values in Table~\ref{tab:failure-summary} represent the correlation between each indicator and binary retrieval success (1 if the top-1 passage is correct, 0 otherwise).
+
+\begin{table}[H]
+    \centering
+    \caption{Observable indicators for each failure mode and interpretation of correlation direction.}
+    \label{tab:failure-indicators}
+    \begin{tabular}{p{0.22\textwidth} p{0.32\textwidth} p{0.38\textwidth}}
+        \toprule
+        \textbf{Failure Mode} & \textbf{Indicator Measured} & \textbf{Interpretation of $\rho$} \\
+        \midrule
+        Bias Toward Short Identifiers & Fraction of n-grams that are unigrams & $\rho < 0$: More unigrams $\rightarrow$ lower success \\
+        \addlinespace
+        Insufficient Query Coverage & Proportion of query tokens covered by n-grams & $\rho > 0$: Higher coverage $\rightarrow$ higher success \\
+        \addlinespace
+        Answer in n-grams & Whether answer string appears in any n-gram & Binary comparison only \\
+        \addlinespace
+        High-freq.\ n-grams & Avg.\ corpus frequency of top-5 n-grams & $\rho < 0$: Higher frequency $\rightarrow$ lower success \\
+        \addlinespace
+        Correlated identifier generation & Token diversity ratio (unique / total tokens) & $\rho < 0$: Higher diversity $\rightarrow$ lower success\textsuperscript{\dag} \\
+        \addlinespace
+        Overreliance on a Single Identifier & max(score) / sum(scores) for top-1 passage & $\rho < 0$: More concentrated $\rightarrow$ lower success \\
+        \bottomrule
+    \end{tabular}
+
+    \vspace{0.5em}
+    \footnotesize
+    \textsuperscript{\dag} Counter-intuitive: repetition (low diversity) correlates with \textit{higher} success.
+\end{table}
+
+Table~\ref{tab:failure-summary} consolidates the empirical findings across all analyzed failure modes, quantifying their correlation with retrieval success and the performance differential between favorable and unfavorable conditions.
+
+\begin{table}[H]
+     \centering
+     \caption{Correlation between measured indicators and retrieval success for \glsxtrshort{SEAL} on \glsxtrlong{nq} (N=6,515).}
+     \label{tab:failure-summary}
+     \begin{tabular}{p{0.25\textwidth} r p{0.35\textwidth} r}
+         \toprule
+         \textbf{Indicator} & \textbf{Spearman $\rho$} & \textbf{Success Rate} & \textbf{$\Delta$} \\
+         \midrule
+         Identifier Length & $-0.278$ & $>30\%$ multi-word: 80.8\% vs.\ $<10\%$: 27.5\% & 53.3 pp \\
+        \addlinespace
+        Query Token Overlap & $+0.290$ & High overlap ($>60\%$): 60.2\% vs.\ Low ($<30\%$): 20.2\% & 40.0 pp \\
+     \addlinespace
+     Answer String Presence & --- & Included: 75.0\% vs.\ Not included: 34.9\% & 40.1 pp \\
+     \addlinespace
+     Corpus Frequency & $-0.238$ & Low freq ($<500$): 59.8\% vs.\ High ($>5000$): 32.5\% & 27.3 pp \\
+     \addlinespace
+     Token Diversity\textsuperscript{\dag} & $-0.227$ & Low diversity: 55.3\% vs.\ High: 35.5\% & 19.8 pp \\
+     \addlinespace
+     Score Concentration & $-0.115$ & Distributed: 48.5\% vs.\ Concentrated: 29.4\% & 19.1 pp \\
+     \addlinespace
+     Retrieval-Ranking Gap & --- & 55.0\% of retrieved passages ranked $>1$ & --- \\       \bottomrule
+ \end{tabular}
+
+ \vspace{0.5em}
+ \footnotesize
+ \textsuperscript{\dag} Diversity is measured as the ratio of unique tokens to total tokens. \\
+ pp = percentage points. $\Delta$ = difference in precision\@1 between the compared cohorts.
+\end{table}
+
+The strongest predictors of retrieval failure are bias toward short identifiers ($\rho = -0.278$) and low Insufficient Query Coverage ($\rho = +0.290$). When \glsxtrshort{SEAL} generates predominantly unigrams, success drops from 80.8\% to 27.5\%; when n-grams fail to cover query terms, success drops from 60.2\% to 20.2\%. High-frequency n-grams and Overreliance on a Single Identifier show weaker but still significant effects.
+
+Notably, correlated identifier generation exhibits a counter-intuitive pattern: queries with more token repetition across n-grams achieve \textit{higher} success rates, suggesting that concentrated topical focus benefits retrieval. This finding indicates that not all initially hypothesized failure modes function as expected.
 
 \paragraph{Technical Constraints}
 \label{sec:datalims}
@@ -344,7 +411,7 @@ The results reveal that nearly half (48.8\%) of these ambiguous cases represent 
 
 \subsection{Preliminary Analysis}
 \label{sec:failure-pattern-analysis}
-%TODO FIND A BETTER NAME
+%TODO FIND A BETTER NAME TODO
 We analyze the distribution of generated n-gram keys across retrieved documents. We categorize each query based on Precision@2: PP (both correct), PN (rank-1 correct, rank-2 incorrect), NP (rank-1 incorrect, rank-2 correct), and NN (both incorrect). Table~\ref{tab:category-distribution} presents the distribution of queries across retrieval outcome categories. In our definition, positive means the retrieved passage corresponds to a ground truth passage, therefore ``correct'', while negative accordingly means ``incorrect''.
 
 \begin{table}[htbp]
@@ -414,73 +481,9 @@ According to the methodology explained in Section \ref{sec:llm-judge}, we adjust
 
 When counting only YES verdicts, \glsxtrshort{SEAL}'s effective hits@2 increases from 52.4\% to 55.6\%, a 3.2 percentage point improvement. Including borderline cases (YES + PARTIAL) raises the estimate to 57.2\%. These adjustments suggest that \glsxtrshort{SEAL}'s true retrieval capability may have been underestimated by approximately 3--5 percentage points due to incomplete or inaccurate ground-truth annotations. \textbf{MINDER DATA IS TBD.} Please note that we will refrain from ``updating the dataset'', as that would make our results incomparable with other papers' results on the standard \glsxtrshort{nq} dataset.
 
-\subsection{Quantitative Overview}
-
-Table~\ref{tab:failure-indicators} defines the observable indicator used for each failure mode. The Spearman $\rho$ values in Table~\ref{tab:failure-summary} represent the correlation between each indicator and binary retrieval success (1 if the top-1 passage is correct, 0 otherwise).
-
-\begin{table}[H]
-    \centering
-    \caption{Observable indicators for each failure mode and interpretation of correlation direction.}
-    \label{tab:failure-indicators}
-    \begin{tabular}{p{0.22\textwidth} p{0.32\textwidth} p{0.38\textwidth}}
-        \toprule
-        \textbf{Failure Mode} & \textbf{Indicator Measured} & \textbf{Interpretation of $\rho$} \\
-        \midrule
-        Bias Toward Short Identifiers & Fraction of n-grams that are unigrams & $\rho < 0$: More unigrams $\rightarrow$ lower success \\
-        \addlinespace
-        Insufficient Query Coverage & Proportion of query tokens covered by n-grams & $\rho > 0$: Higher coverage $\rightarrow$ higher success \\
-        \addlinespace
-        Answer in n-grams & Whether answer string appears in any n-gram & Binary comparison only \\
-        \addlinespace
-        High-freq.\ n-grams & Avg.\ corpus frequency of top-5 n-grams & $\rho < 0$: Higher frequency $\rightarrow$ lower success \\
-        \addlinespace
-        Correlated identifier generation & Token diversity ratio (unique / total tokens) & $\rho < 0$: Higher diversity $\rightarrow$ lower success\textsuperscript{\dag} \\
-        \addlinespace
-        Overreliance on a Single Identifier & max(score) / sum(scores) for top-1 passage & $\rho < 0$: More concentrated $\rightarrow$ lower success \\
-        \bottomrule
-    \end{tabular}
-
-    \vspace{0.5em}
-    \footnotesize
-    \textsuperscript{\dag} Counter-intuitive: repetition (low diversity) correlates with \textit{higher} success.
-\end{table}
-
-Table~\ref{tab:failure-summary} consolidates the empirical findings across all analyzed failure modes, quantifying their correlation with retrieval success and the performance differential between favorable and unfavorable conditions.
-
-\begin{table}[H]
-     \centering
-     \caption{Correlation between measured indicators and retrieval success for \glsxtrshort{SEAL} on \glsxtrlong{nq} (N=6,515).}
-     \label{tab:failure-summary}
-     \begin{tabular}{p{0.25\textwidth} r p{0.35\textwidth} r}
-         \toprule
-         \textbf{Indicator} & \textbf{Spearman $\rho$} & \textbf{Success Rate} & \textbf{$\Delta$} \\
-         \midrule
-         Identifier Length & $-0.278$ & $>30\%$ multi-word: 80.8\% vs.\ $<10\%$: 27.5\% & 53.3 pp \\
-        \addlinespace
-        Query Token Overlap & $+0.290$ & High overlap ($>60\%$): 60.2\% vs.\ Low ($<30\%$): 20.2\% & 40.0 pp \\
-     \addlinespace
-     Answer String Presence & --- & Included: 75.0\% vs.\ Not included: 34.9\% & 40.1 pp \\
-     \addlinespace
-     Corpus Frequency & $-0.238$ & Low freq ($<500$): 59.8\% vs.\ High ($>5000$): 32.5\% & 27.3 pp \\
-     \addlinespace
-     Token Diversity\textsuperscript{\dag} & $-0.227$ & Low diversity: 55.3\% vs.\ High: 35.5\% & 19.8 pp \\
-     \addlinespace
-     Score Concentration & $-0.115$ & Distributed: 48.5\% vs.\ Concentrated: 29.4\% & 19.1 pp \\
-     \addlinespace
-     Retrieval-Ranking Gap & --- & 55.0\% of retrieved passages ranked $>1$ & --- \\       \bottomrule
- \end{tabular}
-
- \vspace{0.5em}
- \footnotesize
- \textsuperscript{\dag} Diversity is measured as the ratio of unique tokens to total tokens. \\
- pp = percentage points. $\Delta$ = difference in precision\@1 between the compared cohorts.
-\end{table}
-
-The strongest predictors of retrieval failure are bias toward short identifiers ($\rho = -0.278$) and low Insufficient Query Coverage ($\rho = +0.290$). When \glsxtrshort{SEAL} generates predominantly unigrams, success drops from 80.8\% to 27.5\%; when n-grams fail to cover query terms, success drops from 60.2\% to 20.2\%. High-frequency n-grams and Overreliance on a Single Identifier show weaker but still significant effects.
-
-Notably, correlated identifier generation exhibits a counter-intuitive pattern: queries with more token repetition across n-grams achieve \textit{higher} success rates, suggesting that concentrated topical focus benefits retrieval. This finding indicates that not all initially hypothesized failure modes function as expected.
-
 \subsection{Generative Failures}
+\label{sec:gen-fail}
+Using the identified failure modes in Table \ref{tab:failure-summary}, we present the analysis results pertaining to generation below.
 
 \paragraph{Low Lexical Specificity}
 \label{sec:failure-1}
@@ -585,6 +588,9 @@ This finding suggests that while direct identification is a much stronger predic
 
 
 \subsection{Scoring Failures}
+
+Just like in Section \ref{sec:gen-fail}, we present the analysis results of the identified failure modes (Table \ref{tab:failure-summary}) pertaining to scoring below.
+
 \paragraph{Misranking Despite Retrieval}
 \label{sec:failure-2}
 
