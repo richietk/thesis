@@ -3,15 +3,7 @@ from collections import Counter
 import pandas as pd
 import sys
 import os
-
-def get_dataset_name(datapath: str) -> str:
-    """Extract dataset name (seal or minder) from datapath."""
-    if "minder" in datapath.lower():
-        return "minder"
-    elif "seal" in datapath.lower():
-        return "seal"
-    else:
-        return os.path.splitext(os.path.basename(datapath))[0]
+from utils import get_dataset_name
 
 def analyze_article_diversity(datapath='data/seal_output.json'):
     """Exploratory analysis: how many unique article titles appear in top-10 passages."""

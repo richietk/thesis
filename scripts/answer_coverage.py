@@ -1,44 +1,9 @@
 import ijson
-import ast
 import pandas as pd
 from pathlib import Path
 import sys
 import os
-
-def strip_ngram_markers(ngram: str, datapath: str) -> str:
-    """Strip pseudoquery markers from ngrams if using Minder data."""
-    if "minder_output.json" in datapath:
-        ngram = ngram.replace(" ||", "").strip()
-    return ngram
-
-def get_dataset_name(datapath: str) -> str:
-    """Extract dataset name (seal or minder) from datapath."""
-    if "minder" in datapath.lower():
-        return "minder"
-    elif "seal" in datapath.lower():
-        return "seal"
-    else:
-        return os.path.splitext(os.path.basename(datapath))[0]
-
-def parse_ngrams(keys_str):
-    """Parse n-gram keys from string or list format, handling Decimal objects."""
-    if not keys_str:
-        return []
-    try:
-        # If it's already a list, use it directly
-        if isinstance(keys_str, list):
-            keys_list = keys_str
-        else:
-            # Try to parse string format
-            keys_list = ast.literal_eval(keys_str)
-
-        # Convert Decimal to float for all score values
-        result = []
-        for ngram, freq, score in keys_list:
-            result.append((ngram, int(freq), float(score)))
-        return result
-    except:
-        return []
+from utils import strip_ngram_markers, get_dataset_name, parse_ngrams
 
 def analyze_answer_coverage(datapath="data/seal_output.json"):
     """Analyze whether answer string appears in generated n-grams."""

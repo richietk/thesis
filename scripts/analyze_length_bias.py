@@ -8,29 +8,10 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from collections import defaultdict
 import sys
-import re
+from utils import strip_pseudoqueries, get_dataset_name
 
 if sys.platform == 'win32':
     sys.stdout.reconfigure(encoding='utf-8')
-
-
-def strip_pseudoqueries(text: str, datapath: str) -> str:
-    """Strip pseudoquery markers from text if using Minder data."""
-    if "minder_output.json" in datapath:
-        # Remove || ... @@ patterns
-        text = re.sub(r'\|\|[^@]*@@', '', text)
-    return text
-
-
-def get_dataset_name(datapath: str) -> str:
-    """Extract dataset name (seal or minder) from datapath."""
-    if "minder" in datapath.lower():
-        return "minder"
-    elif "seal" in datapath.lower():
-        return "seal"
-    else:
-        import os
-        return os.path.splitext(os.path.basename(datapath))[0]
 
 
 def get_token_count(text, datapath=""):

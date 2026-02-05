@@ -1,35 +1,10 @@
 import ijson
-import ast
 import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr
 import sys
 import os
-
-def get_dataset_name(datapath: str) -> str:
-    """Extract dataset name (seal or minder) from datapath."""
-    if "minder" in datapath.lower():
-        return "minder"
-    elif "seal" in datapath.lower():
-        return "seal"
-    else:
-        return os.path.splitext(os.path.basename(datapath))[0]
-
-def strip_ngram_markers(ngram: str, datapath: str) -> str:
-    """Strip pseudoquery markers from ngrams if using Minder data."""
-    if "minder_output.json" in datapath:
-        ngram = ngram.replace(" ||", "").strip()
-    return ngram
-
-def parse_ngrams(keys_str):
-    """Parse n-gram keys from string format."""
-    if not keys_str:
-        return []
-    try:
-        keys_list = ast.literal_eval(keys_str)
-        return [(ngram, freq, score) for ngram, freq, score in keys_list]
-    except:
-        return []
+from utils import get_dataset_name, strip_ngram_markers, parse_ngrams
 
 def analyze_query_ngram_overlap_topk(datapath="data/seal_output.json"):
     """Analyze lexical overlap between query and generated n-grams for top-1, top-2, and top-10."""

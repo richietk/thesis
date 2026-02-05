@@ -14,7 +14,7 @@ import json
 import os
 import time
 import ijson
-import re
+from utils import strip_pseudoqueries, get_dataset_name
 
 # ================= CONFIGURATION =================
 # Note: INPUT_CSV and OUTPUT_CSV are now set dynamically in main() based on datapath
@@ -97,24 +97,6 @@ def load_json_data_stream(json_path: str):
             if question:
                 json_index[question] = entry
     return json_index
-
-
-def strip_pseudoqueries(text: str, datapath: str) -> str:
-    """Strip pseudoquery markers from text if using Minder data."""
-    if "minder_output.json" in datapath:
-        # Remove || ... @@ patterns
-        text = re.sub(r'\|\|[^@]*@@', '', text)
-    return text
-
-
-def get_dataset_name(datapath: str) -> str:
-    """Extract dataset name (seal or minder) from datapath."""
-    if "minder" in datapath.lower():
-        return "minder"
-    elif "seal" in datapath.lower():
-        return "seal"
-    else:
-        return os.path.splitext(os.path.basename(datapath))[0]
 
 
 # Change the function to check the whole list

@@ -1,32 +1,13 @@
 import ijson
-import ast
 import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
 import sys
+from utils import get_dataset_name, parse_ngrams
 
 # Fix Unicode encoding for Windows
 if sys.platform == 'win32':
     sys.stdout.reconfigure(encoding='utf-8')
-
-def get_dataset_name(datapath: str) -> str:
-    """Extract dataset name (seal or minder) from datapath."""
-    if "minder" in datapath.lower():
-        return "minder"
-    elif "seal" in datapath.lower():
-        return "seal"
-    else:
-        import os
-        return os.path.splitext(os.path.basename(datapath))[0]
-
-def parse_ngrams(keys_str):
-    if not keys_str:
-        return []
-    try:
-        keys_list = ast.literal_eval(keys_str)
-        return [(ngram, freq, score) for ngram, freq, score in keys_list]
-    except:
-        return []
 
 def analyze_scoring_failure(datapath="data/seal_output.json"):
     import sys

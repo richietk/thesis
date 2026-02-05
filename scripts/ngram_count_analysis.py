@@ -5,31 +5,9 @@ from scipy.stats import spearmanr
 import matplotlib.pyplot as plt
 import ast
 import os
+from utils import strip_ngram_markers, get_dataset_name, parse_ngrams
 
 # OUTPUT_DIR will be set dynamically based on dataset_name
-
-def strip_ngram_markers(ngram: str, datapath: str) -> str:
-    """Strip pseudoquery markers from ngrams if using Minder data."""
-    if "minder_output.json" in datapath:
-        ngram = ngram.replace(" ||", "").strip()
-    return ngram
-
-def get_dataset_name(datapath: str) -> str:
-    """Extract dataset name (seal or minder) from datapath."""
-    if "minder" in datapath.lower():
-        return "minder"
-    elif "seal" in datapath.lower():
-        return "seal"
-    else:
-        import os
-        return os.path.splitext(os.path.basename(datapath))[0]
-
-def parse_ngrams(keys_str):
-    if not keys_str: return []
-    try:
-        # Expected format: [(ngram, freq, score), ...]
-        return ast.literal_eval(keys_str)
-    except: return []
 
 def analyze_ngram_distribution(datapath="data/seal_output.json"):
     import sys

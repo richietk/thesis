@@ -6,24 +6,7 @@ from collections import defaultdict
 import os
 import csv
 from typing import Dict, List, Set, Any, Tuple
-
-
-def strip_ngram_markers(ngram: str, datapath: str) -> str:
-    """Strip pseudoquery markers from ngrams if using Minder data."""
-    if "minder_output.json" in datapath:
-        # Remove " ||" prefix from ngrams
-        ngram = ngram.replace(" ||", "").strip()
-    return ngram
-
-
-def get_dataset_name(datapath: str) -> str:
-    """Extract dataset name (seal or minder) from datapath."""
-    if "minder" in datapath.lower():
-        return "minder"
-    elif "seal" in datapath.lower():
-        return "seal"
-    else:
-        return os.path.splitext(os.path.basename(datapath))[0]
+from utils import strip_ngram_markers, get_dataset_name, stream_data
 
 
 def parse_keys_field(keys_field: Any) -> List:
@@ -351,14 +334,6 @@ def save_results_to_csv(all_results: List[Dict], output_path: str) -> None:
         writer.writerows(all_results)
     
     print(f"\nResults saved to: {output_path}")
-
-
-def stream_data(file_path: str):
-    """Stream data from unified json using ijson."""
-    with open(file_path, 'rb') as f:
-        parser = ijson.items(f, 'item')
-        for entry in parser:
-            yield entry
 
 
 def find_query_by_substring_streaming(file_path: str, query_substring: str) -> Dict:

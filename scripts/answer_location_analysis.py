@@ -15,46 +15,9 @@ Categories:
 
 import ijson
 import os
-import re
 from collections import defaultdict
 import csv
-
-
-def strip_pseudoqueries(text, datapath):
-    """Strip pseudoquery markers from text if using Minder data."""
-    if "minder_output.json" in datapath:
-        # Remove || ... @@ patterns
-        text = re.sub(r'\|\|[^@]*@@', '', text)
-    return text
-
-
-def get_dataset_name(datapath: str) -> str:
-    """Extract dataset name (seal or minder) from datapath."""
-    if "minder" in datapath.lower():
-        return "minder"
-    elif "seal" in datapath.lower():
-        return "seal"
-    else:
-        return os.path.splitext(os.path.basename(datapath))[0]
-
-
-def normalize_text(text):
-    """Normalize text for matching: lowercase, strip whitespace."""
-    return text.lower().strip()
-
-
-def answer_in_text(answer, text):
-    """Check if answer appears in text (case-insensitive)."""
-    return normalize_text(answer) in normalize_text(text)
-
-
-def get_ground_truth_ids(query_data):
-    """Extract ground-truth passage IDs."""
-    gold_ids = set()
-    if 'positive_ctxs' in query_data:
-        for ctx in query_data['positive_ctxs']:
-            gold_ids.add(ctx.get('passage_id', '').split('...')[0])
-    return gold_ids
+from utils import strip_pseudoqueries, get_dataset_name, normalize_text, answer_in_text, get_ground_truth_ids
 
 
 def analyze_retrieval_outcome(query_data, top_k=10, datapath=""):

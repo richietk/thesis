@@ -2,21 +2,7 @@ import ijson
 import ast
 import sys
 import os
-
-def get_dataset_name(datapath: str) -> str:
-    """Extract dataset name (seal or minder) from datapath."""
-    if "minder" in datapath.lower():
-        return "minder"
-    elif "seal" in datapath.lower():
-        return "seal"
-    else:
-        return os.path.splitext(os.path.basename(datapath))[0]
-
-def strip_ngram_markers(ngram: str, datapath: str) -> str:
-    """Strip pseudoquery markers from ngrams if using Minder data."""
-    if "minder_output.json" in datapath:
-        ngram = ngram.replace(" ||", "").strip()
-    return ngram
+from utils import get_dataset_name, strip_ngram_markers
 
 def main(datapath='data/seal_output.json'):
     script_name = "single_ngram_test"

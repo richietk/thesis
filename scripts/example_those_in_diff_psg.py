@@ -10,14 +10,7 @@ Inspect 'Answer in Different Passage' Cases (Full Text)
 import ijson
 import csv
 import os
-import re
-
-def strip_pseudoqueries(text: str, datapath: str) -> str:
-    """Strip pseudoquery markers from text if using Minder data."""
-    if "minder_output.json" in datapath:
-        # Remove || ... @@ patterns
-        text = re.sub(r'\|\|[^@]*@@', '', text)
-    return text
+from utils import strip_pseudoqueries, get_dataset_name
 
 
 def load_target_questions(csv_path):
@@ -95,11 +88,7 @@ def main(datapath="data/seal_output.json"):
 
     try:
         # Determine dataset name
-        dataset_name = "seal"
-        if "minder" in datapath.lower():
-            dataset_name = "minder"
-        elif "seal" in datapath.lower():
-            dataset_name = "seal"
+        dataset_name = get_dataset_name(datapath)
 
         # Create output directory and log file
         output_dir = f"generated_data/{dataset_name}"
