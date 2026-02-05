@@ -25,7 +25,6 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 
 ANALYSIS_MODULES = [
     ("answer_location_analysis", "Answer Location Analysis"),
-    ("example_those_in_diff_psg", "Answer in Different Passage - Full Text Examples"),
     ("seal_analysis_prelim", "Preliminary SEAL Analysis with N-gram Examples"),
     ("ngram_count_analysis", "N-gram Count Distribution Analysis"),
     ("single_ngram_dominance", "Single N-gram Dominance Analysis"),
@@ -40,9 +39,6 @@ ANALYSIS_MODULES = [
     ("scoring_failure", "Scoring Failure Analysis"),
     ("analyze_length_bias", "Document Length Bias Analysis"),
     ("analyze_minder_pseudoqueries", "Analyze Minder Pseudoqueries")
-    #("analyze_failure_modes", "Comprehensive Failure Mode Analysis"),
-    #("llm_judge_answer_verification", "LLM Judge: Answer Verification"),
-    #("llm_judge_concept", "LLM Judge: Failure Classification"),
 ]
 
 
