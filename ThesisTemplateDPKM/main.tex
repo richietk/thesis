@@ -135,7 +135,7 @@ The additive scoring mechanism in \glsxtrshort{SEAL} introduces a potential bias
 This theoretical length bias is not empirically measurable in our experimental setup, as the \glsxtrlong{nq} retrieval corpus consists of length-controlled 100-token passages \cite{karpukhin2020densepassageretrievalopendomain}. Because variation in passage length is minimal, any observed differences in n-gram matching counts reflect topical breadth and the dynamic nature of the n-gram generator rather than document length.
 
 \subsection{MINDER Architecture}
-
+\label{sec:minderarch}
 The \glsxtrfull{MINDER} (Multiview Identifiers Enhanced Generative Retrieval) framework \cite{li2023multiviewidentifiersenhancedgenerative} extends the n-gram based approach of \glsxtrshort{SEAL} by introducing synthetic and multiview identifiers. \glsxtrshort{MINDER} is motivated by the observation that single-view identifiers, such as document titles or extractive n-grams, often lack the contextualized information necessary to satisfy complex queries, especially if those require rephrasing.
 
 To address this, \glsxtrshort{MINDER} assigns three distinct views of identifiers to each passage:
@@ -760,6 +760,12 @@ Across 6,515 queries, the number of n-grams matched to the top-1 retrieved passa
 The relationship between n-gram count and retrieval success is notably weak (Spearman $\rho = 0.040$, $p = 0.001$), exhibiting a non-monotonic, inverted-U pattern. Precision\@1 increases from 36.0\% for passages with low identifier counts (D1, $<$34) to a peak of 46.1\% in the fourth decile, subsequently plateauing and slightly declining to 41.6\% for passages in the highest decile (D10, $>$50). This trend suggests that while a minimum amount of evidence is required to identify a passage, accumulating n-grams beyond a moderate threshold yields diminishing returns and does not significantly influence precision\@1.
 
 Here it is important to note that because the document score is computed as a summation of individual n-gram weights without normalization for quantity, in high-count scenarios, a passage may be ranked first not due to high precision, but because it contains a larger volume of moderately relevant vocabulary that the model associates with the query context. Notably, the mean n-gram corpus frequency ($\bar{F}_c$) remains stable across all deciles. This stability indicates that the performance plateau is not caused by the model reverting to generic "filler" tokens at higher counts. Instead, the lackluster retrieval quality likely stems from the scoring mechanism's inability to distinguish between a small set of highly discriminative n-grams and a large aggregate score from multiple, less specific identifiers.
+
+\subsubsection{Pseudo-Query Contribution in \glsxtrshort{MINDER}}
+
+In addition to examining \glsxtrshort{SEAL}'s n-gram distribution, we analyze the contribution of synthetic identifiers in the \glsxtrshort{MINDER} framework. As detailed in Section \ref{sec:minderarch}, \glsxtrshort{MINDER} incorporates pseudo-queries alongside titles and substrings to capture high-level semantic information. Our analysis of 6,515 queries reveals an interesting divergence between the quantity of generated pseudo-queries and their influence on the final ranking.
+
+Numerically, pseudo-queries constitute a negligible fraction of the generated identifiers, accounting for only 1.4\% of the total n-grams (379,080 out of 26.9 million). However, their contribution to the total accumulated score is disproportionately high, representing 27.7\% of the total score mass (91.1 million out of 328.5 million). This confirms that \glsxtrshort{MINDER}'s scoring mechanism successfully uses sparse but highly discriminative synthetic identifiers. %TODO recheck numbers
 
 \subsection{Direct vs. Indirect Document Identification}
 \label{sec:failure-4}
