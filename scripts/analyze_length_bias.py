@@ -1,6 +1,7 @@
 """Analyze correlation between passage length and retrieval performance in SEAL outputs."""
 
 import ijson
+import json
 import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr, pearsonr, mannwhitneyu
@@ -22,7 +23,6 @@ def get_token_count(text, datapath=""):
 
 def extract_analysis_data(file_path, datapath=""):
     """Extract analysis data from SEAL output (streaming)."""
-    print(f"Streaming data from {file_path}...")
     rows = []
     query_idx = 0
 
@@ -31,8 +31,6 @@ def extract_analysis_data(file_path, datapath=""):
 
         for item in parser:
             query_idx += 1
-            if query_idx % 1000 == 0:
-                print(f"  Processed {query_idx} queries...")
             question = item['question']
 
             positive_ids = set()
@@ -91,22 +89,11 @@ def extract_analysis_data(file_path, datapath=""):
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors='coerce')
 
-    print(f"\nExtracted {len(df)} passage retrievals across {df['query_id'].nunique()} queries")
-    print(f"Passage length statistics:")
-    print(f"  Mean: {df['passage_length'].mean():.1f} tokens")
-    print(f"  Median: {df['passage_length'].median():.1f} tokens")
-    print(f"  Std: {df['passage_length'].std():.1f} tokens")
-    print(f"  Min: {df['passage_length'].min()}, Max: {df['passage_length'].max()}")
-
     return df
 
 
 def analyze_length_rank_correlation(df, output_dir, dataset_name="seal"):
     """Analyze correlation between passage length and retrieval rank."""
-    print("\n" + "="*80)
-    print("ANALYSIS 1: Passage Length vs Retrieval Rank")
-    print("="*80)
-
     correlations = []
     for query_id, group in df.groupby('query_id'):
         if len(group) > 10:
@@ -120,17 +107,7 @@ def analyze_length_rank_correlation(df, output_dir, dataset_name="seal"):
             })
 
     corr_df = pd.DataFrame(correlations)
-
-    print(f"\nPer-Query Spearman Correlation (Rank vs Length):")
-    print(f"  Mean: {corr_df['spearman_corr'].mean():.4f}")
-    print(f"  Median: {corr_df['spearman_corr'].median():.4f}")
-    print(f"  Std: {corr_df['spearman_corr'].std():.4f}")
-
-    biased_queries = corr_df[corr_df['spearman_corr'] < 0]
     significant_bias = corr_df[(corr_df['spearman_corr'] < -0.2) & (corr_df['p_value'] < 0.05)]
-
-    print(f"\n  Queries with length bias (ρ < 0): {len(biased_queries)} / {len(corr_df)} ({100*len(biased_queries)/len(corr_df):.1f}%)")
-    print(f"  Queries with STRONG bias (ρ < -0.2, p < 0.05): {len(significant_bias)} ({100*len(significant_bias)/len(corr_df):.1f}%)")
 
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     axes[0, 0].hist(corr_df['spearman_corr'], bins=40, edgecolor='black', alpha=0.7, color='steelblue')
@@ -179,23 +156,14 @@ def analyze_length_rank_correlation(df, output_dir, dataset_name="seal"):
     plt.tight_layout()
     output_file = f'{output_dir}/01_length_rank_correlation_{dataset_name}.png'
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
-    print(f"\n  Saved: {output_file}")
+    plt.close()
 
     return corr_df
 
 
 def analyze_length_score_correlation(df, output_dir, dataset_name="seal"):
     """Analyze correlation between passage length and SEAL's aggregate score."""
-    print("\n" + "="*80)
-    print("ANALYSIS 2: Passage Length vs Aggregate Score")
-    print("="*80)
-
-    corr_spearman, p_spearman = spearmanr(df['passage_length'], df['score'])
-    corr_pearson, p_pearson = pearsonr(df['passage_length'], df['score'])
-
-    print(f"\nOverall Correlations:")
-    print(f"  Spearman: ρ = {corr_spearman:.4f}, p = {p_spearman:.4e}")
-    print(f"  Pearson:  r = {corr_pearson:.4f}, p = {p_pearson:.4e}")
+    corr_spearman, _ = spearmanr(df['passage_length'], df['score'])
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
     hb = axes[0].hexbin(df['passage_length'], df['score'], gridsize=50, cmap='YlOrRd', mincnt=1)
@@ -216,34 +184,17 @@ def analyze_length_score_correlation(df, output_dir, dataset_name="seal"):
     plt.tight_layout()
     output_file = f'{output_dir}/02_length_score_correlation_{dataset_name}.png'
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
-    print(f"\n  Saved: {output_file}")
+    plt.close()
 
 
 def analyze_positive_vs_negative_lengths(df, output_dir, dataset_name="seal"):
     """Compare passage lengths: ground truth (positive) vs retrieved (negative)."""
-    print("\n" + "="*80)
-    print("ANALYSIS 3: Ground Truth vs Retrieved Passage Lengths")
-    print("="*80)
-
     positive = df[df['is_positive'] == True]
     negative = df[df['is_positive'] == False]
 
     top10 = df[df['rank'] <= 10]
     top10_positive = top10[top10['is_positive'] == True]
     top10_negative = top10[top10['is_positive'] == False]
-
-    print(f"\nPassage Length Statistics:")
-    print(f"  Ground truth (all positive passages): mean={positive['passage_length'].mean():.1f}, median={positive['passage_length'].median():.1f}")
-    print(f"  Retrieved negative (all ranks): mean={negative['passage_length'].mean():.1f}, median={negative['passage_length'].median():.1f}")
-    print(f"\n  Top-10 positive: mean={top10_positive['passage_length'].mean():.1f}, median={top10_positive['passage_length'].median():.1f}")
-    print(f"  Top-10 negative: mean={top10_negative['passage_length'].mean():.1f}, median={top10_negative['passage_length'].median():.1f}")
-
-    if len(positive) > 0 and len(top10_negative) > 0:
-        stat, p = mannwhitneyu(positive['passage_length'], top10_negative['passage_length'], alternative='two-sided')
-        print(f"\n  Mann-Whitney U test (Ground truth vs Top-10 negative): p = {p:.4e}")
-        if p < 0.05:
-            mean_diff = top10_negative['passage_length'].mean() - positive['passage_length'].mean()
-            print(f"    Mean difference: {mean_diff:+.1f} tokens")
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
     if len(positive) > 0:
@@ -275,34 +226,17 @@ def analyze_positive_vs_negative_lengths(df, output_dir, dataset_name="seal"):
     plt.tight_layout()
     output_file = f'{output_dir}/03_positive_vs_negative_lengths_{dataset_name}.png'
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
-    print(f"\n  Saved: {output_file}")
+    plt.close()
 
 
 def analyze_ngrams_vs_length(df, output_dir, dataset_name="seal"):
     """Analyze relationship between passage length and number of matched n-grams."""
-    print("\n" + "="*80)
-    print("ANALYSIS 4: Matched N-grams vs Passage Length (Accumulation Effect)")
-    print("="*80)
-
     df_with_keys = df[df['num_keys'] > 0].copy()
 
     if len(df_with_keys) == 0:
-        print("  No n-gram data available")
         return
 
-    print(f"\nPassages with n-gram data: {len(df_with_keys)} / {len(df)}")
-
-    corr_spearman, p_spearman = spearmanr(df_with_keys['passage_length'], df_with_keys['num_keys'])
-    corr_pearson, p_pearson = pearsonr(df_with_keys['passage_length'], df_with_keys['num_keys'])
-
-    print(f"\nCorrelation (Length vs Number of Matched N-grams):")
-    print(f"  Spearman: ρ = {corr_spearman:.4f}, p = {p_spearman:.4e}")
-    print(f"  Pearson:  r = {corr_pearson:.4f}, p = {p_pearson:.4e}")
-
-    print(f"\nN-gram Matching Statistics:")
-    print(f"  Mean n-grams per passage: {df_with_keys['num_keys'].mean():.2f}")
-    print(f"  Median: {df_with_keys['num_keys'].median():.1f}")
-    print(f"  Max: {df_with_keys['num_keys'].max()}")
+    corr_spearman, _ = spearmanr(df_with_keys['passage_length'], df_with_keys['num_keys'])
 
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 
@@ -338,15 +272,11 @@ def analyze_ngrams_vs_length(df, output_dir, dataset_name="seal"):
     plt.tight_layout()
     output_file = f'{output_dir}/04_ngrams_vs_length_{dataset_name}.png'
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
-    print(f"\n  Saved: {output_file}")
+    plt.close()
 
 
 def analyze_retrieval_quality_by_length(df, output_dir, dataset_name="seal"):
     """Analyze whether length affects retrieval precision."""
-    print("\n" + "="*80)
-    print("ANALYSIS 5: Retrieval Precision by Passage Length")
-    print("="*80)
-
     results = []
     for k in [5, 10, 20, 50, 100]:
         topk = df[df['rank'] <= k]
@@ -363,25 +293,6 @@ def analyze_retrieval_quality_by_length(df, output_dir, dataset_name="seal"):
                 })
 
     results_df = pd.DataFrame(results)
-
-    print(f"\nPrecision@K by Passage Length Bin:")
-    print(f"{'Length Bin':<15} {'P@5':>8} {'P@10':>8} {'P@20':>8} {'P@50':>8} {'P@100':>9}")
-    print("-" * 70)
-    for length_bin in df['length_bin'].cat.categories:
-        row = results_df[results_df['length_bin'] == length_bin]
-        p5 = row[row['k'] == 5]['precision'].values
-        p10 = row[row['k'] == 10]['precision'].values
-        p20 = row[row['k'] == 20]['precision'].values
-        p50 = row[row['k'] == 50]['precision'].values
-        p100 = row[row['k'] == 100]['precision'].values
-
-        p5_str = f"{p5[0]:.4f}" if len(p5) > 0 else "N/A"
-        p10_str = f"{p10[0]:.4f}" if len(p10) > 0 else "N/A"
-        p20_str = f"{p20[0]:.4f}" if len(p20) > 0 else "N/A"
-        p50_str = f"{p50[0]:.4f}" if len(p50) > 0 else "N/A"
-        p100_str = f"{p100[0]:.4f}" if len(p100) > 0 else "N/A"
-
-        print(f"{length_bin:<15} {p5_str:>8} {p10_str:>8} {p20_str:>8} {p50_str:>8} {p100_str:>9}")
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 6))
 
@@ -400,15 +311,12 @@ def analyze_retrieval_quality_by_length(df, output_dir, dataset_name="seal"):
     plt.tight_layout()
     output_file = f'{output_dir}/05_precision_by_length_{dataset_name}.png'
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
-    print(f"\n  Saved: {output_file}")
+    plt.close()
 
 
 
 def main(datapath="data/seal_output.json"):
     """Run all analyses (streaming version)."""
-    import sys
-    from io import StringIO
-
     script_name = "analyze_length_bias"
     print(f"running {script_name}")
 
@@ -417,41 +325,96 @@ def main(datapath="data/seal_output.json"):
         output_dir = Path(f"generated_data/{dataset_name}/length_bias_analysis")
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        log_file = output_dir / f"{script_name}_log.txt"
-        original_stdout = sys.stdout
-        sys.stdout = open(log_file, 'w', encoding='utf-8')
-
-        print(f"\nOutput directory: {output_dir}\n")
-        print(f"Dataset: {dataset_name}\n")
-
         df = extract_analysis_data(datapath, datapath)
 
-        print("\nRunning analyses...")
+        # Run analyses and collect results
         corr_df = analyze_length_rank_correlation(df, output_dir, dataset_name)
         analyze_length_score_correlation(df, output_dir, dataset_name)
         analyze_positive_vs_negative_lengths(df, output_dir, dataset_name)
         analyze_ngrams_vs_length(df, output_dir, dataset_name)
         analyze_retrieval_quality_by_length(df, output_dir, dataset_name)
 
+        # Calculate summary statistics
+        positive = df[df['is_positive'] == True]
+        negative = df[df['is_positive'] == False]
+        top10 = df[df['rank'] <= 10]
+        top10_positive = top10[top10['is_positive'] == True]
+        top10_negative = top10[top10['is_positive'] == False]
+
+        # Correlations
+        corr_spearman, p_spearman = spearmanr(df['passage_length'], df['score'])
+        corr_pearson, p_pearson = pearsonr(df['passage_length'], df['score'])
+
+        # Mann-Whitney U test
+        _, p_mannwhitney = mannwhitneyu(positive['passage_length'], top10_negative['passage_length'], alternative='two-sided') if len(positive) > 0 and len(top10_negative) > 0 else (0, 1)
+
+        # Collect output data
+        output_data = {
+            "total_passages": len(df),
+            "total_queries": int(df['query_id'].nunique()),
+            "passage_length_stats": {
+                "mean": float(df['passage_length'].mean()),
+                "median": float(df['passage_length'].median()),
+                "std": float(df['passage_length'].std()),
+                "min": int(df['passage_length'].min()),
+                "max": int(df['passage_length'].max())
+            },
+            "per_query_rank_correlation": {
+                "mean": float(corr_df['spearman_corr'].mean()) if len(corr_df) > 0 else 0,
+                "median": float(corr_df['spearman_corr'].median()) if len(corr_df) > 0 else 0,
+                "std": float(corr_df['spearman_corr'].std()) if len(corr_df) > 0 else 0,
+                "queries_with_bias": int(len(corr_df[corr_df['spearman_corr'] < 0])) if len(corr_df) > 0 else 0,
+                "queries_with_strong_bias": int(len(corr_df[(corr_df['spearman_corr'] < -0.2) & (corr_df['p_value'] < 0.05)])) if len(corr_df) > 0 else 0
+            },
+            "length_score_correlation": {
+                "spearman_rho": float(corr_spearman),
+                "spearman_p": float(p_spearman),
+                "pearson_r": float(corr_pearson),
+                "pearson_p": float(p_pearson)
+            },
+            "positive_vs_negative": {
+                "positive_mean": float(positive['passage_length'].mean()) if len(positive) > 0 else 0,
+                "positive_median": float(positive['passage_length'].median()) if len(positive) > 0 else 0,
+                "negative_mean": float(negative['passage_length'].mean()),
+                "negative_median": float(negative['passage_length'].median()),
+                "top10_positive_mean": float(top10_positive['passage_length'].mean()) if len(top10_positive) > 0 else 0,
+                "top10_positive_median": float(top10_positive['passage_length'].median()) if len(top10_positive) > 0 else 0,
+                "top10_negative_mean": float(top10_negative['passage_length'].mean()),
+                "top10_negative_median": float(top10_negative['passage_length'].median()),
+                "mannwhitney_u_p": float(p_mannwhitney)
+            }
+        }
+
+        # N-grams vs length stats if available
+        df_with_keys = df[df['num_keys'] > 0]
+        if len(df_with_keys) > 0:
+            corr_ngrams_spearman, p_ngrams_spearman = spearmanr(df_with_keys['passage_length'], df_with_keys['num_keys'])
+            corr_ngrams_pearson, p_ngrams_pearson = pearsonr(df_with_keys['passage_length'], df_with_keys['num_keys'])
+            output_data["ngrams_vs_length"] = {
+                "passages_with_ngrams": len(df_with_keys),
+                "mean_ngrams_per_passage": float(df_with_keys['num_keys'].mean()),
+                "median_ngrams_per_passage": float(df_with_keys['num_keys'].median()),
+                "spearman_rho": float(corr_ngrams_spearman),
+                "spearman_p": float(p_ngrams_spearman),
+                "pearson_r": float(corr_ngrams_pearson),
+                "pearson_p": float(p_ngrams_pearson)
+            }
+
+        # Save CSV files
         processed_file = f'{output_dir}/processed_data_{dataset_name}.csv'
         correlations_file = f'{output_dir}/correlations_{dataset_name}.csv'
         df.to_csv(processed_file, index=False, encoding='utf-8')
         if len(corr_df) > 0:
             corr_df.to_csv(correlations_file, index=False, encoding='utf-8')
-        print(f"\n  Saved: {processed_file}")
-        print(f"  Saved: {correlations_file}")
 
-        # Restore stdout
-        sys.stdout.close()
-        sys.stdout = original_stdout
+        # Write JSON output to parent directory (not length_bias_analysis subdirectory)
+        json_path = Path(f"generated_data/{dataset_name}/{script_name}_results.json")
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(output_data, f, indent=2)
 
         print(f"success running {script_name}")
 
     except Exception as e:
-        # Restore stdout in case of error
-        if sys.stdout != original_stdout:
-            sys.stdout.close()
-            sys.stdout = original_stdout
         print(f"error: running {script_name} {e}")
         raise
 

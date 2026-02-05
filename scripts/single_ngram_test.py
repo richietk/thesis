@@ -2,21 +2,17 @@ import ijson
 import ast
 import sys
 import os
+import json
 from utils import get_dataset_name, strip_ngram_markers
 
 def main(datapath='data/seal_output.json'):
     script_name = "single_ngram_test"
     print(f"running {script_name}")
 
-    original_stdout = sys.stdout
     try:
         dataset_name = get_dataset_name(datapath)
         output_dir = f"generated_data/{dataset_name}"
         os.makedirs(output_dir, exist_ok=True)
-
-        # Redirect stdout to log file
-        log_file = os.path.join(output_dir, f"{script_name}_log.txt")
-        sys.stdout = open(log_file, 'w', encoding='utf-8')
 
         records = []
 
@@ -78,8 +74,10 @@ def main(datapath='data/seal_output.json'):
         num_bins = 10
         bin_size = len(records) // num_bins
 
-        print("Dominance range | Top-1 | Top-2 | Top-10 | Count")
-        print("-----------------------------------------------")
+        output_data = {
+            "total_queries": len(records),
+            "deciles": []
+        }
 
         for i in range(num_bins):
             start = i * bin_size
@@ -96,19 +94,24 @@ def main(datapath='data/seal_output.json'):
             d_min = bin_records[0]['dominance']
             d_max = bin_records[-1]['dominance']
 
-            print(f"{d_min:.2f}–{d_max:.2f}      | {top1_rate:6.2f}% | {top2_rate:6.2f}% | {top10_rate:6.2f}% | {len(bin_records)}")
+            output_data["deciles"].append({
+                "decile": i + 1,
+                "dominance_min": float(d_min),
+                "dominance_max": float(d_max),
+                "success_top1_pct": float(top1_rate),
+                "success_top2_pct": float(top2_rate),
+                "success_top10_pct": float(top10_rate),
+                "count": len(bin_records)
+            })
 
-        # Restore stdout
-        sys.stdout.close()
-        sys.stdout = original_stdout
+        # Save JSON output
+        output_json = os.path.join(output_dir, f"{script_name}_results.json")
+        with open(output_json, 'w') as f:
+            json.dump(output_data, f, indent=2)
 
         print(f"success running {script_name}")
 
     except Exception as e:
-        # Restore stdout in case of error
-        if sys.stdout != original_stdout:
-            sys.stdout.close()
-            sys.stdout = original_stdout
         print(f"error: running {script_name} {e}")
         raise
 

@@ -1,4 +1,5 @@
 import ijson
+import json
 import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr
@@ -20,14 +21,8 @@ def analyze_ngram_distribution(datapath="data/seal_output.json"):
         output_dir = f"generated_data/{dataset_name}"
         os.makedirs(output_dir, exist_ok=True)
 
-        # Redirect stdout to log file
-        log_file = os.path.join(output_dir, f"{script_name}_log.txt")
-        original_stdout = sys.stdout
-        sys.stdout = open(log_file, 'w', encoding='utf-8')
-
         results = []
 
-        print(f"Loading {datapath}...")
         with open(datapath, 'r', encoding='utf-8') as f:
             for entry in ijson.items(f, 'item'):
                 top_ctx = entry['ctxs'][0] if entry.get('ctxs') else None
@@ -49,31 +44,17 @@ def analyze_ngram_distribution(datapath="data/seal_output.json"):
 
         df = pd.DataFrame(results)
 
-        # ================================================================================
-        # GLOBAL STATISTICS BLOCK
-        # ================================================================================
-        print("\n" + "=" * 80)
-        print("EMPIRICAL ANALYSIS: N-GRAM COUNT VS. RETRIEVAL EFFECTIVENESS")
-        print("=" * 80)
-
-        print(f"\nSummary Statistics (N={len(df)}):")
-        print(f"  Mean Count:   {df['ngram_count'].mean():.2f}")
-        print(f"  Median:       {df['ngram_count'].median():.2f}")
-        print(f"  Std. Dev:     {df['ngram_count'].std():.2f}")
-        print(f"  Range:        [{df['ngram_count'].min()}, {df['ngram_count'].max()}]")
-
-        # Define Decile-based intervals
-        print("\nRetrieval Performance by N-gram Count Decile:")
-        print("-" * 75)
-        header = f"{'Decile':8s} | {'Count Range':15s} | {'N':8s} | {'Success@1':>10s} | {'Mean Corpus Freq'}"
-        print(header)
-        print("-" * 75)
-
-        bin_data = []
+        # Calculate statistics
+        mean_count = float(df['ngram_count'].mean())
+        median_count = float(df['ngram_count'].median())
+        std_count = float(df['ngram_count'].std())
+        min_count = int(df['ngram_count'].min())
+        max_count = int(df['ngram_count'].max())
 
         # Create decile bins
         df['ngram_decile'] = pd.qcut(df['ngram_count'], q=10, labels=False, duplicates='drop')
 
+        deciles_data = []
         for decile in sorted(df['ngram_decile'].unique()):
             mask = df['ngram_decile'] == decile
             count_n = mask.sum()
@@ -83,10 +64,15 @@ def analyze_ngram_distribution(datapath="data/seal_output.json"):
 
                 count_min = int(df.loc[mask, 'ngram_count'].min())
                 count_max = int(df.loc[mask, 'ngram_count'].max())
-                range_label = f"{count_min}–{count_max}"
 
-                print(f" D{int(decile)+1:1d}      | {range_label:15s} | {count_n:8d} | {success:9.2f}% | {mean_f:,.0f}")
-                bin_data.append({'range': range_label, 'success': success, 'freq': mean_f, 'decile': int(decile)+1})
+                deciles_data.append({
+                    "decile": int(decile) + 1,
+                    "count_min": count_min,
+                    "count_max": count_max,
+                    "success_top1_pct": float(success),
+                    "mean_corpus_freq": float(mean_f),
+                    "count": int(count_n)
+                })
 
         # Drop the temporary column
         df = df.drop(columns=['ngram_decile'])
@@ -95,18 +81,27 @@ def analyze_ngram_distribution(datapath="data/seal_output.json"):
         rho_success, p_success = spearmanr(df['ngram_count'], df['success_top1'])
         rho_freq, p_freq = spearmanr(df['ngram_count'], df['avg_freq'])
 
-        print("-" * 75)
-        print(f"Spearman ρ (Count vs. Success): {rho_success:.3f} (p={p_success:.2e})")
-        print(f"Spearman ρ (Count vs. Frequency): {rho_freq:.3f} (p={p_freq:.2e})")
+        # Collect output data
+        output_data = {
+            "total_queries": len(df),
+            "mean_count": mean_count,
+            "median_count": median_count,
+            "std_count": std_count,
+            "min_count": min_count,
+            "max_count": max_count,
+            "deciles": deciles_data,
+            "spearman_count_vs_success": float(rho_success),
+            "spearman_count_vs_success_p": float(p_success),
+            "spearman_count_vs_freq": float(rho_freq),
+            "spearman_count_vs_freq_p": float(p_freq)
+        }
 
-        # ================================================================================
-        # VISUALIZATION BLOCK
-        # ================================================================================
+        # Visualization
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
 
-        ranges = [b['range'] for b in bin_data]
-        rates = [b['success'] for b in bin_data]
-        freqs = [b['freq'] for b in bin_data]
+        ranges = [f"{d['count_min']}–{d['count_max']}" for d in deciles_data]
+        rates = [d['success_top1_pct'] for d in deciles_data]
+        freqs = [d['mean_corpus_freq'] for d in deciles_data]
 
         # Success Plot
         ax1.bar(ranges, rates, color='skyblue', edgecolor='navy')
@@ -125,20 +120,16 @@ def analyze_ngram_distribution(datapath="data/seal_output.json"):
         plt.tight_layout()
         output_file = f"{output_dir}/ngram_distribution_analysis_{dataset_name}.png"
         plt.savefig(output_file, dpi=300)
-        print(f"\nPlots saved to {output_file}")
-        plt.close()  # Close instead of show to avoid blocking
+        plt.close()
 
-        # Restore stdout
-        sys.stdout.close()
-        sys.stdout = original_stdout
+        # Write JSON output
+        json_path = os.path.join(output_dir, f"{script_name}_results.json")
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(output_data, f, indent=2)
 
         print(f"success running {script_name}")
 
     except Exception as e:
-        # Restore stdout in case of error
-        if sys.stdout != original_stdout:
-            sys.stdout.close()
-            sys.stdout = original_stdout
         print(f"error: running {script_name} {e}")
         raise
 

@@ -1,4 +1,5 @@
 import ijson
+import json
 import numpy as np
 import pandas as pd
 from collections import Counter, defaultdict
@@ -16,11 +17,6 @@ def analyze_ngram_frequency(datapath="data/seal_output.json"):
         dataset_name = get_dataset_name(datapath)
         output_dir = f"generated_data/{dataset_name}"
         os.makedirs(output_dir, exist_ok=True)
-
-        # Redirect stdout to log file
-        log_file = os.path.join(output_dir, f"{script_name}_log.txt")
-        original_stdout = sys.stdout
-        sys.stdout = open(log_file, 'w', encoding='utf-8')
 
         results = []
 
@@ -71,30 +67,21 @@ def analyze_ngram_frequency(datapath="data/seal_output.json"):
 
         # Check if dataframe is empty
         if len(df) == 0:
-            print("\nNo data to analyze (empty dataframe)")
-            sys.stdout.close()
-            sys.stdout = original_stdout
             print(f"success running {script_name}")
             return
 
-        print(f"\nAnalyzed {len(df)} queries\n")
-
-        print("Frequency Statistics (per-query averages):")
-        print(f"  All n-grams mean frequency: {df['avg_frequency_all'].mean():.1f}")
-        print(f"  Top-5 n-grams mean frequency: {df['avg_top5_frequency'].mean():.1f}")
-        print(f"  Top-10 n-grams mean frequency: {df['avg_top10_frequency'].mean():.1f}")
+        # Calculate statistics
+        avg_freq_all = float(df['avg_frequency_all'].mean())
+        avg_freq_top5 = float(df['avg_top5_frequency'].mean())
+        avg_freq_top10 = float(df['avg_top10_frequency'].mean())
 
         # Decile-based frequency analysis
         freq_values = df['avg_top5_frequency']
 
-        print("\nSuccess Rates by Frequency Decile (avg top-5 n-gram frequency):")
-        print("-" * 80)
-        print(f"{'Decile':8s} | {'Freq Range':20s} | {'Top-1':>8s} | {'Top-2':>8s} | {'Top-10':>8s} | {'Count':>6s}")
-        print("-" * 80)
-
         # Create decile bins
         df['freq_decile'] = pd.qcut(freq_values, q=10, labels=False, duplicates='drop')
 
+        deciles_data = []
         for decile in sorted(df['freq_decile'].unique()):
             mask = df['freq_decile'] == decile
             if mask.sum() == 0:
@@ -106,28 +93,41 @@ def analyze_ngram_frequency(datapath="data/seal_output.json"):
             top10_rate = df.loc[mask, 'success_top10'].mean()
             count = mask.sum()
 
-            print(f"D{int(decile)+1:1d}       | {bin_min:8.0f}–{bin_max:8.0f}    | {top1_rate:7.2%} | {top2_rate:7.2%} | {top10_rate:8.2%} | {count:6d}")
-
-        print("-" * 80)
+            deciles_data.append({
+                "decile": int(decile) + 1,
+                "freq_min": float(bin_min),
+                "freq_max": float(bin_max),
+                "success_top1_pct": float(top1_rate * 100),
+                "success_top2_pct": float(top2_rate * 100),
+                "success_top10_pct": float(top10_rate * 100),
+                "count": int(count)
+            })
 
         # Drop the temporary column
         df = df.drop(columns=['freq_decile'])
 
         # Spearman correlation
         corr, p_val = spearmanr(df['avg_top5_frequency'], df['success_top1'])
-        print(f"\nSpearman correlation (top-5 freq vs top-1 success): ρ={corr:.3f}, p={p_val:.4e}")
 
-        # Restore stdout
-        sys.stdout.close()
-        sys.stdout = original_stdout
+        # Collect output data
+        output_data = {
+            "total_queries": len(df),
+            "avg_frequency_all": avg_freq_all,
+            "avg_frequency_top5": avg_freq_top5,
+            "avg_frequency_top10": avg_freq_top10,
+            "deciles": deciles_data,
+            "spearman_correlation": float(corr),
+            "spearman_p_value": float(p_val)
+        }
+
+        # Write JSON output
+        json_path = os.path.join(output_dir, f"{script_name}_results.json")
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(output_data, f, indent=2)
 
         print(f"success running {script_name}")
 
     except Exception as e:
-        # Restore stdout in case of error
-        if sys.stdout != original_stdout:
-            sys.stdout.close()
-            sys.stdout = original_stdout
         print(f"error: running {script_name} {e}")
         raise
 

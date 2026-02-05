@@ -84,6 +84,7 @@ def analyze_retrieval_outcome(query_data, top_k=10, datapath=""):
 
 def main(datapath="data/seal_output.json"):
     import sys
+    import json
 
     script_name = "answer_location_analysis"
     print(f"running {script_name}")
@@ -98,14 +99,7 @@ def main(datapath="data/seal_output.json"):
         diff_passage_csv = f"{output_dir}/answer_in_different_passage_{dataset_name}.csv"
         top_k = 2
 
-        # Redirect stdout to log file
-        log_file = os.path.join(output_dir, f"{script_name}_log.txt")
-        original_stdout = sys.stdout
-        sys.stdout = open(log_file, 'w', encoding='utf-8')
-
         if not os.path.exists(file_path):
-            sys.stdout.close()
-            sys.stdout = original_stdout
             print(f"error: running {script_name} File not found at {file_path}")
             return
 
@@ -130,8 +124,6 @@ def main(datapath="data/seal_output.json"):
 
             for entry in parser:
                 total += 1
-                if total % 1000 == 0:
-                    print(f"  Processed {total} queries...")
 
                 result = analyze_retrieval_outcome(entry, top_k=top_k, datapath=file_path)
                 outcome_counts[result['outcome']] += 1
@@ -142,26 +134,30 @@ def main(datapath="data/seal_output.json"):
                 # Write all to main CSV
                 main_writer.writerow(csv_row)
 
-                # Write the 426 cases to separate CSV
+                # Write the different passage cases to separate CSV
                 if result['outcome'] == 'answer_in_different_passage':
                     diff_writer.writerow(csv_row)
 
-        # Summary
-        print(f"\nProcessed {total} queries.")
-        print(f"All results saved to: {output_csv}")
-        print(f"'Answer in different passage' cases saved to: {diff_passage_csv}")
+        # Build JSON summary
+        output_data = {
+            "total_queries": total,
+            "top_k": top_k,
+            "true_success_count": outcome_counts.get('true_success', 0),
+            "true_success_pct": float(outcome_counts.get('true_success', 0) / total * 100) if total > 0 else 0.0,
+            "answer_in_different_passage_count": outcome_counts.get('answer_in_different_passage', 0),
+            "answer_in_different_passage_pct": float(outcome_counts.get('answer_in_different_passage', 0) / total * 100) if total > 0 else 0.0,
+            "true_failure_count": outcome_counts.get('true_failure', 0),
+            "true_failure_pct": float(outcome_counts.get('true_failure', 0) / total * 100) if total > 0 else 0.0
+        }
 
-        # Restore stdout
-        sys.stdout.close()
-        sys.stdout = original_stdout
+        # Save JSON output
+        output_json = os.path.join(output_dir, f"{script_name}_results.json")
+        with open(output_json, 'w') as f:
+            json.dump(output_data, f, indent=2)
 
         print(f"success running {script_name}")
 
     except Exception as e:
-        # Restore stdout in case of error
-        if sys.stdout != original_stdout:
-            sys.stdout.close()
-            sys.stdout = original_stdout
         print(f"error: running {script_name} {e}")
         raise
 

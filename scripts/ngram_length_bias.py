@@ -1,4 +1,5 @@
 import ijson
+import json
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -13,19 +14,10 @@ def analyze_ngram_length_bias(datapath="data/seal_output.json"):
     script_name = "ngram_length_bias"
     print(f"running {script_name}")
 
-    original_stdout = sys.stdout
     try:
         dataset_name = get_dataset_name(datapath)
         output_dir = f"generated_data/{dataset_name}"
         os.makedirs(output_dir, exist_ok=True)
-
-        # Redirect stdout to log file
-        log_file = os.path.join(output_dir, f"{script_name}_log.txt")
-        sys.stdout = open(log_file, 'w', encoding='utf-8')
-
-        print("\n" + "="*80)
-        print("ANALYSIS: N-GRAM LENGTH BIAS")
-        print("="*80)
 
         results = []
 
@@ -61,61 +53,67 @@ def analyze_ngram_length_bias(datapath="data/seal_output.json"):
 
         # Check if dataframe is empty
         if len(df) == 0:
-            print("\nNo data to analyze (empty dataframe)")
-            sys.stdout.close()
-            sys.stdout = original_stdout
             print(f"success running {script_name}")
             return
 
-        print(f"\nAnalyzed {len(df)} queries")
-        print(f"Mean unigram fraction: {df['unigram_frac'].mean():.3f}")
-        print(f"Median unigram fraction: {df['unigram_frac'].median():.3f}")
-        print(f"Mean avg n-gram length: {df['avg_length'].mean():.2f}")
-        print(f"Median avg n-gram length: {df['avg_length'].median():.2f}")
+        # Calculate statistics
+        mean_unigram_frac = float(df['unigram_frac'].mean())
+        median_unigram_frac = float(df['unigram_frac'].median())
+        mean_avg_length = float(df['avg_length'].mean())
+        median_avg_length = float(df['avg_length'].median())
 
-        # ------------------------------
         # Fixed-frequency bins
-        # ------------------------------
+        bins_data = []
         bins = {
             'Low (<0.7)': df['unigram_frac'] < 0.7,
             'Medium (0.7–0.9)': (df['unigram_frac'] >= 0.7) & (df['unigram_frac'] <= 0.9),
             'High (>0.9)': df['unigram_frac'] > 0.9
         }
 
-        print("\nSuccess Rate by Unigram Fraction Bins (Top-1 passages):")
         for label, mask in bins.items():
             if mask.sum() == 0:
                 continue
-            mean_frac = df.loc[mask, 'unigram_frac'].mean()
-            median_frac = df.loc[mask, 'unigram_frac'].median()
-            success = df.loc[mask, 'success_top1'].mean() * 100
-            print(f"  {label}: {mask.sum()} queries | mean frac: {mean_frac:.3f}, median frac: {median_frac:.3f} | success: {success:.2f}%")
+            bins_data.append({
+                "bin": label,
+                "count": int(mask.sum()),
+                "mean_unigram_frac": float(df.loc[mask, 'unigram_frac'].mean()),
+                "median_unigram_frac": float(df.loc[mask, 'unigram_frac'].median()),
+                "success_top1_pct": float(df.loc[mask, 'success_top1'].mean() * 100)
+            })
 
-        # ------------------------------
         # Decile analysis
-        # ------------------------------
         df_sorted = df.sort_values('unigram_frac')
         num_bins = 10
         bin_size = len(df_sorted) // num_bins
 
-        print("\nDecile Analysis of Unigram Fraction vs Success (Top-1):")
-        print("Unigram frac range | Success % | Count")
-        print("----------------------------------------")
-
+        deciles_data = []
         for i in range(num_bins):
             start = i * bin_size
             end = (i + 1) * bin_size if i < num_bins - 1 else len(df_sorted)
             bin_data = df_sorted.iloc[start:end]
-            t1 = 100 * bin_data['success_top1'].mean()
-            u_min = bin_data['unigram_frac'].min()
-            u_max = bin_data['unigram_frac'].max()
-            print(f"{u_min:.2f}–{u_max:.2f}       | {t1:6.2f}% | {len(bin_data)}")
+            deciles_data.append({
+                "decile": i + 1,
+                "unigram_frac_min": float(bin_data['unigram_frac'].min()),
+                "unigram_frac_max": float(bin_data['unigram_frac'].max()),
+                "success_top1_pct": float(bin_data['success_top1'].mean() * 100),
+                "count": len(bin_data)
+            })
 
-        # ------------------------------
         # Correlation
-        # ------------------------------
         corr, p_val = spearmanr(df['unigram_frac'], df['success_top1'])
-        print(f"\nSpearman correlation (unigram frac vs top-1 success): ρ = {corr:.3f}, p = {p_val:.4e}")
+
+        # Collect output data
+        output_data = {
+            "total_queries": len(df),
+            "mean_unigram_frac": mean_unigram_frac,
+            "median_unigram_frac": median_unigram_frac,
+            "mean_avg_length": mean_avg_length,
+            "median_avg_length": median_avg_length,
+            "bins": bins_data,
+            "deciles": deciles_data,
+            "spearman_correlation": float(corr),
+            "spearman_p_value": float(p_val)
+        }
 
         # ------------------------------
         # Plot: Unigram fraction vs Top-1 success (deciles)
@@ -145,17 +143,14 @@ def analyze_ngram_length_bias(datapath="data/seal_output.json"):
         plt.savefig(plot_path, dpi=300, bbox_inches='tight')
         plt.close()
 
-        # Restore stdout
-        sys.stdout.close()
-        sys.stdout = original_stdout
+        # Write JSON output
+        json_path = os.path.join(output_dir, f"{script_name}_results.json")
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(output_data, f, indent=2)
 
         print(f"success running {script_name}")
 
     except Exception as e:
-        # Restore stdout in case of error
-        if sys.stdout != original_stdout:
-            sys.stdout.close()
-            sys.stdout = original_stdout
         print(f"error: running {script_name} {e}")
         raise
 

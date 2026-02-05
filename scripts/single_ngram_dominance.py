@@ -1,4 +1,5 @@
 import ijson
+import json
 import pandas as pd
 from scipy.stats import spearmanr
 import sys
@@ -14,15 +15,6 @@ def analyze_single_ngram_dominance(datapath="data/seal_output.json"):
         dataset_name = get_dataset_name(datapath)
         output_dir = f"generated_data/{dataset_name}"
         os.makedirs(output_dir, exist_ok=True)
-
-        # Redirect stdout to log file
-        log_file = os.path.join(output_dir, f"{script_name}_log.txt")
-        original_stdout = sys.stdout
-        sys.stdout = open(log_file, 'w', encoding='utf-8')
-
-        print("\n" + "="*80)
-        print("ANALYSIS 6: SINGLE N-GRAM DOMINANCE")
-        print("="*80)
 
         results = []
 
@@ -63,28 +55,17 @@ def analyze_single_ngram_dominance(datapath="data/seal_output.json"):
 
         # Check if dataframe is empty
         if len(df) == 0:
-            print("\nNo data to analyze (empty dataframe)")
-            sys.stdout.close()
-            sys.stdout = original_stdout
             print(f"success running {script_name}")
             return
 
         # Summary statistics
-        mean_dom = df['dominance'].mean()
-        median_dom = df['dominance'].median()
-        print(f"\nAnalyzed {len(df)} queries")
-        print(f"Mean dominance: {mean_dom:.3f}")
-        print(f"Median dominance: {median_dom:.3f}")
-
-        # Decile analysis using pd.qcut for proper percentile-based binning
-        print("\nSuccess Rate by Dominance Decile:")
-        print("-" * 70)
-        print(f"{'Decile':8s} | {'Dominance Range':18s} | {'Success':>10s} | {'Count':>8s}")
-        print("-" * 70)
+        mean_dom = float(df['dominance'].mean())
+        median_dom = float(df['dominance'].median())
 
         # Create decile bins
         df['dominance_decile'] = pd.qcut(df['dominance'], q=10, labels=False, duplicates='drop')
 
+        deciles_data = []
         for decile in sorted(df['dominance_decile'].unique()):
             mask = df['dominance_decile'] == decile
             if mask.sum() == 0:
@@ -95,28 +76,38 @@ def analyze_single_ngram_dominance(datapath="data/seal_output.json"):
             dom_max = df.loc[mask, 'dominance'].max()
             count = mask.sum()
 
-            print(f"D{int(decile)+1:1d}       | {dom_min:6.3f}–{dom_max:6.3f}      | {success_rate:9.2%} | {count:8d}")
-
-        print("-" * 70)
+            deciles_data.append({
+                "decile": int(decile) + 1,
+                "dominance_min": float(dom_min),
+                "dominance_max": float(dom_max),
+                "success_top1_pct": float(success_rate * 100),
+                "count": int(count)
+            })
 
         # Drop the temporary column
         df = df.drop(columns=['dominance_decile'])
 
         # Spearman correlation
         corr, p_val = spearmanr(df['dominance'], df['success_top1'])
-        print(f"\nSpearman correlation (dominance vs top-1 success): ρ = {corr:.3f}, p = {p_val:.4e}")
 
-        # Restore stdout
-        sys.stdout.close()
-        sys.stdout = original_stdout
+        # Collect output data
+        output_data = {
+            "total_queries": len(df),
+            "mean_dominance": mean_dom,
+            "median_dominance": median_dom,
+            "deciles": deciles_data,
+            "spearman_correlation": float(corr),
+            "spearman_p_value": float(p_val)
+        }
+
+        # Write JSON output
+        json_path = os.path.join(output_dir, f"{script_name}_results.json")
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(output_data, f, indent=2)
 
         print(f"success running {script_name}")
 
     except Exception as e:
-        # Restore stdout in case of error
-        if sys.stdout != original_stdout:
-            sys.stdout.close()
-            sys.stdout = original_stdout
         print(f"error: running {script_name} {e}")
         raise
 

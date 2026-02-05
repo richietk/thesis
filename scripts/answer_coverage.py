@@ -1,4 +1,5 @@
 import ijson
+import json
 import pandas as pd
 from pathlib import Path
 import sys
@@ -14,15 +15,6 @@ def analyze_answer_coverage(datapath="data/seal_output.json"):
         dataset_name = get_dataset_name(datapath)
         output_dir = f"generated_data/{dataset_name}"
         os.makedirs(output_dir, exist_ok=True)
-
-        # Redirect stdout to log file
-        log_file = os.path.join(output_dir, f"{script_name}_log.txt")
-        original_stdout = sys.stdout
-        sys.stdout = open(log_file, 'w', encoding='utf-8')
-
-        print("\n" + "="*80)
-        print("ANALYSIS 4: ANSWER COVERAGE")
-        print("="*80)
 
         results = []
 
@@ -61,33 +53,31 @@ def analyze_answer_coverage(datapath="data/seal_output.json"):
 
         # Check if dataframe is empty
         if len(df) == 0:
-            print("\nNo data to analyze (empty dataframe)")
-            sys.stdout.close()
-            sys.stdout = original_stdout
             print(f"success running {script_name}")
             return
 
         answer_present = df[df['answer_in_ngrams']]
         answer_absent = df[~df['answer_in_ngrams']]
 
-        print(f"\nAnalyzed {len(df)} queries")
-        print(f"Answer in n-grams: {len(answer_present)} ({100*len(answer_present)/len(df):.1f}%)")
-        print(f"Answer NOT in n-grams: {len(answer_absent)} ({100*len(answer_absent)/len(df):.1f}%)")
-        print(f"\nSuccess Rate:")
-        print(f"  When answer present: {answer_present['success'].mean():.2%}")
-        print(f"  When answer absent: {answer_absent['success'].mean():.2%}")
+        # Collect output data
+        output_data = {
+            "total_queries": len(df),
+            "answer_in_ngrams_count": len(answer_present),
+            "answer_in_ngrams_pct": float(100 * len(answer_present) / len(df)),
+            "answer_not_in_ngrams_count": len(answer_absent),
+            "answer_not_in_ngrams_pct": float(100 * len(answer_absent) / len(df)),
+            "success_rate_answer_present": float(answer_present['success'].mean()),
+            "success_rate_answer_absent": float(answer_absent['success'].mean())
+        }
 
-        # Restore stdout
-        sys.stdout.close()
-        sys.stdout = original_stdout
+        # Write JSON output
+        json_path = os.path.join(output_dir, f"{script_name}_results.json")
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(output_data, f, indent=2)
 
         print(f"success running {script_name}")
 
     except Exception as e:
-        # Restore stdout in case of error
-        if sys.stdout != original_stdout:
-            sys.stdout.close()
-            sys.stdout = original_stdout
         print(f"error: running {script_name} {e}")
         raise
 

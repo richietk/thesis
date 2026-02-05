@@ -359,74 +359,66 @@ def main(datapath="data/seal_output.json"):
         OUTPUT_CSV = f"{output_dir}/seal_unified_analysis_{dataset_name}.csv"
         TOP_K = 10
 
-        log_file = os.path.join(output_dir, f"{script_name}_log.txt")
-        original_stdout = sys.stdout
-        sys.stdout = open(log_file, 'w', encoding='utf-8')
-
         all_results = []
 
         if not os.path.exists(INPUT_FILE):
-            sys.stdout.close()
-            sys.stdout = original_stdout
             print(f"error: running {script_name} File not found: {INPUT_FILE}")
             raise Exception(f"File not found: {INPUT_FILE}")
 
-        print(f"\nStreaming and analyzing data (top_k={TOP_K})...")
-        i = 0
         for entry in stream_data(INPUT_FILE):
-            i += 1
-            if i > 0 and i % 1000 == 0:
-                print(f"  Processing query {i}...")
-
             result = analyze_query_sets(entry, top_k=TOP_K, datapath=INPUT_FILE)
             all_results.append(result)
-
-        print(f"Analysis complete. Processed {len(all_results)} queries.")
 
         if all_results:
             save_results_to_csv(all_results, OUTPUT_CSV)
 
-            print_global_summary(all_results)
-            print_category_summary(all_results)
+            # Build JSON summary
+            groups = defaultdict(list)
+            for r in all_results:
+                groups[r['category']].append(r)
 
-            print("\n" + "=" * 80)
-            print("SAMPLE OUTPUT (First 3 queries)")
-            print("=" * 80)
-            for i, r in enumerate(all_results[:3]):
-                print(f"\n[{i+1}] {r['question'][:60]}...")
-                print(f"    Category: {r['category']}")
-                print(f"    Unique P: {r['count_unique_P']} keys (avg={r['avg_score_unique_P']:.2f}, sum={r['sum_score_unique_P']:.0f})")
-                print(f"    Unique N: {r['count_unique_N']} keys (avg={r['avg_score_unique_N']:.2f}, sum={r['sum_score_unique_N']:.0f})")
-                print(f"    Shared:   {r['count_shared']} keys (avgP={r['avg_score_shared_in_P']:.2f}, avgN={r['avg_score_shared_in_N']:.2f})")
+            output_data = {
+                "total_queries": len(all_results),
+                "category_distribution": {},
+                "overall_metrics": {
+                    "avg_unique_keys_positive": float(np.mean([r['count_unique_P'] for r in all_results])),
+                    "avg_unique_keys_negative": float(np.mean([r['count_unique_N'] for r in all_results])),
+                    "avg_shared_keys": float(np.mean([r['count_shared'] for r in all_results])),
+                    "avg_score_unique_P": float(np.mean([r['avg_score_unique_P'] for r in all_results])),
+                    "avg_score_unique_N": float(np.mean([r['avg_score_unique_N'] for r in all_results])),
+                    "avg_score_shared_in_P": float(np.mean([r['avg_score_shared_in_P'] for r in all_results])),
+                    "avg_score_shared_in_N": float(np.mean([r['avg_score_shared_in_N'] for r in all_results]))
+                }
+            }
 
-            print("\n\n" + "#" * 100)
-            print("# DETAILED N-GRAM EXAMPLES FOR SPECIFIC QUERIES")
-            print("#" * 100)
+            # Category-wise summary
+            for cat in ['PP', 'PN', 'NP', 'NN', 'X']:
+                entries = groups.get(cat, [])
+                if not entries:
+                    continue
 
-            example_queries = [
-                "who sings does he love me with reba",
-                "when does the new my hero academia movie come out",
-            ]
+                output_data["category_distribution"][cat] = {
+                    "count": len(entries),
+                    "pct": float(len(entries) / len(all_results) * 100),
+                    "avg_count_unique_P": float(np.mean([x['count_unique_P'] for x in entries])),
+                    "avg_score_unique_P": float(np.mean([x['avg_score_unique_P'] for x in entries])),
+                    "avg_sum_unique_P": float(np.mean([x['sum_score_unique_P'] for x in entries])),
+                    "avg_count_unique_N": float(np.mean([x['count_unique_N'] for x in entries])),
+                    "avg_score_unique_N": float(np.mean([x['avg_score_unique_N'] for x in entries])),
+                    "avg_sum_unique_N": float(np.mean([x['sum_score_unique_N'] for x in entries])),
+                    "avg_count_shared": float(np.mean([x['count_shared'] for x in entries])),
+                    "avg_score_shared_in_P": float(np.mean([x['avg_score_shared_in_P'] for x in entries])),
+                    "avg_score_shared_in_N": float(np.mean([x['avg_score_shared_in_N'] for x in entries]))
+                }
 
-            for query_substring in example_queries:
-                query_entry = find_query_by_substring_streaming(INPUT_FILE, query_substring)
-                if query_entry:
-                    examples = extract_ngram_examples(query_entry, top_k=TOP_K, datapath=INPUT_FILE)
-                    print_ngram_examples(examples, max_examples=15)
-                else:
-                    print(f"\nQuery not found: '{query_substring}'")
-
-        # Restore stdout
-        sys.stdout.close()
-        sys.stdout = original_stdout
+            # Save JSON output
+            output_json = os.path.join(output_dir, f"{script_name}_results.json")
+            with open(output_json, 'w') as f:
+                json.dump(output_data, f, indent=2)
 
         print(f"success running {script_name}")
 
     except Exception as e:
-        # Restore stdout in case of error
-        if sys.stdout != original_stdout:
-            sys.stdout.close()
-            sys.stdout = original_stdout
         print(f"error: running {script_name} {e}")
         raise
 

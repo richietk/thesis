@@ -89,7 +89,6 @@ def query_claude(prompt: str, token_limit: int = 150) -> dict:
 
 def load_json_data_stream(json_path: str):
     """Stream JSON and index by question on-the-fly for lookup."""
-    print(f"Streaming {json_path}...")
     json_index = {}
     with open(json_path, 'r', encoding='utf-8') as f:
         for entry in ijson.items(f, "item"):
@@ -131,14 +130,7 @@ def main(datapath="data/seal_output.json"):
         INPUT_CSV = f"{output_dir}/answer_location_analysis_{dataset_name}.csv"
         OUTPUT_CSV = f"{output_dir}/llm_judge_results_{dataset_name}.csv"
 
-        # Redirect stdout to log file
-        log_file = os.path.join(output_dir, f"{script_name}_log.txt")
-        original_stdout = sys.stdout
-        sys.stdout = open(log_file, 'w', encoding='utf-8')
-
         if not os.path.exists(INPUT_CSV):
-            sys.stdout.close()
-            sys.stdout = original_stdout
             print(f"error: running {script_name} {INPUT_CSV} not found")
             return
 
@@ -152,8 +144,6 @@ def main(datapath="data/seal_output.json"):
             for row in reader:
                 if row['outcome'] == 'answer_in_different_passage':
                     cases_to_verify.append(row)
-
-        print(f"Found {len(cases_to_verify)} cases to verify")
 
         # Process and write results
         results = {'YES': 0, 'NO': 0, 'PARTIAL': 0, 'ERROR': 0}
@@ -175,15 +165,12 @@ def main(datapath="data/seal_output.json"):
                 # Get entry from JSON
                 entry = json_data.get(question)
                 if not entry:
-                    print(f"  [{i+1}] Question not found in JSON index, skipping")
                     continue
 
                 # SEARCH USING THE FULL LIST
                 title, text = find_answer_passage(entry, answers, top_k=2, datapath=datapath)
 
                 if not text:
-                    # If it still fails, it's likely a Duplicate Question overwrite issue
-                    print(f"  [{i+1}] Warning: Still could not find answer for: {question[:30]}")
                     continue
 
                 # If found, prepare the first answer for the prompt (Claude only needs one)
@@ -206,21 +193,10 @@ def main(datapath="data/seal_output.json"):
                 })
                 f.flush()
 
-                print(f"  [{i+1}/{len(cases_to_verify)}] {verdict}: {question[:50]}...")
                 time.sleep(RATE_LIMIT_DELAY)
 
-        # Print summary
+        # Calculate summary statistics
         total = sum(results.values())
-        print("\n" + "=" * 60)
-        print(f"LLM-AS-JUDGE RESULTS (N={total})")
-        print("=" * 60)
-        print(f"  Genuine retrieval (YES):      {results['YES']:>4} ({results['YES']/total*100:.1f}%)")
-        print(f"  Coincidental match (NO):      {results['NO']:>4} ({results['NO']/total*100:.1f}%)")
-        print(f"  Borderline (PARTIAL):         {results['PARTIAL']:>4} ({results['PARTIAL']/total*100:.1f}%)")
-        print(f"  Errors:                       {results['ERROR']:>4}")
-        print("=" * 60)
-
-        # Calculate adjusted recall
         genuine = results['YES']
         partial = results['PARTIAL']
         base_success = 3416  # from top-2 analysis
@@ -229,24 +205,36 @@ def main(datapath="data/seal_output.json"):
         adjusted_strict = (base_success + genuine) / total_queries * 100
         adjusted_lenient = (base_success + genuine + partial) / total_queries * 100
 
-        print(f"\nRecall Adjustment:")
-        print(f"  Base top-2 recall:                    52.4%")
-        print(f"  Adjusted (YES only):                  {adjusted_strict:.1f}%")
-        print(f"  Adjusted (YES + PARTIAL):             {adjusted_lenient:.1f}%")
+        # Build JSON output
+        output_data = {
+            "cases_verified": len(cases_to_verify),
+            "total_processed": total,
+            "verdict_counts": {
+                "genuine_yes": results['YES'],
+                "coincidental_no": results['NO'],
+                "borderline_partial": results['PARTIAL'],
+                "errors": results['ERROR']
+            },
+            "verdict_percentages": {
+                "genuine_yes_pct": float(results['YES'] / total * 100) if total > 0 else 0.0,
+                "coincidental_no_pct": float(results['NO'] / total * 100) if total > 0 else 0.0,
+                "borderline_partial_pct": float(results['PARTIAL'] / total * 100) if total > 0 else 0.0
+            },
+            "recall_adjustment": {
+                "base_top2_recall_pct": 52.4,
+                "adjusted_strict_yes_only_pct": float(adjusted_strict),
+                "adjusted_lenient_yes_and_partial_pct": float(adjusted_lenient)
+            }
+        }
 
-        print(f"\nResults saved to: {OUTPUT_CSV}")
-
-        # Restore stdout
-        sys.stdout.close()
-        sys.stdout = original_stdout
+        # Save JSON output
+        output_json = os.path.join(output_dir, f"{script_name}_results.json")
+        with open(output_json, 'w') as f:
+            json.dump(output_data, f, indent=2)
 
         print(f"success running {script_name}")
 
     except Exception as e:
-        # Restore stdout in case of error
-        if sys.stdout != original_stdout:
-            sys.stdout.close()
-            sys.stdout = original_stdout
         print(f"error: running {script_name} {e}")
         raise
 

@@ -1,4 +1,5 @@
 import ijson
+import json
 import pandas as pd
 from collections import Counter
 from scipy.stats import spearmanr
@@ -15,15 +16,6 @@ def analyze_repetitive_generation(datapath="data/seal_output.json"):
         dataset_name = get_dataset_name(datapath)
         output_dir = f"generated_data/{dataset_name}"
         os.makedirs(output_dir, exist_ok=True)
-
-        # Redirect stdout to log file
-        log_file = os.path.join(output_dir, f"{script_name}_log.txt")
-        original_stdout = sys.stdout
-        sys.stdout = open(log_file, 'w', encoding='utf-8')
-
-        print("\n" + "="*80)
-        print("ANALYSIS 5: REPETITIVE GENERATION")
-        print("="*80)
 
         results = []
 
@@ -68,24 +60,16 @@ def analyze_repetitive_generation(datapath="data/seal_output.json"):
 
         # Check if dataframe is empty
         if len(df) == 0:
-            print("\nNo data to analyze (empty dataframe)")
-            sys.stdout.close()
-            sys.stdout = original_stdout
             print(f"success running {script_name}")
             return
 
-        # Statistics by diversity deciles
-        print(f"\nAnalyzed {len(df)} queries")
-        print(f"Mean diversity: {df['diversity_ratio'].mean():.3f}")
-
-        print(f"\nSuccess Rate by Diversity Decile:")
-        print("-" * 70)
-        print(f"{'Decile':8s} | {'Diversity Range':18s} | {'Success':>10s} | {'Count':>8s}")
-        print("-" * 70)
+        # Calculate statistics
+        mean_diversity = float(df['diversity_ratio'].mean())
 
         # Create decile bins
         df['diversity_decile'] = pd.qcut(df['diversity_ratio'], q=10, labels=False, duplicates='drop')
 
+        deciles_data = []
         for decile in sorted(df['diversity_decile'].unique()):
             mask = df['diversity_decile'] == decile
             if mask.sum() == 0:
@@ -95,27 +79,37 @@ def analyze_repetitive_generation(datapath="data/seal_output.json"):
             div_max = df.loc[mask, 'diversity_ratio'].max()
             count = mask.sum()
 
-            print(f"D{int(decile)+1:1d}       | {div_min:6.3f}–{div_max:6.3f}      | {success_rate:9.2%} | {count:8d}")
-
-        print("-" * 70)
+            deciles_data.append({
+                "decile": int(decile) + 1,
+                "diversity_min": float(div_min),
+                "diversity_max": float(div_max),
+                "success_pct": float(success_rate * 100),
+                "count": int(count)
+            })
 
         # Drop the temporary column
         df = df.drop(columns=['diversity_decile'])
 
+        # Correlation
         corr, p_val = spearmanr(df['diversity_ratio'], df['success'])
-        print(f"\nSpearman correlation: ρ = {corr:.3f}, p = {p_val:.4e}")
 
-        # Restore stdout
-        sys.stdout.close()
-        sys.stdout = original_stdout
+        # Collect output data
+        output_data = {
+            "total_queries": len(df),
+            "mean_diversity": mean_diversity,
+            "deciles": deciles_data,
+            "spearman_correlation": float(corr),
+            "spearman_p_value": float(p_val)
+        }
+
+        # Write JSON output
+        json_path = os.path.join(output_dir, f"{script_name}_results.json")
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(output_data, f, indent=2)
 
         print(f"success running {script_name}")
 
     except Exception as e:
-        # Restore stdout in case of error
-        if sys.stdout != original_stdout:
-            sys.stdout.close()
-            sys.stdout = original_stdout
         print(f"error: running {script_name} {e}")
         raise
 

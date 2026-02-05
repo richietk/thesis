@@ -3,6 +3,7 @@ from collections import Counter
 import pandas as pd
 import sys
 import os
+import json
 from utils import get_dataset_name
 
 def analyze_article_diversity(datapath='data/seal_output.json'):
@@ -14,15 +15,6 @@ def analyze_article_diversity(datapath='data/seal_output.json'):
         dataset_name = get_dataset_name(datapath)
         output_dir = f"generated_data/{dataset_name}"
         os.makedirs(output_dir, exist_ok=True)
-
-        # Redirect stdout to log file
-        log_file = os.path.join(output_dir, f"{script_name}_log.txt")
-        original_stdout = sys.stdout
-        sys.stdout = open(log_file, 'w', encoding='utf-8')
-
-        print("\n" + "="*80)
-        print("ANALYSIS 6: ARTICLE-LEVEL DIVERSITY (EXPLORATORY)")
-        print("="*80)
 
         results = []
 
@@ -66,33 +58,42 @@ def analyze_article_diversity(datapath='data/seal_output.json'):
             'query': 'count'
         }).rename(columns={'query': 'count'})
 
-        print(f"\nAnalyzed {len(df)} queries")
-        print("\nSuccess Rate by Article Diversity (Unique Titles in Top-10):")
-        print("Unique Titles | Count | Top-1 % | Top-2 % | Top-10 %")
-        print("-----------------------------------------------")
+        # Build JSON output
+        output_data = {
+            "total_queries": len(df),
+            "by_unique_titles": {}
+        }
+
         for idx in sorted(grouped.index):
             row = grouped.loc[idx]
-            print(f"{idx:13d} | {int(row['count']):5d} | {100*row['success_top1']:7.2f}% | "
-                  f"{100*row['success_top2']:7.2f}% | {100*row['success_top10']:8.2f}%")
+            output_data["by_unique_titles"][str(idx)] = {
+                "count": int(row['count']),
+                "success_top1_pct": float(row['success_top1'] * 100),
+                "success_top2_pct": float(row['success_top2'] * 100),
+                "success_top10_pct": float(row['success_top10'] * 100)
+            }
 
         # Low vs high diversity examples
         low_div = df[df['unique_titles'] == 1]
         high_div = df[df['unique_titles'] >= 8]
 
-        print(f"\nLow diversity (1 unique title): {len(low_div)} queries, {100*low_div['success_top1'].mean():.1f}% success")
-        print(f"High diversity (8+ unique titles): {len(high_div)} queries, {100*high_div['success_top1'].mean():.1f}% success")
+        output_data["low_diversity_1_title"] = {
+            "count": len(low_div),
+            "success_top1_pct": float(low_div['success_top1'].mean() * 100) if len(low_div) > 0 else None
+        }
+        output_data["high_diversity_8plus_titles"] = {
+            "count": len(high_div),
+            "success_top1_pct": float(high_div['success_top1'].mean() * 100) if len(high_div) > 0 else None
+        }
 
-        # Restore stdout
-        sys.stdout.close()
-        sys.stdout = original_stdout
+        # Save JSON output
+        output_json = os.path.join(output_dir, f"{script_name}_results.json")
+        with open(output_json, 'w') as f:
+            json.dump(output_data, f, indent=2)
 
         print(f"success running {script_name}")
 
     except Exception as e:
-        # Restore stdout in case of error
-        if sys.stdout != original_stdout:
-            sys.stdout.close()
-            sys.stdout = original_stdout
         print(f"error: running {script_name} {e}")
         raise
 
