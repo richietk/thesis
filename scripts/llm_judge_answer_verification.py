@@ -14,7 +14,7 @@ import json
 import os
 import time
 import ijson
-from utils import strip_pseudoqueries, get_dataset_name
+from scripts.utils import strip_pseudoqueries, get_dataset_name
 
 # ================= CONFIGURATION =================
 # Note: INPUT_CSV and OUTPUT_CSV are now set dynamically in main() based on datapath

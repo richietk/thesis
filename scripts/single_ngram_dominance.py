@@ -4,7 +4,7 @@ import pandas as pd
 from scipy.stats import spearmanr
 import sys
 import os
-from utils import get_dataset_name, strip_ngram_markers, parse_ngrams
+from scripts.utils import get_dataset_name, strip_ngram_markers, parse_ngrams
 
 def analyze_single_ngram_dominance(datapath="data/seal_output.json"):
     """Analyze score concentration in a single n-gram."""

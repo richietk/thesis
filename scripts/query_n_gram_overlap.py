@@ -5,7 +5,7 @@ import pandas as pd
 from scipy.stats import spearmanr
 import sys
 import os
-from utils import get_dataset_name, strip_ngram_markers, parse_ngrams
+from scripts.utils import get_dataset_name, strip_ngram_markers, parse_ngrams
 
 def analyze_query_ngram_overlap_topk(datapath="data/seal_output.json"):
     """Analyze lexical overlap between query and generated n-grams for top-1, top-2, and top-10."""

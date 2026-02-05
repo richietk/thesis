@@ -17,7 +17,7 @@ import ijson
 import os
 from collections import defaultdict
 import csv
-from utils import strip_pseudoqueries, get_dataset_name, normalize_text, answer_in_text, get_ground_truth_ids
+from scripts.utils import strip_pseudoqueries, get_dataset_name, normalize_text, answer_in_text, get_ground_truth_ids
 
 
 def analyze_retrieval_outcome(query_data, top_k=10, datapath=""):

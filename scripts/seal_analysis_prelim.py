@@ -6,7 +6,7 @@ from collections import defaultdict
 import os
 import csv
 from typing import Dict, List, Set, Any, Tuple
-from utils import strip_ngram_markers, get_dataset_name, stream_data
+from scripts.utils import strip_ngram_markers, get_dataset_name, stream_data
 
 
 def parse_keys_field(keys_field: Any) -> List:

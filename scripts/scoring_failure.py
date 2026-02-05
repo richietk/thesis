@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import sys
 import json
-from utils import get_dataset_name, parse_ngrams
+from scripts.utils import get_dataset_name, parse_ngrams
 
 # Fix Unicode encoding for Windows
 if sys.platform == 'win32':
