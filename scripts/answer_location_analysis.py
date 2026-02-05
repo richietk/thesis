@@ -17,7 +17,7 @@ import ijson
 import os
 from collections import defaultdict
 import csv
-from scripts.utils.utils import strip_pseudoqueries, get_dataset_name, normalize_text, answer_in_text, get_ground_truth_ids
+from scripts.utils.utils import strip_pseudoqueries, get_dataset_name, normalize_text, answer_in_text, get_ground_truth_ids, calculate_retrieval_metrics
 
 
 def analyze_retrieval_outcome(query_data, top_k=10, datapath=""):
@@ -109,6 +109,8 @@ def main(datapath="data/seal_output.json"):
         # Counters
         outcome_counts = defaultdict(int)
         total = 0
+        sum_precision_at_1 = 0.0
+        sum_r_precision = 0.0
 
         with open(file_path, 'rb') as json_file, \
              open(output_csv, 'w', newline='', encoding='utf-8') as main_csv_file, \
@@ -128,6 +130,13 @@ def main(datapath="data/seal_output.json"):
                 result = analyze_retrieval_outcome(entry, top_k=top_k, datapath=file_path)
                 outcome_counts[result['outcome']] += 1
 
+                # Calculate retrieval metrics
+                gold_ids = get_ground_truth_ids(entry)
+                retrieved_ids = [ctx['passage_id'] for ctx in entry.get('ctxs', [])]
+                metrics = calculate_retrieval_metrics(retrieved_ids, gold_ids)
+                sum_precision_at_1 += metrics['precision_at_1']
+                sum_r_precision += metrics['r_precision']
+
                 csv_row = result.copy()
                 csv_row['answers'] = str(csv_row['answers'])
 
@@ -142,6 +151,8 @@ def main(datapath="data/seal_output.json"):
         output_data = {
             "total_queries": total,
             "top_k": top_k,
+            "precision_at_1": float(sum_precision_at_1 / total) if total > 0 else 0.0,
+            "r_precision": float(sum_r_precision / total) if total > 0 else 0.0,
             "true_success_count": outcome_counts.get('true_success', 0),
             "true_success_pct": float(outcome_counts.get('true_success', 0) / total * 100) if total > 0 else 0.0,
             "answer_in_different_passage_count": outcome_counts.get('answer_in_different_passage', 0),

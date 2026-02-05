@@ -5,7 +5,7 @@ import pandas as pd
 from scipy.stats import spearmanr
 import sys
 import os
-from scripts.utils.utils import get_dataset_name, strip_ngram_markers, parse_ngrams
+from scripts.utils.utils import get_dataset_name, strip_ngram_markers, parse_ngrams, calculate_retrieval_metrics
 
 def analyze_query_ngram_overlap_topk(datapath="data/seal_output.json"):
     """Analyze lexical overlap between query and generated n-grams for top-1, top-2, and top-10."""
@@ -35,7 +35,16 @@ def analyze_query_ngram_overlap_topk(datapath="data/seal_output.json"):
                     for k in topk
                 }
 
-                entry_data = {'query': query, 'num_query_tokens': len(query_tokens)}
+                # Calculate retrieval metrics
+                retrieved_ids = [ctx['passage_id'] for ctx in ctxs]
+                metrics = calculate_retrieval_metrics(retrieved_ids, positive_ids)
+
+                entry_data = {
+                    'query': query,
+                    'num_query_tokens': len(query_tokens),
+                    'precision_at_1': metrics['precision_at_1'],
+                    'r_precision': metrics['r_precision']
+                }
 
                 for k, passages in topk_ctxs.items():
                     # Combine n-grams from top-k passages
@@ -71,7 +80,9 @@ def analyze_query_ngram_overlap_topk(datapath="data/seal_output.json"):
 
         # Collect output data
         output_data = {
-            "total_queries": total_queries
+            "total_queries": total_queries,
+            "precision_at_1": float(df['precision_at_1'].mean()),
+            "r_precision": float(df['r_precision'].mean())
         }
 
         for k in topk:

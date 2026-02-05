@@ -6,7 +6,7 @@ from scipy.stats import spearmanr
 import matplotlib.pyplot as plt
 import ast
 import os
-from scripts.utils.utils import strip_ngram_markers, get_dataset_name, parse_ngrams
+from scripts.utils.utils import strip_ngram_markers, get_dataset_name, parse_ngrams, calculate_retrieval_metrics
 
 # OUTPUT_DIR will be set dynamically based on dataset_name
 
@@ -36,10 +36,16 @@ def analyze_ngram_distribution(datapath="data/seal_output.json"):
                 # Corpus Frequency is index 1 in the (ngram, freq, score) tuple
                 avg_freq = np.mean([n[1] for n in ngrams]) if ngrams else 0
 
+                # Calculate retrieval metrics
+                retrieved_ids = [ctx['passage_id'] for ctx in entry.get('ctxs', [])]
+                metrics = calculate_retrieval_metrics(retrieved_ids, positive_ids)
+
                 results.append({
                     'ngram_count': count,
                     'avg_freq': avg_freq,
                     'success_top1': success_top1,
+                    'precision_at_1': metrics['precision_at_1'],
+                    'r_precision': metrics['r_precision']
                 })
 
         df = pd.DataFrame(results)
@@ -89,6 +95,8 @@ def analyze_ngram_distribution(datapath="data/seal_output.json"):
             "std_count": std_count,
             "min_count": min_count,
             "max_count": max_count,
+            "precision_at_1": float(df['precision_at_1'].mean()),
+            "r_precision": float(df['r_precision'].mean()),
             "deciles": deciles_data,
             "spearman_count_vs_success": float(rho_success),
             "spearman_count_vs_success_p": float(p_success),

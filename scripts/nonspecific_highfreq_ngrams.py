@@ -7,7 +7,7 @@ from pathlib import Path
 from scipy.stats import spearmanr
 import sys
 import os
-from scripts.utils.utils import get_dataset_name, strip_ngram_markers, parse_ngrams
+from scripts.utils.utils import get_dataset_name, strip_ngram_markers, parse_ngrams, calculate_retrieval_metrics
 
 def analyze_ngram_frequency(datapath="data/seal_output.json"):
     script_name = "nonspecific_highfreq_ngrams"
@@ -51,6 +51,10 @@ def analyze_ngram_frequency(datapath="data/seal_output.json"):
                 top_5_freq = [ng[1] for ng in top_5]
                 top_10_freq = [ng[1] for ng in top_10]
 
+                # Calculate retrieval metrics
+                retrieved_ids = [ctx['passage_id'] for ctx in ctxs]
+                metrics = calculate_retrieval_metrics(retrieved_ids, positive_ids)
+
                 results.append({
                     'query': query,
                     'success_top1': success_top1,
@@ -61,6 +65,8 @@ def analyze_ngram_frequency(datapath="data/seal_output.json"):
                     'median_frequency_all': np.median(frequencies),
                     'avg_top5_frequency': np.mean(top_5_freq) if top_5_freq else 0,
                     'avg_top10_frequency': np.mean(top_10_freq) if top_10_freq else 0,
+                    'precision_at_1': metrics['precision_at_1'],
+                    'r_precision': metrics['r_precision']
                 })
 
         df = pd.DataFrame(results)
@@ -115,6 +121,8 @@ def analyze_ngram_frequency(datapath="data/seal_output.json"):
             "avg_frequency_all": avg_freq_all,
             "avg_frequency_top5": avg_freq_top5,
             "avg_frequency_top10": avg_freq_top10,
+            "precision_at_1": float(df['precision_at_1'].mean()),
+            "r_precision": float(df['r_precision'].mean()),
             "deciles": deciles_data,
             "spearman_correlation": float(corr),
             "spearman_p_value": float(p_val)

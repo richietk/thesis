@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from collections import defaultdict
 import sys
-from scripts.utils import strip_pseudoqueries, get_dataset_name
+from scripts.utils.utils import strip_pseudoqueries, get_dataset_name
 
 if sys.platform == 'win32':
     sys.stdout.reconfigure(encoding='utf-8')

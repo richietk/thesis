@@ -4,7 +4,7 @@ import pandas as pd
 from scipy.stats import spearmanr
 import sys
 import os
-from scripts.utils.utils import get_dataset_name, strip_ngram_markers, parse_ngrams
+from scripts.utils.utils import get_dataset_name, strip_ngram_markers, parse_ngrams, calculate_retrieval_metrics
 
 def analyze_single_ngram_dominance(datapath="data/seal_output.json"):
     """Analyze score concentration in a single n-gram."""
@@ -42,13 +42,19 @@ def analyze_single_ngram_dominance(datapath="data/seal_output.json"):
 
                 dominance = max(scores) / total_score
 
+                # Calculate retrieval metrics
+                retrieved_ids = [ctx['passage_id'] for ctx in entry.get('ctxs', [])]
+                metrics = calculate_retrieval_metrics(retrieved_ids, positive_ids)
+
                 results.append({
                     'query': query,
                     'dominance': dominance,
                     'success_top1': success_top1,
                     'num_ngrams': len(ngrams),
                     'total_score': total_score,
-                    'max_score': max(scores)
+                    'max_score': max(scores),
+                    'precision_at_1': metrics['precision_at_1'],
+                    'r_precision': metrics['r_precision']
                 })
 
         df = pd.DataFrame(results)
@@ -95,6 +101,8 @@ def analyze_single_ngram_dominance(datapath="data/seal_output.json"):
             "total_queries": len(df),
             "mean_dominance": mean_dom,
             "median_dominance": median_dom,
+            "precision_at_1": float(df['precision_at_1'].mean()),
+            "r_precision": float(df['r_precision'].mean()),
             "deciles": deciles_data,
             "spearman_correlation": float(corr),
             "spearman_p_value": float(p_val)

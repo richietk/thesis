@@ -3,7 +3,7 @@ import ast
 import sys
 import os
 import json
-from scripts.utils.utils import get_dataset_name, strip_ngram_markers
+from scripts.utils.utils import get_dataset_name, strip_ngram_markers, calculate_retrieval_metrics
 
 def main(datapath='data/seal_output.json'):
     script_name = "ngram_length_test"
@@ -56,11 +56,17 @@ def main(datapath='data/seal_output.json'):
                 lengths = [len(strip_ngram_markers(ngram, datapath).strip().split()) for ngram, _, _ in keys_list]
                 unigram_frac = sum(1 for l in lengths if l == 1) / len(lengths)
 
+                # Calculate retrieval metrics
+                retrieved_ids = [ctx['passage_id'] for ctx in entry['ctxs']]
+                metrics = calculate_retrieval_metrics(retrieved_ids, positive_ids)
+
                 records.append({
                     'unigram_frac': unigram_frac,
                     'success_top1': success_top1,
                     'success_top2': success_top2,
-                    'success_top10': success_top10
+                    'success_top10': success_top10,
+                    'precision_at_1': metrics['precision_at_1'],
+                    'r_precision': metrics['r_precision']
                 })
 
         # Sort by unigram fraction
@@ -72,6 +78,8 @@ def main(datapath='data/seal_output.json'):
 
         output_data = {
             "total_queries": len(records),
+            "precision_at_1": sum(r['precision_at_1'] for r in records) / len(records) if records else 0.0,
+            "r_precision": sum(r['r_precision'] for r in records) / len(records) if records else 0.0,
             "deciles": []
         }
 

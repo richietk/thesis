@@ -4,7 +4,7 @@ import pandas as pd
 from pathlib import Path
 import sys
 import os
-from scripts.utils.utils import strip_ngram_markers, get_dataset_name, parse_ngrams
+from scripts.utils.utils import strip_ngram_markers, get_dataset_name, parse_ngrams, calculate_retrieval_metrics
 
 def analyze_answer_coverage(datapath="data/seal_output.json"):
     """Analyze whether answer string appears in generated n-grams."""
@@ -27,12 +27,16 @@ def analyze_answer_coverage(datapath="data/seal_output.json"):
                     continue
 
                 positive_ids = {ctx['passage_id'] for ctx in entry.get('positive_ctxs', [])}
+                retrieved_ids = [ctx['passage_id'] for ctx in entry.get('ctxs', [])]
 
                 top_ctx = entry.get('ctxs', [None])[0]
                 if not top_ctx:
                     continue
 
                 success = top_ctx['passage_id'] in positive_ids
+
+                # Calculate retrieval metrics
+                metrics = calculate_retrieval_metrics(retrieved_ids, positive_ids)
 
                 ngrams = parse_ngrams(top_ctx.get('keys', ''))
                 if not ngrams:
@@ -46,7 +50,9 @@ def analyze_answer_coverage(datapath="data/seal_output.json"):
                     'answer': answers[0],
                     'success': success,
                     'answer_in_ngrams': answer_in_ngrams,
-                    'num_ngrams': len(ngrams)
+                    'num_ngrams': len(ngrams),
+                    'precision_at_1': metrics['precision_at_1'],
+                    'r_precision': metrics['r_precision']
                 })
 
         df = pd.DataFrame(results)
@@ -67,7 +73,13 @@ def analyze_answer_coverage(datapath="data/seal_output.json"):
             "answer_not_in_ngrams_count": len(answer_absent),
             "answer_not_in_ngrams_pct": float(100 * len(answer_absent) / len(df)),
             "success_rate_answer_present": float(answer_present['success'].mean()),
-            "success_rate_answer_absent": float(answer_absent['success'].mean())
+            "success_rate_answer_absent": float(answer_absent['success'].mean()),
+            "precision_at_1": float(df['precision_at_1'].mean()),
+            "r_precision": float(df['r_precision'].mean()),
+            "precision_at_1_answer_present": float(answer_present['precision_at_1'].mean()) if len(answer_present) > 0 else 0.0,
+            "precision_at_1_answer_absent": float(answer_absent['precision_at_1'].mean()) if len(answer_absent) > 0 else 0.0,
+            "r_precision_answer_present": float(answer_present['r_precision'].mean()) if len(answer_present) > 0 else 0.0,
+            "r_precision_answer_absent": float(answer_absent['r_precision'].mean()) if len(answer_absent) > 0 else 0.0
         }
 
         # Write JSON output

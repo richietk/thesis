@@ -5,7 +5,7 @@ from collections import Counter
 from scipy.stats import spearmanr
 import sys
 import os
-from scripts.utils.utils import get_dataset_name, strip_ngram_markers, parse_ngrams
+from scripts.utils.utils import get_dataset_name, strip_ngram_markers, parse_ngrams, calculate_retrieval_metrics
 
 def analyze_repetitive_generation(datapath="data/seal_output.json"):
     """Analyze token diversity in generated n-grams."""
@@ -46,6 +46,10 @@ def analyze_repetitive_generation(datapath="data/seal_output.json"):
                 token_counts = Counter(all_tokens)
                 max_repetition = max(token_counts.values()) if token_counts else 0
 
+                # Calculate retrieval metrics
+                retrieved_ids = [ctx['passage_id'] for ctx in entry.get('ctxs', [])]
+                metrics = calculate_retrieval_metrics(retrieved_ids, positive_ids)
+
                 results.append({
                     'query': query,
                     'success': success,
@@ -53,7 +57,9 @@ def analyze_repetitive_generation(datapath="data/seal_output.json"):
                     'total_tokens': len(all_tokens),
                     'unique_tokens': len(unique_tokens),
                     'diversity_ratio': diversity_ratio,
-                    'max_repetition': max_repetition
+                    'max_repetition': max_repetition,
+                    'precision_at_1': metrics['precision_at_1'],
+                    'r_precision': metrics['r_precision']
                 })
 
         df = pd.DataFrame(results)
@@ -97,6 +103,8 @@ def analyze_repetitive_generation(datapath="data/seal_output.json"):
         output_data = {
             "total_queries": len(df),
             "mean_diversity": mean_diversity,
+            "precision_at_1": float(df['precision_at_1'].mean()),
+            "r_precision": float(df['r_precision'].mean()),
             "deciles": deciles_data,
             "spearman_correlation": float(corr),
             "spearman_p_value": float(p_val)
