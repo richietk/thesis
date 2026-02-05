@@ -123,6 +123,8 @@ For example, given the query ``who sings does he love me with reba'', the top-ra
     \label{tab:ngram-example}
 \end{table}
 
+It is worth noting that while the additive nature of the scoring mechanism could theoretically bias retrieval toward longer documents in a corpus of varying document lengths, this effect is neutralized in our setup as the NQ corpus consists of uniform 100-token passages.
+
 \subsubsection{Document Length Bias}
 
 The additive scoring mechanism in \glsxtrshort{SEAL} introduces a potential bias toward longer documents. Since the final document score is a summation of all matched n-grams, longer documents naturally possess more candidate positions to accumulate scores, potentially outscoring shorter, more precise passages. \glsxtrshort{SEAL} attempts to mitigate this through constraints such as a repetition penalty, a "no-overlap" constraint for n-gram token positions, and exponentially weighting higher-scored n-grams score weighting \cite{bevilacqua2022autoregressivesearchenginesgenerating}. However, these measures primarily target lexical redundancy rather than the underlying advantage provided by larger document length.
