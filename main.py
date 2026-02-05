@@ -39,6 +39,7 @@ ANALYSIS_MODULES = [
     ("article_concentration", "Article Diversity Analysis"),
     ("scoring_failure", "Scoring Failure Analysis"),
     ("analyze_length_bias", "Document Length Bias Analysis"),
+    ("analyze_minder_pseudoqueries", "Analyze Minder Pseudoqueries")
     #("analyze_failure_modes", "Comprehensive Failure Mode Analysis"),
     #("llm_judge_answer_verification", "LLM Judge: Answer Verification"),
     #("llm_judge_concept", "LLM Judge: Failure Classification"),
@@ -52,15 +53,19 @@ def run_analysis(module_name, description, datapath):
     """
     print(f"Running: {description}")
     try:
-        # Run the script as a subprocess with the datapath argument
+        # Build the command differently for the special module
+        if module_name == "analyze_minder_pseudoqueries":
+            cmd = [sys.executable, '-m', f'scripts.{module_name}']
+        else:
+            cmd = [sys.executable, '-m', f'scripts.{module_name}', datapath]
+
         result = subprocess.run(
-            [sys.executable, '-m', f'scripts.{module_name}', datapath],
+            cmd,
             capture_output=True,
             text=True,
-            timeout=3600  # 1 hour timeout per script
+            timeout=3600
         )
 
-        # Print the script's output
         if result.stdout:
             print(result.stdout)
 
