@@ -384,22 +384,24 @@ The results reveal that \textbf{TBD}
 
 \begin{table}[htbp]
     \centering
-    \caption{Adjusted hits@2 estimates based on LLM-as-a-judge results.}
+    \caption{Adjusted hits@10 estimates based on LLM-as-a-judge results.}
     \label{tab:adjusted-recall}
     \begin{tabular}{l|rr|rr}
         \toprule
         & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
-        \textbf{Inclusion Criterion} & \textbf{Hits@2} & \textbf{\%\textsuperscript{*}} & \textbf{Hits@2} & \textbf{\%\textsuperscript{*}} \\
+        \textbf{Inclusion Criterion} & \textbf{Hits@10} & \textbf{\%\textsuperscript{*}} & \textbf{Hits@10} & \textbf{\%\textsuperscript{*}} \\
         \midrule
-        GT passage only (baseline) & 3,416 & 52.4\% & 3759 & 57.7\% \\
-        + YES verdicts             & 3,624 & 55.6\% & TBD & TBD \\
-        + YES and PARTIAL verdicts & 3,726 & 57.2\% & TBD & TBD \\
+        Hit@10 & 4961 & 76.1\% & 5113 & 78.4\% \\
+        + YES verdicts             & TBD & TBD & TBD & TBD \\
+        + YES and PARTIAL verdicts & TBD & TBD & TBD & TBD \\
         \bottomrule
         \multicolumn{5}{l}{\small \textsuperscript{*}Percentage of the total 6,515 queries.}
     \end{tabular}
 \end{table}
 
-\textbf{TBD REDO THIS PASSAGE IS OUTDATED} When counting only YES verdicts, \glsxtrshort{SEAL}'s effective hits@2 increases from 52.4\% to 55.6\%, a 3.2 percentage point improvement. Including borderline cases (YES + PARTIAL) raises the estimate to 57.2\%. These adjustments suggest that \glsxtrshort{SEAL}'s true retrieval capability may have been underestimated by approximately 3--5 percentage points due to incomplete or inaccurate ground-truth annotations.  Please note that we will refrain from ``updating the dataset'', as that would make our results incomparable with other papers' results on the standard \glsxtrshort{nq} dataset.
+\textbf{TODO ANALYSIS TBD....}
+
+Please note that we will refrain from ``updating the dataset'', as that would make our results incomparable with other papers' results on the standard \glsxtrshort{nq} dataset.
 
 \subsection{Generative Failures}
 \label{sec:gen-fail}
@@ -677,45 +679,7 @@ Numerically, pseudo-queries constitute a negligible fraction of the generated id
 
 \subsection{Key Findings}
 
-\textbf{EVERYTHING IN THIS SUBSECTION IS OUTDATED AND NOT UPDATED. TODO}
-
-The empirical analysis of \glsxtrshort{SEAL}'s retrieval outputs reveals several findings about the failure modes of n-gram-based generative retrieval systems and about SEAL itself.
-
-\paragraph{Generation Quality Dominates Retrieval Success}
-The strongest predictors of retrieval failure originate in the n-gram generation component rather than the scoring mechanism. Bias toward short identifiers ($\rho = -0.278$) and insufficient n-gram query coverage ($\rho = +0.290$) exhibit the largest effect sizes, with success rate differentials of 53.3 and 40.0 percentage points respectively between favorable and unfavorable conditions (Table~\ref{tab:failure-summary}). When \glsxtrshort{SEAL} generates predominantly unigrams (>90\% of n-grams), retrieval success drops to 27.5\%, compared to 80.8\% when multi-word n-grams comprise a larger share. This suggests that the autoregressive language model's tendency to favor short, high-probability sequences directly undermines retrieval effectiveness, as it diminishes discriminative power.
-
-\paragraph{Specificity-Relevance}
-The analysis reveals a fundamental tension between generating topically relevant n-grams and generating sufficiently specific ones. \glsxtrshort{SEAL} consistently generates more n-grams matching incorrect passages than correct ones (approximately 7:1 ratio, Table~\ref{tab:key-distribution}), and in failure cases, these negative-unique n-grams score higher on average ($\bar{w}_N^u = 11.49$ in PP vs.\ $\bar{w}_P^u = 2.76$ in NN cases). The model successfully identifies the semantic domain of a query but fails to generate n-grams distinctive enough to isolate the specific answer-bearing passage from semantically similar alternatives. We exemplified this by a query about a country music artist, where domain-typical phrases like ``country music singer'' receive high conditional probability despite appearing in thousands of passages.
-
-\paragraph{Scoring Mechanism Limitations}
-While generation quality is the primary determinant of success, the scoring mechanism exhibits independent failure modes. Among queries where the ground-truth passage appears in the top-100 results, 55.0\% rank it below position 1, indicating that \glsxtrshort{SEAL}'s intersective scoring function frequently misjudges relative relevance even when the generation component has produced sufficient evidence to retrieve the correct passage. The non-monotonic relationship between n-gram quantity and success (Table~\ref{tab:ngram-count}) further suggests that the additive scoring function can be overwhelmed by volume, ranking topically broad but less relevant passages above more precise alternatives.
-
-\paragraph{Token Repetition}
-Contrary to initial hypotheses, correlated identifier generation (token repetition across n-grams) correlates with \textit{higher} retrieval success ($\rho = -0.227$ for diversity, meaning lower diversity yields better results). Queries with concentrated topical focus, where key terms appear across multiple generated n-grams, achieve 55.3\% success compared to 35.5\% for high-diversity queries. This suggests that when \glsxtrshort{SEAL} reinforces specific semantic clusters through repeated vocabulary, it accumulates stronger evidence for the target passage.
-
-\paragraph{Indirect Document Identification}
-Only 16.8\% of the top-1 retrieved passage includes the answer in any generated n-gram, yet answer presence correlates with success (75.0\% vs.\ 34.9\%). This indicates that \glsxtrshort{SEAL} primarily operates through indirect identification, generating contextual n-grams that describe the semantic neighborhood of the answer rather than the answer itself. While this approach can succeed when context is distinctive, it fails when multiple passages share similar contextual vocabulary but differ in their specific answers. %TODO rethink this to be sure, I am not sure I am correct. Re-analyze if "answer string presence" is related to answer success through contextual/neighbor/synonyms
-
-\paragraph{Annotation Artifacts in Evaluation}
-The LLM-as-a-judge analysis reveals that 48.8\% of cases where the answer appears in a non-ground-truth passage represent genuine retrieval successes (Table~\ref{tab:llm-judge-results}). Adjusting for these annotation artifacts increases \glsxtrshort{SEAL}'s estimated top-2 recall from 52.4\% to 55.6\%--57.2\%. This finding has implications for interpreting retrieval benchmarks more broadly, as incomplete ground-truth annotations systematically penalize systems that find valid alternative evidence.
-
-\subsection{Scope and Limitations}
-
-\textbf{TODO UPDATE, HASNT BEEN UPDATED}
-
-Three important caveats apply to this analysis:
-
-First, the observable failure modes are not mutually exclusive. The classification framework should permit multi-label assignment.
-
-Second, the analysis is specific to \glsxtrshort{SEAL}'s n-gram-based architecture. The availability of matched n-gram keys with corpus frequencies provides interpretability not present in other \glsxtrshort{gr} systems. Any findings may not generalize to systems using different identifier designs (e.g., hierarchical cluster paths in DSI, or title-based identifiers in GENRE).
-
-Third, as shown in Table~\ref{tab:answer-passage-mismatch}, 6.5\% of queries (426 cases) have the answer string in a different passage than the annotated ground truth. Whether these represent genuine retrieval successes or coincidental string matches requires manual verification.
-
-
-Additionally, it is worth noting that the empirical analysis is conducted on the \glsxtrlong{nq} dataset, which focuses on open-domain question answering tasks. Failure patterns identified on this dataset may not fully generalize to other \glsxtrshort{ir} scenarios that present different challenges and query characteristics. The findings are primarily applicable to question-answering retrieval scenarios.
-
-The analysis is based on \glsxtrshort{SEAL} model outputs and literature available as of late 2025/early 2026. As generative retrieval is a rapidly evolving field, new failure modes or mitigation strategies may emerge beyond those captured in this work.
-
+\textbf{TODO}
 
 \subsection{Generalizability} %of method and findings
 
