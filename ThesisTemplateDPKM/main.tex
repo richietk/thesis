@@ -186,12 +186,9 @@ Lastly, the lack of interpretability in generation processes presents challenges
 
 \section{Methodology}
 
-\textbf{TOBEWRITTEN} %(NQ Dataset details, the 8.46 GT avg, etc)
-
-
 \subsection{Available Data Structures}
 
-We ran \glsxtrshort{SEAL} and \glsxtrshort{MINDER} with their default settings on the \glsxtrfull{nq} dataset created by \href{https://research.google/pubs/natural-questions-a-benchmark-for-question-answering-research/}{Google}. We chose this as the dataset is the academic standard for retrieval benchmarking. %TODO RECHECK.
+We ran \glsxtrshort{SEAL} and \glsxtrshort{MINDER} with their default settings on the \glsxtrfull{nq} dataset created by \href{https://research.google/pubs/natural-questions-a-benchmark-for-question-answering-research/}{Google}. We chose this as the dataset is the academic standard for retrieval benchmarking. The \glsxtrfull{nq} retrieval corpus consists of a Wikipedia dump split into approximately 21 million passages of 100 tokens each \cite{karpukhin2020densepassageretrievalopendomain}. The systems analyzed retrieve from all 21 million chunks independently. If multiple chunks from the same article match the query, they can all appear in the results. 
 
 The \glsxtrshort{SEAL} output dataset contains 6,515 queries from the \glsxtrlong{nq} benchmark. For each query, the following relevant information is available:
 
@@ -222,7 +219,7 @@ The output dataset (of both systems) have an average per-query positive context 
     \includegraphics[width=0.7\textwidth]{assets/positive_ctxs_histogram.png}
 \end{figure}
 
-\subsection{Evaluation }
+\subsection{Evaluation}
 
 We decided to focus on the following metrics: R-precision as the overall retrieval quality of both \glsxtrshort{SEAL} and \glsxtrshort{MINDER} and hits@1 (being identical to precision@1) to quantify whether the model successfully retrieved a positive context in its top results for a query. We also use hits@10, since retrieval is rarely only about the first result only. We chose $k=10$ somewhat arbitrarily, as it provides a balance between being too strict by only measuring the top results and being too lax by allowing lower-scored retrieved passages to be included in the analysis. Although they might be used occasionally, we avoid using Precision@k and Recall@k with $k>1$ to avoid misrepresentation of queries where the amount of ground truths is less than $k$.
 
@@ -246,6 +243,7 @@ Below we categorize identified theoretical failure modes whether they are measur
         & Query--$n$-gram not overlapping & Both \\
         & Answer not in $n$-gram & Both \\
         & Single $n$-gram dominating & Both \\
+        & Title repetition in top-$k$ & Both \\
         & No pseudo-queries as n-gram & \glsxtrshort{MINDER} \\
         \midrule
         \textbf{Non-measurable} & False pruning & Both \\
@@ -268,42 +266,39 @@ Consider a passage stating ``Tom likes pizza and tomatoes'' and a query ``does T
 \subsection{Data Validation} %(The LLM-as-a-Judge procedure)
 \label{sec:llm-judge}
 
-Standard retrieval evaluation compares retrieved passage identifiers against annotated ground-truth passages. However, the \glsxtrlong{nq} dataset annotates only specific passages, while multiple passages in the corpus may contain the correct answer. This can create an event where \glsxtrshort{SEAL} retrieves a passage containing the answer, but this passage differs from the annotated ground-truth.
+We identified cases where \glsxtrshort{SEAL} or \glsxtrshort{MINDER} retrieves a passage containing the answer, but this passage differs from the annotated ground-truth.
 
-To identify such cases, we check whether the answer string appears in any top-$k$ retrieved passage. Table~\ref{tab:answer-passage-mismatch} presents the results.
+To identify such cases, we check whether the answer string appears in any top-$k$ retrieved passage based on token-level overlap using \texttt{GPT2TokenizerFast}. We use $k=10$, as discussed above. Table~\ref{tab:answer-passage-mismatch} presents the results.
 
 \begin{table}[htbp]
     \centering
-    \caption{Retrieval outcomes based on answer string matching (N=6,515, $k$=2).}
+    \caption{Retrieval outcomes based on answer string matching ($k=10$).}
     \label{tab:answer-passage-mismatch}
-    \begin{tabular}{lrr}
+    \begin{tabular}{l|rr|rr}
         \toprule
-        \textbf{Outcome} & \textbf{Count} & \textbf{Percentage} \\
+        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
+        \textbf{Outcome} & \textbf{$n$} & \textbf{\%} & \textbf{$n$} & \textbf{\%} \\
         \midrule
-        Ground-truth passage found & 3,416 & 52.4\% \\
-        Answer string in different passage & 426 & 6.5\% \\
-        Answer string not found & 2,673 & 41.0\% \\
+        Answer in top-$k$ (Hits@$k$)     & 4,961 & 76.1\% & 5,113 & 78.5\% \\
+        Answer in unannotated passage   & 349   & 5.4\%  & 362   & 5.6\%  \\
+        Answer string not in top-$k$    & 1,205 & 18.5\% & 1,040 & 16.0\% \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-
-In 426 queries (6.5\%), the answer string appears in (at least) one of the top-2 retrieved passages that is not the annotated ground truth. However, string matching alone does not determine whether the passage genuinely answers the question.
-
-Understanding these cases requires understanding how the corpus is structured. The Questions retrieval corpus consists of a Wikipedia dump split into approximately 21 million passages of exactly 100 words each \cite{karpukhin2020densepassageretrievalopendomain}. These chunks are created by word count, not by sentence boundaries, so passages frequently end mid-sentence. For example, a passage about Linda Davis ends with: ``Her highest solo chart position'', which is clearly cut off. \glsxtrshort{SEAL} retrieves from all 21 million chunks independently, it does not retrieve one chunk per article and discard the rest. If multiple chunks from the same article match the query, they can all appear in the results. This also raises the question of whether low passage diversity (for example, when most or all retrieved passages come from the same article) reflects high model confidence, or instead indicates that alternative answers are being crowded out. Accordingly, an analysis of the number of unique documents among the top-k retrieved results is warranted.
+For \glsxtrshort{SEAL} in 5.4\% of the queries, for \glsxtrshort{MINDER} in 5.6\% of the queries, the answer string appears in (at least) one of the top-10 retrieved passages that is not the annotated ground truth. However, string matching alone does not determine whether the passage genuinely answers the question.
  
+To understand what the 349 ``answer in different passage'' cases actually look like, we examine three examples in detail extracted form the \glsxtrshort{SEAL} outputs. Similar cases can be found in \glsxtrshort{MINDER}'s output too.
 
-To understand what the 426 ``answer in different passage'' cases actually look like, we examine three examples in detail.
-
-\textbf{Example 1: ``which apostle had a thorn in his side'' (answer: Paul).} The ground-truth passage is from the Wikipedia article ``Thorn in the flesh,'' which explains that Paul the Apostle used this phrase in 2 Corinthians 12:7--9. \glsxtrshort{SEAL}'s top result is Galatians 3, which mentions ``Paul the Apostle'' as the author of that epistle but contains nothing about a thorn. Even though \glsxtrshort{SEAL} seemed to be able to identify ``Paul'' as a relevant term (potentially from BART's pretrained parameters), Galatians 3 is the wrong chapter entirely. \glsxtrshort{SEAL} matched on generic terms (``Paul,'' ``apostle'') but never generated n-grams containing ``thorn.''
+\textbf{Example 1: ``which apostle had a thorn in his side'' (answer: Paul).} The ground-truth passage is from the Wikipedia article ``Thorn in the flesh,'' which explains that Paul the Apostle used this phrase in 2 Corinthians 12:7--9. \glsxtrshort{SEAL}'s top result was from Galatians 3, which mentions ``Paul the Apostle'' as the author of that epistle but contains nothing about a thorn. Even though \glsxtrshort{SEAL} seemed to be able to identify ``Paul'' as a relevant term (potentially from BART's parametric), Galatians 3 is the wrong chapter entirely. \glsxtrshort{SEAL} matched on generic terms (``Paul,'' ``apostle'') but never generated n-grams containing ``thorn.''
 
 \textbf{Example 2: ``how many judges currently serve on the supreme court'' (answer: nine).} The ground-truth passage directly states the current composition of the Court. \glsxtrshort{SEAL}'s top result is a historical passage stating that in 1869, ``the Circuit Judges Act returned the number of justices to nine, where it has since remained.'' This is borderline, because the reader could infer the answer, but the passage is not specifically about the current number of judges.
 
 \textbf{Example 3: ``who is the youngest judge currently sitting on the u.s. supreme court'' (answer: Neil Gorsuch).} The ground-truth passage discusses Gorsuch's nomination process and him being the youngest sitting justice. \glsxtrshort{SEAL}'s top result directly states: ``Neil Gorsuch is the youngest justice sitting, at 50 years of age.'' This is a success, because \glsxtrshort{SEAL} found a passage that answers the question, even if not annotated.
 
-These examples show that the 426 cases are a mix of such cases. To determine how many fall into each category, manual review or LLM-based classification is required. Section~\ref{sec:llm-judge} applies LLM-as-a-judge to classify whether each retrieved passage genuinely answers the question or not. If most of the 426 cases are genuine retrievals, then \glsxtrshort{SEAL}'s effective top-2 recall is closer to 59.0\% rather than 52.4\%. If most are coincidental matches, then 52.4\% remains the accurate figure.
+These examples show that these cases are a mix of such cases. To determine how many fall into each category, in section~\ref{sec:llm-judge}, we apply LLM-as-a-judge to classify whether each retrieved passage genuinely answers the question or not. If most of the 349 cases are genuine retrievals, then \glsxtrshort{SEAL}'s effective top-10 recall is closer to 81.5\% rather than 76.1\%. If most are coincidental matches, then 76.1\% remains the accurate figure. Similar calculations can be done for \glsxtrshort{MINDER}.
 
-To disambiguate the 426 cases where the answer string appears in a retrieved passage that differs from the annotated ground truth, we employ an LLM-as-a-judge approach. For each case, we present a large language model (\texttt{claude-sonnet-4-5-20250929}) with the original question, the expected answer, and the retrieved passage text, asking it to determine whether the passage genuinely answers the question or whether the answer string's presence is coincidental. The model was chosen based on expected reasoning capabilities and cost of operation.
+For each case, we present a large language model (\texttt{claude-sonnet-4-5-20250929}) with the original question, the expected answer, and the retrieved passage text, asking it to determine whether the passage genuinely answers the question or whether the answer string's presence is coincidental. The model was chosen based on expected reasoning capabilities and cost of operation.
 
 The judge classifies each case into one of three categories:
 \begin{itemize}
@@ -311,25 +306,6 @@ The judge classifies each case into one of three categories:
     \item \textbf{NO}: The answer string appears coincidentally and the passage does not answer the question.
     \item \textbf{PARTIAL}: The passage provides relevant information from which the answer could be inferred, but does not state it directly.
 \end{itemize}
-
-Table~\ref{tab:llm-judge-results} presents the classification results.
-
-\begin{table}[htbp]
-    \centering
-    \caption{LLM-as-a-judge classification of answer-in-different-passage cases (N=426).}
-    \label{tab:llm-judge-results}
-    \begin{tabular}{lrrl}
-        \toprule
-        \textbf{Verdict} & \textbf{Count} & \textbf{Percentage}\\
-        \midrule
-        YES & 208 & 48.8\% \\
-        NO & 116 & 27.2\% \\
-        PARTIAL & 102 & 23.9\% \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-The results reveal that nearly half (48.8\%) of these ambiguous cases represent genuine retrieval successes where \glsxtrshort{SEAL} retrieved a valid answer-bearing passage that simply differs from the annotated ground truth passage(s). The 116 cases classified as NO (27.2\%) represent true coincidental matches where the answer string appears, but in an unrelated context, as exemplified by Example 1. The 102 borderline cases (23.9\%) typically involve passages that provide sufficient context for inference but lack explicit statements. To provide an additional example for the latter, for ``who made the first telephone in the world'' (expected answer: Alexander Graham Bell), the retrieved passage states ``The first telephone was invented by Antonio Meucci, but Alexander Graham Bell is credited with the development of the first practical telephone.'' This passage contains the answer but complicates the question's premise by distinguishing between ``first'' and ``first practical'' telephone.
 
 \section{Results}
 
@@ -384,7 +360,27 @@ Although the results between the two systems are fairly similar, with \glsxtrsho
 \subsection{LLM-as-a-Judge Results}
 \label{sec:llmresults}
 
-According to the methodology explained in Section \ref{sec:llm-judge}, we adjust the estimate of \glsxtrshort{SEAL}'s and \glsxtrshort{MINDER}'s retrieval performance. Table~\ref{tab:adjusted-recall} presents the adjusted hits@2 under different inclusion criteria. \textbf{MINDER DATA IS TBD. TODO}
+According to the methodology explained in Section \ref{sec:llm-judge}, we adjust the estimate of \glsxtrshort{SEAL}'s and \glsxtrshort{MINDER}'s retrieval performance. Table~\ref{tab:adjusted-recall} presents the adjusted hits@10 under different inclusion criteria. \textbf{MINDER DATA IS TBD. TODO}
+
+Table~\ref{tab:llm-judge-results} presents the classification results.
+
+\begin{table}[htbp]
+    \centering
+    \caption{LLM-as-a-judge classification of answer-in-different-passage cases.}
+    \label{tab:llm-judge-results}
+    \begin{tabular}{l|rr|rr}
+        \toprule
+        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
+        \textbf{Verdict} & \textbf{Count} & \textbf{Percentage} & \textbf{Count} & \textbf{Percentage} \\
+        \midrule
+        YES     & TBD & TBD & TBD & TBD \\
+        NO      & TBD & TBD & TBD & TBD \\
+        PARTIAL & TBD & TBD & TBD & TBD \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The results reveal that \textbf{TBD}
 
 \begin{table}[htbp]
     \centering
@@ -403,7 +399,7 @@ According to the methodology explained in Section \ref{sec:llm-judge}, we adjust
     \end{tabular}
 \end{table}
 
-When counting only YES verdicts, \glsxtrshort{SEAL}'s effective hits@2 increases from 52.4\% to 55.6\%, a 3.2 percentage point improvement. Including borderline cases (YES + PARTIAL) raises the estimate to 57.2\%. These adjustments suggest that \glsxtrshort{SEAL}'s true retrieval capability may have been underestimated by approximately 3--5 percentage points due to incomplete or inaccurate ground-truth annotations. \textbf{MINDER DATA IS TBD.} Please note that we will refrain from ``updating the dataset'', as that would make our results incomparable with other papers' results on the standard \glsxtrshort{nq} dataset.
+\textbf{TBD REDO THIS PASSAGE IS OUTDATED} When counting only YES verdicts, \glsxtrshort{SEAL}'s effective hits@2 increases from 52.4\% to 55.6\%, a 3.2 percentage point improvement. Including borderline cases (YES + PARTIAL) raises the estimate to 57.2\%. These adjustments suggest that \glsxtrshort{SEAL}'s true retrieval capability may have been underestimated by approximately 3--5 percentage points due to incomplete or inaccurate ground-truth annotations.  Please note that we will refrain from ``updating the dataset'', as that would make our results incomparable with other papers' results on the standard \glsxtrshort{nq} dataset.
 
 \subsection{Generative Failures}
 \label{sec:gen-fail}
@@ -545,34 +541,64 @@ As visible from Table~\ref{tab:p-unique-coverage}, the hit rate of \glsxtrshort{
 
 We analyze whether retrieval success correlates with the model's ability to generate the specific answer string as an identifier, or whether it relies on the surrounding context. While generating the answer string provides a valuable anchor for a passage, the primary goal of \glsxtrshort{gr} is document identification, not direct question answering.
 
-Table \ref{tab:answer-presence-impact} illustrates the results of out analysis. We looked at whether the top-scored retrieved passage contained the answer string or not and what the Hits@1 value is for these cases. The results are mostly similar between \glsxtrshort{SEAL} and \glsxtrshort{MINDER}, with most top-1 ranked retrieved passages not containing the answer string, yet when they do, the respective query's Hits@1 rate doubles.
-\textbf{TODO FINISH THIS. maybe try to do Of passages that have the answer, what \% are ground truth? and Of ground truth passages, what \% have the answer?}
+Table \ref{tab:answer-presence-impact} illustrates the results of our analysis. We looked at whether among the top-1 and top-10 scored retrieved passages, at least one of them contained the answer string or not and what the Hits@1 value is for these cases. The results are mostly similar between \glsxtrshort{SEAL} and \glsxtrshort{MINDER}, with most top-1 ranked retrieved passages not containing the answer string, yet when they do, the respective query's Hits@1 rate doubles and Hits@10 increases significantly.
+
 \begin{table}[htbp]
     \centering
-    \caption{Performance metrics by answer string presence.}
+    \caption{Performance metrics conditioned on answer string presence.}
     \label{tab:answer-presence-impact}
     \begin{tabular}{l|rr|rr}
         \toprule
         & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
-        \textbf{Metric} & \textbf{Ans. Pres.} & \textbf{Ans. Abs.} & \textbf{Ans. Pres.} & \textbf{Ans. Abs.} \\
+        \textbf{Metric} & \textbf{Pres.} & \textbf{Abs.} & \textbf{Pres.} & \textbf{Abs.} \\
         \midrule
-        \textit{Query Level (top-1 psg)} & & & & \\
-        Queries ($N$)       & 1,096  & 5,419  & 1,457  & 5,058  \\
-        Hits@1              & 75.0\% & 34.9\% & 75.4\% & 38.2\% \\
+        Queries ($N$) & 1,096  & 5,419  & 1,457  & 5,058  \\
+        $\bar{\text{Hits@1}}$        & 75.0\% & 34.9\% & 75.4\% & 38.2\% \\
+        $\bar{\text{Hits@10}}$       & 93.5\% & 72.6\% & 93.0\% & 74.3\% \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-
-\textbf{BELOW IS OUTDATED}
- Of 6,515 queries, the answer string appears in at least one generated n-gram for the top-1 retrieved passage in only 1,096 case (16.8\%). When this ``direct identification'' occurs, the success rate is exceptionally high at 75.0\%. However, in the vast majority of cases (83.2\%), the model's top-1 retrieved passage the answer string is never generated. In these cases, the success rate is 34.9\%.
-
-This finding suggests that while direct identification is a much stronger predictor of success ($\Delta = 40.1$ pp), the model is able to identify the semantic environment in which an answer is likely to be in. For instance, for a query about a Supreme Court justice, the model may successfully retrieve the correct passage by generating contextual n-grams like ``Supreme Court,'' ``nominated by,'' or ``associate justice,'' even if it never generates the justice's name itself.  However, the performance gap between the two cases suggests that when the model fails to generate the specific answer as an identifier, the remaining contextual cues are oftentimes too generic to distinguish the correct passage from topically similar alternatives.
+We can see that in cases where the answer string is identified among the n-grams, the success rate jumps significantly for both systems. This indicates that direct identification is a strong predictor of retrieval success. Both \glsxtrshort{SEAL} and \glsxtrshort{MINDER} are able to retrieve (at least) one correct passage in around ~35\% of cases at the first place and ~73\% of cases among the top-10 retrieved, suggesting that the model is able to identify the semantic environment in which an answer is likely to be in relatively convincingly. That said, the performance gap between the two cases indicates that when the model fails to generate the specific answer as an identifier, the remaining contextual cues are oftentimes too generic to distinguish the correct passage from topically similar alternatives.
 
 
 \subsection{Scoring Failures}
 
 Just like in Section \ref{sec:gen-fail}, we present the analysis results of the identified failure modes (Table \ref{tab:failure-summary}) pertaining to scoring below.
+
+\paragraph{Unique Articles among Passages}
+
+Firstly, we analyze whether there is a correlation with retrieval failure and the amoung of unique titles retrieved in the top-k passages. For this, according to the other analyses, we use $k=10$. Thie analysis is possible, as Wikipedia articles have unique titles.
+
+The results are illustrated in the following table and line chart:
+
+\begin{table}[H]
+    \centering
+    \caption{Hits@k by title repetition count.}
+    \label{tab:title-repetition-impact}
+    \begin{tabular}{l|rr|rr}
+        \toprule
+        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
+        \textbf{Max Repetition\textsuperscript{*}} & \textbf{$N$} & \textbf{H@1 / H@10} & \textbf{$N$} & \textbf{H@1 / H@10} \\
+        \midrule
+        1 & 23    & 30.4\% / 60.9\% & 38    & 28.9\% / 60.5\% \\
+        2                 & 556   & 45.3\% / 70.1\% & 665   & 46.9\% / 72.9\% \\
+        4                 & 653   & 42.1\% / 77.3\% & 819   & 46.8\% / 77.7\% \\
+        6                 & 573   & 41.5\% / 76.1\% & 650   & 45.1\% / 79.5\% \\
+        8                 & 567   & 44.3\% / 78.0\% & 609   & 49.8\% / 82.8\% \\
+        10 & 1,606 & 38.0\% / 76.7\% & 990   & 42.1\% / 79.1\% \\
+        \bottomrule
+        \multicolumn{5}{l}{\small \textsuperscript{*}Maximum number of passages sharing the same title in the top-10 results.}
+    \end{tabular}
+\end{table}
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{assets/title_repetition_comparison.png}
+\end{figure}
+
+We can see that when stratified by maximum title repetition, i.e. the maximum number of passages from the same Wikipedia article per query, \glsxtrshort{MINDER} marginally outperforms \glsxtrshort{SEAL}, especially on queries where the system is relatively sure of the answer, as evidenced by a specific title appearing in several of the top-10 results. We can see that in cases where the max repetition is very low, i.e. the model couldn't confidently pinpoint a single document and is likely guessing, retrieval success suffers. Based on this analysis, there are significantly more cases with high title repetition than low title repetition, indicating that the models are fairly certain about the correct document (or, alternatively, are confidently incorrect about one).
 
 \paragraph{Misranking Despite Retrieval}
 \label{sec:failure-2}

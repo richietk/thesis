@@ -7,6 +7,17 @@ import re
 import ast
 import ijson
 from typing import Dict, List, Any
+from transformers import GPT2TokenizerFast
+
+# Initialize tokenizer once for efficiency
+_tokenizer = None
+
+def get_tokenizer():
+    """Get or initialize the GPT2 tokenizer."""
+    global _tokenizer
+    if _tokenizer is None:
+        _tokenizer = GPT2TokenizerFast.from_pretrained('gpt2')
+    return _tokenizer
 
 
 def get_dataset_name(datapath: str) -> str:
@@ -60,9 +71,64 @@ def normalize_text(text: str) -> str:
     return text.lower().strip()
 
 
-def answer_in_text(answer: str, text: str) -> bool:
-    """Check if answer appears in text (case-insensitive)."""
+def answer_in_text_substring(answer: str, text: str) -> bool:
+    """
+    OLD METHOD: Check if answer appears in text (simple substring, case-insensitive).
+    This is kept for comparison purposes to show false positives.
+    """
     return normalize_text(answer) in normalize_text(text)
+
+
+def answer_in_text(answer: str, text: str) -> bool:
+    """
+    Check if answer appears in text using tokenized matching.
+
+    Tokenizes both answer and text, then checks if answer tokens appear
+    as a contiguous subsequence in the text tokens (case-insensitive).
+
+    Handles both space-prefixed and non-space-prefixed versions since
+    BPE tokenization is sensitive to leading whitespace.
+
+    Args:
+        answer: The answer string to search for
+        text: The text to search in
+
+    Returns:
+        True if answer tokens found in text, False otherwise
+    """
+    if not answer or not text:
+        return False
+
+    # Normalize both strings
+    answer_norm = normalize_text(answer)
+    text_norm = normalize_text(text)
+
+    # Get tokenizer
+    tokenizer = get_tokenizer()
+
+    # Tokenize text
+    text_tokens = tokenizer.encode(text_norm, add_special_tokens=False)
+
+    # Try both with and without leading space (BPE is whitespace-sensitive)
+    answer_variants = [
+        answer_norm,           # "paul"
+        " " + answer_norm,     # " paul"
+    ]
+
+    for answer_variant in answer_variants:
+        answer_tokens = tokenizer.encode(answer_variant, add_special_tokens=False)
+
+        if not answer_tokens:
+            continue
+
+        answer_len = len(answer_tokens)
+
+        # Sliding window to find answer token sequence
+        for i in range(len(text_tokens) - answer_len + 1):
+            if text_tokens[i:i + answer_len] == answer_tokens:
+                return True
+
+    return False
 
 
 def get_ground_truth_ids(query_data: Dict) -> set:

@@ -1,5 +1,5 @@
 """
-Answer Location Analysis for SEAL Outputs (Memory-Efficient Version)
+Answer Location Analysis for SEAL Outputs
 =====================================================================
 Identifies whether SEAL found the correct answer, and if so, whether it was
 in the expected (ground-truth) passage or a different passage.
@@ -17,7 +17,7 @@ import ijson
 import os
 from collections import defaultdict
 import csv
-from scripts.utils.utils import strip_pseudoqueries, get_dataset_name, normalize_text, answer_in_text, get_ground_truth_ids, calculate_retrieval_metrics
+from utils.utils import strip_pseudoqueries, get_dataset_name, normalize_text, answer_in_text, answer_in_text_substring, get_ground_truth_ids, calculate_retrieval_metrics
 
 
 def analyze_retrieval_outcome(query_data, top_k=10, datapath=""):
@@ -97,7 +97,7 @@ def main(datapath="data/seal_output.json"):
 
         output_csv = f"{output_dir}/answer_location_analysis_{dataset_name}.csv"
         diff_passage_csv = f"{output_dir}/answer_in_different_passage_{dataset_name}.csv"
-        top_k = 2
+        top_k = 10
 
         if not os.path.exists(file_path):
             print(f"error: running {script_name} File not found at {file_path}")
@@ -111,6 +111,10 @@ def main(datapath="data/seal_output.json"):
         total = 0
         sum_precision_at_1 = 0.0
         sum_r_precision = 0.0
+
+        # Track disagreements for comparison
+        disagreement_examples = []
+        max_examples = 3
 
         with open(file_path, 'rb') as json_file, \
              open(output_csv, 'w', newline='', encoding='utf-8') as main_csv_file, \
@@ -147,6 +151,47 @@ def main(datapath="data/seal_output.json"):
                 if result['outcome'] == 'answer_in_different_passage':
                     diff_writer.writerow(csv_row)
 
+                # Compare substring vs tokenized matching for disagreement examples
+                if len(disagreement_examples) < max_examples and not result['gt_in_topk']:
+                    # Only check when GT is not in top-k (to find false positives)
+                    answers = entry.get('answers', [])
+                    retrieved = entry.get('ctxs', [])[:top_k]
+
+                    for ctx in retrieved:
+                        passage_text = ctx.get('text', '') + ' ' + ctx.get('title', '')
+                        passage_text = strip_pseudoqueries(passage_text, file_path)
+
+                        for ans in answers:
+                            substring_match = answer_in_text_substring(ans, passage_text)
+                            tokenized_match = answer_in_text(ans, passage_text)
+
+                            # Found a disagreement: substring matched but tokenized didn't
+                            if substring_match and not tokenized_match:
+                                # Get tokenization details for debugging
+                                from transformers import GPT2TokenizerFast
+                                tokenizer = GPT2TokenizerFast.from_pretrained('gpt2')
+
+                                answer_norm = normalize_text(ans)
+                                text_norm = normalize_text(passage_text)
+
+                                answer_tokens = tokenizer.encode(answer_norm, add_special_tokens=False)
+                                text_tokens = tokenizer.encode(text_norm, add_special_tokens=False)
+
+                                disagreement_examples.append({
+                                    'question': entry.get('question', ''),
+                                    'answer': ans,
+                                    'answer_normalized': answer_norm,
+                                    'answer_tokens': answer_tokens,
+                                    'answer_tokens_decoded': [tokenizer.decode([t]) for t in answer_tokens],
+                                    'passage_snippet': passage_text[:300] + '...' if len(passage_text) > 300 else passage_text,
+                                    'passage_normalized': text_norm[:300] + '...' if len(text_norm) > 300 else text_norm,
+                                    'passage_tokens': text_tokens[:50],  # First 50 tokens
+                                    'passage_tokens_decoded': [tokenizer.decode([t]) for t in text_tokens[:50]]
+                                })
+                                break
+                        if len(disagreement_examples) >= max_examples:
+                            break
+
         # Build JSON summary
         output_data = {
             "total_queries": total,
@@ -165,6 +210,24 @@ def main(datapath="data/seal_output.json"):
         output_json = os.path.join(output_dir, f"{script_name}_results.json")
         with open(output_json, 'w') as f:
             json.dump(output_data, f, indent=2)
+
+        # Print disagreement examples
+        if disagreement_examples:
+            print("\n" + "="*80)
+            print("EXAMPLES: Substring matched but Tokenized didn't (False Positives?)")
+            print("="*80)
+            for i, example in enumerate(disagreement_examples, 1):
+                print(f"\nExample {i}:")
+                print(f"Question: {example['question']}")
+                print(f"Answer: '{example['answer']}'")
+                print(f"Answer normalized: '{example['answer_normalized']}'")
+                print(f"Answer tokens: {example['answer_tokens']}")
+                print(f"Answer decoded: {example['answer_tokens_decoded']}")
+                print(f"\nPassage snippet (original): {example['passage_snippet']}")
+                print(f"\nPassage normalized: {example['passage_normalized']}")
+                print(f"Passage tokens (first 50): {example['passage_tokens']}")
+                print(f"Passage decoded: {example['passage_tokens_decoded']}")
+                print("-" * 80)
 
         print(f"success running {script_name}")
 

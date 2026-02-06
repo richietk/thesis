@@ -53,6 +53,7 @@ def analyze_answer_coverage(datapath="data/seal_output.json"):
                     'answer_in_ngrams': answer_in_ngrams,
                     'num_ngrams': len(ngrams),
                     'hits@1': metrics['precision_at_1'],
+                    'hits@10': metrics['hits_at_10'],
                     'r_precision': metrics['r_precision']
                 })
 
@@ -115,7 +116,10 @@ def analyze_answer_coverage(datapath="data/seal_output.json"):
                 "answer_not_in_top1_pct": float(100 * len(answer_absent) / len(df)),
                 "hits@1": float(df['hits@1'].mean()),
                 "hits@1_answer_present": float(answer_present['hits@1'].mean()) if len(answer_present) > 0 else 0.0,
-                "hits@1_answer_absent": float(answer_absent['hits@1'].mean()) if len(answer_absent) > 0 else 0.0
+                "hits@1_answer_absent": float(answer_absent['hits@1'].mean()) if len(answer_absent) > 0 else 0.0,
+                "hits@10": float(df['hits@10'].mean()),
+                "hits@10_answer_present": float(answer_present['hits@10'].mean()) if len(answer_present) > 0 else 0.0,
+                "hits@10_answer_absent": float(answer_absent['hits@10'].mean()) if len(answer_absent) > 0 else 0.0
             },
             # Passage-level analysis (top-20 passages)
             "passage_level": {
