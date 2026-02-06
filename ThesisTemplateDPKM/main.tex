@@ -186,161 +186,84 @@ Lastly, the lack of interpretability in generation processes presents challenges
 
 \section{Methodology}
 
-\subsection{Experimental Design}
-
 \textbf{TOBEWRITTEN} %(NQ Dataset details, the 8.46 GT avg, etc)
 
 
-\paragraph{Available Data Structure}
+\subsection{Available Data Structures}
+
+We ran \glsxtrshort{SEAL} and \glsxtrshort{MINDER} with their default settings on the \glsxtrfull{nq} dataset created by \href{https://research.google/pubs/natural-questions-a-benchmark-for-question-answering-research/}{Google}. We chose this as the dataset is the academic standard for retrieval benchmarking. %TODO RECHECK.
 
 The \glsxtrshort{SEAL} output dataset contains 6,515 queries from the \glsxtrlong{nq} benchmark. For each query, the following relevant information is available:
 
 \begin{itemize}
     \item \textbf{question}: The original natural language query
     \item \textbf{answers}: Ground-truth answer string(s)
-    \item \textbf{positive\_ctxs}: Ground-truth relevant passages containing the answer, with passage identifiers
-    \item \textbf{ctxs}: \glsxtrshort{SEAL}'s top-100 retrieved passages, ranked by intersective scoring, each containing:
+    \item \textbf{positive\_ctxs}: Ground-truth relevant passages containing the answer
+    \item \textbf{ctxs}: \glsxtrshort{SEAL}'s top-100 retrieved passages, ranked by passage score, each containing:
     \begin{itemize}
         \item Passage title and text
         \item Aggregate document score
-        \item Passage identifier
-        \item The set of matched n-gram keys
+        \item The set of matched n-gram keys and their respective scores
     \end{itemize}
 \end{itemize}
 
-The n-gram keys are most useful to understand \glsxtrshort{SEAL}'s retrieval decisions. Each key entry contains three parts:
+From the output data available, the n-gram keys are most useful to understand \glsxtrshort{SEAL}'s retrieval decisions. Each key entry contains three parts:
 \begin{enumerate}
     \item The n-gram string (e.g., \texttt{`` Reba''}, \texttt{``</s> Linda Davis @@''})
-    \item The corpus frequency $F(n, R)$---how many times this n-gram appears across all documents
-    \item The n-gram score $w(n, q)$ computed via the scoring function
+    \item The corpus frequency of how many times this n-gram appears across all documents
+    \item The n-gram score computed via the scoring function
 \end{enumerate}
 
+The \glsxtrshort{MINDER} output is structurally identical to that of \glsxtrshort{SEAL}'s, including being ran on the same 6,515 queries. The difference arises from the pseudoqueries, which are appended to the \textit{text}, as well as the fact that multiview identifiers can be contained in n-grams.
 
-\subsection{Evaluation Metrics} %(Why P@1, why R-Precision, why R-Precision is "fair" for your GT distribution)
+The output dataset (of both systems) have an average per-query positive context count of 8.46, with the minimum being 1 and maximum being 101. This is important to analyze to accurately identify evaluation metrics. To illustrate the distribution, please consult the histogram below.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{assets/positive_ctxs_histogram.png}
+\end{figure}
 
-\textbf{TOBEWRITTEN}
+\subsection{Evaluation }
 
-\subsection{Data Analysis Methods} %(Decile binning strategy, Spearman Correlation explanation)
+We decided to focus on the following metrics: R-precision as the overall retrieval quality of both \glsxtrshort{SEAL} and \glsxtrshort{MINDER} and hits@1 (being identical to precision@1) to quantify whether the model successfully retrieved a positive context in its top results for a query. We also use hits@10, since retrieval is rarely only about the first result only. We chose $k=10$ somewhat arbitrarily, as it provides a balance between being too strict by only measuring the top results and being too lax by allowing lower-scored retrieved passages to be included in the analysis. Although they might be used occasionally, we avoid using Precision@k and Recall@k with $k>1$ to avoid misrepresentation of queries where the amount of ground truths is less than $k$.
 
-\textbf{TOBEWRITTEN}
+For the analysis, results are calculated side-by-side for both systems analyzed when appropriate. To analyze distribution, we bin the results into deciles and report them. Additionally, when appropriate, we report the Spearman $rho$ values to analyze monotonic correlation between variables.
 
 \subsection{Failure Taxonomy}
 
-\paragraph{Observable Failure Modes}
+Below we categorize identified theoretical failure modes whether they are measurable considering our available data.
 
-Given this data structure, three categories of failure modes can be directly analyzed:
-
-One of the most common failure modes is when generated n-grams lack sufficient specificity to distinguish relevant documents from semantically related but incorrect alternatives. The corpus frequency $F(n, R)$ directly quantifies this specificity, as an n-gram which appears frequently across the corpus theoretically provides minimal discriminative signal.
-
-Our empirical analysis of 6,515 queries reveals an inverse correlation between n-gram frequency and retrieval success for \glsxtrshort{SEAL}. The average top-5 n-gram frequency shows a Spearman correlation of $\rho = -0.238$ ($p < 0.001$) with top-1 success. As shown in the decile analysis, queries where \glsxtrshort{SEAL} generates highly specific n-grams (Decile 1, freq.\ range 2--91) achieve a 71.0\% top-1 success rate. Conversely, when the model relies on generic n-grams (Decile 10, freq.\ range 81k--719k), success drops to just 25.9\%.
-
-A similar trend is observed in \glsxtrshort{MINDER}. Despite its use of synthetic identifiers (pseudo-queries) intended to provide more context, it remains sensitive to frequency bias with a negative correlation of $\rho = -0.290$ ($p < 0.001$). \glsxtrshort{MINDER} performs at a roughly similar rate as \glsxtrshort{SEAL} does, with 76.5\% success in D1 and 26.8\% in the tenth decile. This suggests that the inclusion of multiview identifiers and psuedoqueries does not reliably improve retrieval quality over non-disrimative terms. %TODO was it even expected to improve precision? MINDER’s pseudo-queries are designed for recall (bridging the vocabulary gap), but often hurt precision because they are "hallucinated" versions of what might be in the doc. Or no?
-
-While Equation~\ref{eq:ngram-score} downweights frequent n-grams via the $P(n)$ term, if the model assigns high conditional probability $P(n|q)$ to generic n-grams, they may still dominate the final ranking. The training signal does not distinguish between highly specific terms (like unique names) and broadly applicable domain terms (like ``country music singer'') and relatively specific but non-discriminative n-grams can get assigned a non-trivial score because the model's confidence in its relevance partially overcomes the frequency penalty. %TODO review again if its the models confidence or an algorithm which doesnt have "confidence"
-
-Likewise, if short n-grams such as unigrams and bigrams dominate the contribution (as shown in Section \ref{sec:unigrams}), this issue appears The model may prefer generating shorter sequences because shorter sequences have higher cumulative probability, as each token multiplication reduces probability, as well as because common single words have stronger learned associations in the pre-trained model. Inverse correlation between n-gram frequency and retrieval success could thus help us identify such cases.
-
-Secondly, we can identify a failure mode in the scoring mechanism too. To isolate failures in the scoring mechanism rather than n-gram generation, cases where \glsxtrshort{SEAL} retrieves the correct passage but ranks it below incorrect alternatives are useful to examine.
-
-For example, on the query ``when does the new my hero academia movie come out'', the ground-truth passage appears at rank~3 with score 620.5, while two other passages from the same Wikipedia article rank higher with scores 709.4 and 663.9. All passages share similar high-scoring n-grams (e.g., \texttt{``</s> My Hero Academia: Two Heroes @@''}), but non-ground-truth passages accumulated higher aggregate scores from secondary n-grams. In this case, we can check the score differentials between correct and incorrect top-ranked passages and examine which shared high-scoring n-grams are to be found across multiple retrieved passages
-
-Third, the mismatch between query phrasing and document content may also cause the model to generate irrelevant n-grams that fail to ``bridge the gap'' between query and document. This occurs when generated n-grams do not align with how the answer is expressed in the ground-truth passage. Low lexical overlap between query terms and high-scoring n-grams is therefore an issue to deal with. Cases where n-grams capture related concepts but miss the specific answer formulation are hard for model to match. Similar problem occurs if the query requires inference to match the document text.
-
-\paragraph{Non-Observable Failure Modes}
-
-Several failure modes from the literature taxonomy cannot be directly measured from the available output data:
-
-False pruning cannot be determined in this thesis. Determining whether beam search prematurely discarded the prefix of a discriminative n-gram sequence would require access to the full beam search trajectory, including all candidate sequences considered and rejected at each decoding step. The data at hand contains only the final set of n-grams that survived beam search. We cannot distinguish between cases where (a) the model never considered a relevant n-gram, versus (b) the model considered but incorrectly pruned it during decoding.
-
-\glsxtrshort{SEAL}'s architecture directly prevents hallucinative failure modes through constrained decoding, which prevents the model to generate invalid identifiers. At each generation step, the model can only produce tokens that extend a valid corpus substring, guaranteeing that every generated n-gram exists in at least one document. While this eliminates hallucination as a failure mode for \glsxtrshort{SEAL}, it also means we cannot study hallucination patterns, which is a limitation if we were to generalize and compare the findings with other \glsxtrshort{gr} architectures that lack constrained decoding.
-
-Evaluating whether beam search found the optimal solution under the model's scoring function would require comparison against exhaustive search over all possible n-gram sequences. Such brute-force decoding is computationally prohibitive and not available in the output data used in this thesis.
-
-Assessing whether failures stem from the model's limited capacity to encode a large corpus would require us to perform a comparison across varied corpus sizes. The available data represents a single corpus configuration (\glsxtrlong{nq} with approximately 21 million passages), precluding a scalability and saturation analysis.
-
-Similarly, the previously mentioned forgetting and cold-start problems that arise in settings where the corpus is dynamic are issues that are unobservable in our dataset, as the \glsxtrlong{nq} evaluation uses a static corpus snapshot.
-
-Non-differentiable optimization, training instability, and struggles with learning fine-grained features that might occur during model training rather than inference are another category of issues we cannot account for in this thesis. Analysis of these failures would require access to training dynamics, gradient statistics, or intermediate checkpoints not available in inference outputs.
-
-\paragraph{Failure Mapping} %(Mapping the abstract failures from Section 2.5 to the observable metrics like unigram proportion) EITHER THINK THROUGH THAT OR REWORK THE WHOLE SUBSECTION OR DEBLOAT OR REWRITE OR DELETE OR IDK.
-\textbf{TOBEWRITTEN}
-\textbf{UPDATE AND REWORK THIS TO FIT THIS BUT THIS SHOULD BE IN THE METHODOLOGY}
-\subsection{Failure Analysis }
-
-Table~\ref{tab:failure-indicators} defines the observable indicator used for each failure mode. The Spearman $\rho$ values in Table~\ref{tab:failure-summary} represent the correlation between each indicator and binary retrieval success (1 if the top-1 passage is correct, 0 otherwise).
-
-\begin{table}[H]
+\begin{table}[htbp]
     \centering
-    \caption{Observable indicators for each failure mode and interpretation of correlation direction.}
-    \label{tab:failure-indicators}
-    \begin{tabular}{p{0.22\textwidth} p{0.32\textwidth} p{0.38\textwidth}}
+    \caption{Classification of potential retrieval failure modes for \glsxtrshort{SEAL} and \glsxtrshort{MINDER}.}
+    \label{tab:failure-summary}
+    \begin{tabular}{lp{6cm}l}
         \toprule
-        \textbf{Failure Mode} & \textbf{Indicator Measured} & \textbf{Interpretation of $\rho$} \\
+        \textbf{Type} & \textbf{Potential Failure Mode} & \textbf{Applicability} \\
         \midrule
-        Bias Toward Short Identifiers & Fraction of n-grams that are unigrams & $\rho < 0$: More unigrams $\rightarrow$ lower success \\
-        \addlinespace
-        Insufficient Query Coverage & Proportion of query tokens covered by n-grams & $\rho > 0$: Higher coverage $\rightarrow$ higher success \\
-        \addlinespace
-        Answer in n-grams & Whether answer string appears in any n-gram & Binary comparison only \\
-        \addlinespace
-        High-freq.\ n-grams & Avg.\ corpus frequency of top-5 n-grams & $\rho < 0$: Higher frequency $\rightarrow$ lower success \\
-        \addlinespace
-        Correlated identifier generation & Token diversity ratio (unique / total tokens) & $\rho < 0$: Higher diversity $\rightarrow$ lower success\textsuperscript{\dag} \\
-        \addlinespace
-        Overreliance on a Single Identifier & max(score) / sum(scores) for top-1 passage & $\rho < 0$: More concentrated $\rightarrow$ lower success \\
+        \textbf{Measurable} & Nonspecific $n$-grams & Both \\
+        & Too many unigrams & Both \\
+        & Redundant $n$-grams & Both \\
+        & Query--$n$-gram not overlapping & Both \\
+        & Answer not in $n$-gram & Both \\
+        & Single $n$-gram dominating & Both \\
+        & No pseudo-queries as n-gram & \glsxtrshort{MINDER} \\
+        \midrule
+        \textbf{Non-measurable} & False pruning & Both \\
+        & Answer cut-off btwn. passages & Both \\
+        & Optima not found in beam search & Both \\
+        & Scalability issues & Both \\
+        & Handling of dynamic corpora & Both \\
+        & Training learning bottlenecks & Both \\
         \bottomrule
     \end{tabular}
-
-    \vspace{0.5em}
-    \footnotesize
-    \textsuperscript{\dag} Counter-intuitive: repetition (low diversity) correlates with \textit{higher} success.
 \end{table}
 
-Table~\ref{tab:failure-summary} consolidates the empirical findings across all analyzed failure modes, quantifying their correlation with retrieval success and the performance differential between favorable and unfavorable conditions.
+The measureable categories will be analyzed below. Tor the other identified failure modes, the main reason for non-measurability is the fact that we only possess output data of \glsxtrshort{SEAL} and \glsxtrshort{MINDER} on the \glsxtrshort{nq} dataset, without having access to training data or internal logs.
 
-\begin{table}[H]
-     \centering
-     \caption{Correlation between measured indicators and retrieval success for \glsxtrshort{SEAL} on \glsxtrlong{nq} (N=6,515).}
-     \label{tab:failure-summary}
-     \begin{tabular}{p{0.25\textwidth} r p{0.35\textwidth} r}
-         \toprule
-         \textbf{Indicator} & \textbf{Spearman $\rho$} & \textbf{Success Rate} & \textbf{$\Delta$} \\
-         \midrule
-         Identifier Length & $-0.278$ & $>30\%$ multi-word: 80.8\% vs.\ $<10\%$: 27.5\% & 53.3 pp \\
-        \addlinespace
-        Query Token Overlap & $+0.290$ & High overlap ($>60\%$): 60.2\% vs.\ Low ($<30\%$): 20.2\% & 40.0 pp \\
-     \addlinespace
-     Answer String Presence & --- & Included: 75.0\% vs.\ Not included: 34.9\% & 40.1 pp \\
-     \addlinespace
-     Corpus Frequency & $-0.238$ & Low freq ($<500$): 59.8\% vs.\ High ($>5000$): 32.5\% & 27.3 pp \\
-     \addlinespace
-     Token Diversity\textsuperscript{\dag} & $-0.227$ & Low diversity: 55.3\% vs.\ High: 35.5\% & 19.8 pp \\
-     \addlinespace
-     Score Concentration & $-0.115$ & Distributed: 48.5\% vs.\ Concentrated: 29.4\% & 19.1 pp \\
-     \addlinespace
-     Retrieval-Ranking Gap & --- & 55.0\% of retrieved passages ranked $>1$ & --- \\       \bottomrule
- \end{tabular}
+\paragraph{Answer cut-off between passages }
+A fundamental structural constraint of n-gram-based retrieval is that n-grams must be strictly contiguous substrings within the corpus. Both models ensure that any generated n-grams exists as a continuous sequence in at least one document (aside from \glsxtrshort{MINDER}'s pseudo-queries). This means the model cannot match n-grams that would semantically connect a query to a passage if the relevant terms are separated by intervening words or are cut off between passages.
 
- \vspace{0.5em}
- \footnotesize
- \textsuperscript{\dag} Diversity is measured as the ratio of unique tokens to total tokens. \\
- pp = percentage points. $\Delta$ = difference in precision\@1 between the compared cohorts.
-\end{table}
-
-The strongest predictors of retrieval failure are bias toward short identifiers ($\rho = -0.278$) and low Insufficient Query Coverage ($\rho = +0.290$). When \glsxtrshort{SEAL} generates predominantly unigrams, success drops from 80.8\% to 27.5\%; when n-grams fail to cover query terms, success drops from 60.2\% to 20.2\%. High-frequency n-grams and Overreliance on a Single Identifier show weaker but still significant effects.
-
-Notably, correlated identifier generation exhibits a counter-intuitive pattern: queries with more token repetition across n-grams achieve \textit{higher} success rates, suggesting that concentrated topical focus benefits retrieval. This finding indicates that not all initially hypothesized failure modes function as expected.
-
-\paragraph{Technical Constraints}
-\label{sec:datalims}
-
-A fundamental structural constraint of n-gram-based retrieval is that n-grams must be strictly contiguous substrings within the corpus. \glsxtrshort{SEAL}'s FM-Index ensures that any generated n-gram exists as a continuous sequence in at least one document \cite{bevilacqua2022autoregressivesearchenginesgenerating}. While such constrained decoding eliminates hallucination of invalid \glspl{docid}, the issue persists that the model cannot match n-grams that would semantically connect a query to a document if the relevant terms, which are separated by intervening words, would be connected.
-
-Consider a passage stating ``Tom likes pizza and tomatoes'' and a query ``does Tom like tomatoes?'' The semantically relevant n-gram ``likes tomatoes'' does not exist as a contiguous substring in the passage due to the intervening words ``pizza'' and ``and.'' The FM-Index would theoretically reject or fail to map this n-gram to the document, even though the passage clearly contains both ``like'' and ``tomatoes'' in a relevant context.  During \glsxtrshort{docid} generation, the model may falsely prune prefixes from the beam search before it reaches the discriminative keywords. This false pruning occurs because the model generates tokens left-to-right and cannot recover from early missteps once a prefix is discarded from the search beam, as discussed before.
-
-This issue is partially mitigated by the fact that n-grams that do exist contiguously in the passage are still generated, such as ``and tomatoes,'' ``pizza and tomatoes,'' or simply ``tomatoes.'' \glsxtrshort{SEAL} uses intersective scoring that aggregates scores from multiple generated n-grams, so even if the model cannot generate a specific multi-word n-gram due to intervening text, it can still retrieve the document by generating multiple shorter n-grams (such as separate unigrams or bigrams) that collectively identify the passage. 
-
-\textbf{TODO} This limitation affects the interpretation of failure cases in the empirical analysis, because when \glsxtrshort{SEAL} fails to retrieve a relevant passage, the failure may stem not from the absence of relevant terms in the document, but from the model's inability to generate a valid n-gram sequence that connects the query phrasing to the specific word ordering in the passage. Therefore we must examine whether alternative ngrams exist that could've plausibly identified the document. Additionally, using skip-grams instead of ngrams could theoretically be an alternate solution to the problem. That is, however, out of scope for this thesis.
+Consider a passage stating ``Tom likes pizza and tomatoes'' and a query ``does Tom like tomatoes?'' The semantically relevant n-gram ``likes tomatoes'' does not exist as a contiguous substring in the passage due to the intervening words ``pizza'' and ``and.''  This issue is partially mitigated by the fact that n-grams ``and tomatoes,'' ``pizza and tomatoes,'' ``tomatoes.'' are still generated and scored, however this is not a robust solution. Including skip-grams in addition to ngrams or forcing overlap between passages could theoretically be solutions to this problem. These are, however, out of scope for this thesis.
 
 \subsection{Data Validation} %(The LLM-as-a-Judge procedure)
 \label{sec:llm-judge}
@@ -517,7 +440,7 @@ We can see that in D1, where the top-1 passage's top-5 scored n-grams average fr
 
 Notably, using average frequency across all n-grams (instead of top-5) shows no significant correlation with performance (\glsxtrshort{SEAL}: $\rho=0.029,\space p=0.02$; \glsxtrshort{MINDER}: $\rho=-0.008,\space p=0.51$), suggesting that the presence of highly-ranked generic terms, rather than overall genericity, drives performance degradation. This happens because such high-frequency n-grams match many topically-related passages, diluting discriminative power among passages. While \glsxtrshort{SEAL}'s scoring function theoretically downweights common n-grams through the $P(n)$ term in Equation~\ref{eq:ngram-score}, this analysis reveals that high-frequency n-grams can still dominate the top-ranked positions. \glsxtrshort{MINDER} does not penalize high frequency n-grams. Instead, it artifically boosts the score of pseudoqueries \cite{li2023multiviewidentifiersenhancedgenerative}.
 
-\paragraph{Preference for Unigrams \& Effects}
+\paragraph{Preference for Unigrams}
 \label{sec:unigrams}
 
 Here we examine whether the analyzed systems disproportionately generate short n-grams (unigrams and bigrams) rather than longer, more distinctive multi-word sequences. Longer n-grams generally provide stronger discriminative power, as multi-word phrases are far less likely to appear across multiple passages than individual words.
