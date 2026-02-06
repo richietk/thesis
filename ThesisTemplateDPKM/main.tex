@@ -600,30 +600,22 @@ The results are illustrated in the following table and line chart:
 
 We can see that when stratified by maximum title repetition, i.e. the maximum number of passages from the same Wikipedia article per query, \glsxtrshort{MINDER} marginally outperforms \glsxtrshort{SEAL}, especially on queries where the system is relatively sure of the answer, as evidenced by a specific title appearing in several of the top-10 results. We can see that in cases where the max repetition is very low, i.e. the model couldn't confidently pinpoint a single document and is likely guessing, retrieval success suffers. Based on this analysis, there are significantly more cases with high title repetition than low title repetition, indicating that the models are fairly certain about the correct document (or, alternatively, are confidently incorrect about one).
 
-\paragraph{Misranking Despite Retrieval}
-\label{sec:failure-2}
 
-Misranking Despite Retrieval occurs when \glsxtrshort{SEAL} successfully retrieves the ground-truth passage within its top-$K$ candidates but assigns it a lower score than incorrect alternatives, causing it to be mis-ranked. This failure mode aims to isolate deficiencies in the scoring mechanism independent of generation quality, where the model has generated sufficient n-grams to match the correct passage, but the intersective scoring function $W(d, q)$ (Equation~\ref{eq:doc-score}) fails to rank it first.
-
-Of 6,515 queries analyzed, the ground-truth passage appears in the top-100 retrieved results for 6,027 queries (92.5\%). However, among these, in 3,313 queries (55.0\%) the ground truth is ranked below position 1. The average rank of the first ground-truth passage retrieved is 7.7, with a median of 2, indicating that while \glsxtrshort{SEAL} often places the correct answer in the top-2 or top-3 positions, precise ranking remains challenging.
-
-Among the 6,027 queries, 2,714 (45.0\%) rank the ground truth at position 1, 702 (11.6\%) at position 2, and 449 (7.4\%) at position 3. The fact that 55.0\% of successfully retrieved passages are found but mis-ranked suggests that \glsxtrshort{SEAL}'s generation component can identify relevant passages through n-gram matching, but the scoring function commonly misjudges their relative importance.
-
-\paragraph{Overreliance on a Single Identifier} %maybe change to top-5? or idk, gotta think through this
+\paragraph{Overreliance on a Single Identifier}
 \label{sec:failure-6}
 
-Overreliance on a single identifier measures the extent to which the top-1 ranked passage's total score is concentrated in one high-scoring n-gram versus distributed across multiple n-grams. We define this as the ratio of the highest scored n-gram score and the sum of all matched n-gram scores for the passage, which we will refer to as ``dominance''.
+Overreliance on a single identifier measures the extent to which the top-1 ranked passage's total score is concentrated in one high-scoring n-gram versus distributed across multiple n-grams. We define this as the ratio of the highest scored n-gram score and the sum of all matched n-gram scores for the passage.
 
-Our analysis across 6,515 queries reveals that lower such ratio correlates with higher retrieval success, as shown in Table~\ref{tab:identifier-dominance}. For \glsxtrshort{SEAL}, we observe a Spearman correlation of $\rho = -0.115$ ($p < 0.001$), with success rates declining from 48.6\% in the lowest dominance decile (D1) to 29.6\% in the highest decile (D10).
+Our analysis across 6,515 queries reveals that lower such ratio correlates with higher retrieval success, as shown in Table~\ref{tab:identifier-dominance}. For \glsxtrshort{SEAL}, we observe a Spearman correlation of $\rho = -0.115$ ($p < 0.001$), with success rates declining from 48.6\% in the lowest decile (D1) to 29.6\% in the highest decile (D10).
 
 \begin{table}[htbp]
     \centering
-    \caption{Top-1 retrieval success rate by top n-gram dominance deciles (max score / sum scores).}
+    \caption{Hits@1 by top n-gram ratio deciles (max score / sum scores).}
     \label{tab:identifier-dominance}
     \begin{tabular}{l|rr|rr}
         \toprule
         & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}} (Mean: 0.44)} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}} (Mean: 0.36)} \\
-        \textbf{Decile} & \textbf{Dom.\ Range} & \textbf{Success} & \textbf{Dom.\ Range} & \textbf{Success} \\
+        \textbf{Decile} & \textbf{Range} & \textbf{Hits@1} & \textbf{Range} & \textbf{Hits@1} \\
         \midrule
         D1  & 0.12--0.30 & 48.6\% & 0.12--0.25 & 58.0\% \\
         D2  & 0.30--0.35 & 45.8\% & 0.25--0.28 & 59.3\% \\
@@ -635,24 +627,24 @@ Our analysis across 6,515 queries reveals that lower such ratio correlates with 
     \end{tabular}
 \end{table}
 
-This trend is also noticable in \glsxtrshort{MINDER} ($\rho = -0.169$, $p < 0.001$), which also exhibits a lower mean ratio of 0.36 compared to \glsxtrshort{SEAL}'s 0.44. This shift toward more distributed evidence is assumed to be a consequence of \glsxtrshort{MINDER}'s multiview identifiers, since by aggregating scores from titles, pseudo-queries, and substrings, \glsxtrshort{MINDER} theoretically reduces reliance on any single identifier.
+This trend is also noticable in \glsxtrshort{MINDER} ($\rho = -0.169$, $p < 0.001$), which also exhibits a lower mean ratio of 0.36 compared to \glsxtrshort{SEAL}'s 0.44 and a higher hit rate in all deciles. This shift toward more distributed evidence is assumed to be a consequence of \glsxtrshort{MINDER}'s multiview identifiers, since by aggregating scores from titles, pseudo-queries, and substrings, \glsxtrshort{MINDER} theoretically reduces reliance on any single identifier.
 
-This finding aligns with the intersective scoring design, which benefits from distributed evidence by providing redundant confirmation across multiple n-grams. %TODO SOURCE
+This finding aligns with the additive scoring design, which benefits from distributed evidence by providing redundant confirmation across multiple n-grams. %TODO SOURCE
 Conversely, if the top-scoring n-gram matches many passages or identifies the wrong one, the remaining low-scoring n-grams may provide insufficient corrective evidence to ensure correct ranking.
 
-\paragraph{Impact of N-gram Quantity on Retrieval Success}
+\paragraph{Impact of N-gram Quantity}
 
-While not a failure mode, given that \glsxtrshort{SEAL}'s scoring mechanism aggregates evidence from multiple n-grams, it is essential to examine whether the quantity of matched n-grams correlates with retrieval success. Intuitively, a higher number of matched n-grams should provide stronger cumulative evidence for a passage, considering that SEAL's score is sum-based, and therefore a passage with more matched n-grams has a mathematical advantage over a passage with fewer matched n-grams. However, excessive generation may also introduce noise if additional n-grams are redundant or non-discriminative.
+While not a necessarily failure mode, given that \glsxtrshort{SEAL}'s scoring mechanism additively aggregates evidence from multiple n-grams, it is essential to examine whether the quantity of matched n-grams correlates with retrieval success. Intuitively, a higher number of matched n-grams should provide stronger cumulative evidence for a passage and a passage with more matched n-grams has a mathematical advantage over a passage with fewer matched n-grams. However, excessive generation may also introduce noise if additional n-grams are redundant or non-discriminative.
 
 Across 6,515 queries, the number of n-grams matched to the top-1 retrieved passage has a mean of 41.5 (median: 42.0, $\sigma$: 6.3), with a range of 11 to 65. Table~\ref{tab:ngram-count} presents retrieval performance stratified by n-gram count deciles.
 
 \begin{table}[htbp]
     \centering
-    \caption{Retrieval success rate and mean n-gram corpus frequency ($\bar{F}_c$) by n-gram count deciles for the top-1 passage.}
+    \caption{Hits@1 and mean n-gram corpus frequency $\bar{F}_c$ by n-gram count deciles for the top-1 retrieved passage.}
     \label{tab:ngram-count}
     \begin{tabular}{lrrrr}
         \toprule
-        \textbf{Decile} & \textbf{Count Range} & \textbf{Queries} & \textbf{Success@1} & \textbf{Mean $\bar{F}_c$} \\
+        \textbf{Decile} & \textbf{Range} & \textbf{$N$} & \textbf{Hits@1} & \textbf{$\bar{F}_c$} \\
         \midrule
         D1  & 11--34 & 828  & 36.0\% & 384,785 \\
         D2  & 35--36 & 495  & 37.4\% & 378,346 \\
@@ -668,13 +660,13 @@ Across 6,515 queries, the number of n-grams matched to the top-1 retrieved passa
     \end{tabular}
 \end{table}
 
-The relationship between n-gram count and retrieval success is notably weak (Spearman $\rho = 0.040$, $p = 0.001$), exhibiting a non-monotonic, inverted-U pattern. Precision\@1 increases from 36.0\% for passages with low identifier counts (D1, $<$34) to a peak of 46.1\% in the fourth decile, subsequently plateauing and slightly declining to 41.6\% for passages in the highest decile (D10, $>$50). This trend suggests that while a minimum amount of evidence is required to identify a passage, accumulating n-grams beyond a moderate threshold yields diminishing returns and does not significantly influence precision\@1.
+The relationship between n-gram count and retrieval success is notably weak (Spearman $\rho = 0.040$, $p = 0.001$), exhibiting a non-monotonic, inverted-U pattern. Hits@1 increases from 36.0\% for passages with low identifier counts (D1, $<$34) to a peak of 46.1\% in the fourth decile, subsequently plateauing and slightly declining to 41.6\% for passages in the highest decile (D10, $>$50). This trend suggests that while a minimum amount of evidence is required to identify a passage, accumulating n-grams beyond a moderate threshold yields diminishing returns and does not significantly influence hit-rate.
 
-Here it is important to note that because the document score is computed as a summation of individual n-gram weights without normalization for quantity, in high-count scenarios, a passage may be ranked first not due to high precision, but because it contains a larger volume of moderately relevant vocabulary that the model associates with the query context. Notably, the mean n-gram corpus frequency ($\bar{F}_c$) remains stable across all deciles. This stability indicates that the performance plateau is not caused by the model reverting to generic "filler" tokens at higher counts. Instead, the lackluster retrieval quality likely stems from the scoring mechanism's inability to distinguish between a small set of highly discriminative n-grams and a large aggregate score from multiple, less specific identifiers.
+Notably, the mean n-gram corpus frequency ($\bar{F}_c$) remains stable across all deciles. This stability indicates that the hit-rate plateau is not caused by the model reverting to generic "filler" tokens at higher counts. Instead, the it likely stems from the scoring mechanism's inability to disambiguate between a small set of highly discriminative n-grams and the large aggregate score from multiple, less specific identifiers.
 
 \paragraph{Pseudo-Query Contribution in MINDER}
 \label{sec:pseudo-minder-contrib}
-In addition to examining \glsxtrshort{SEAL}'s n-gram distribution, we analyze the contribution of synthetic identifiers in the \glsxtrshort{MINDER} framework. As detailed in Section \ref{sec:minderarch}, \glsxtrshort{MINDER} incorporates pseudo-queries alongside titles and substrings to capture high-level semantic information. Our analysis of 6,515 queries reveals an interesting divergence between the quantity of generated pseudo-queries and their influence on the final ranking.
+Here we analyze the contribution of synthetic identifiers in the \glsxtrshort{MINDER} framework. As detailed in Section \ref{sec:minderarch}, \glsxtrshort{MINDER} incorporates pseudo-queries alongside titles and substrings to capture high-level semantic information. Our analysis of 6,515 queries reveals an interesting divergence between the quantity of generated pseudo-queries and their influence on the final ranking.
 
 Numerically, pseudo-queries constitute a negligible fraction of the generated identifiers, accounting for only 1.4\% of the total n-grams (379,080 out of 26.9 million). However, their contribution to the total accumulated score is disproportionately high, representing 27.7\% of the total score mass (91.1 million out of 328.5 million). This confirms that \glsxtrshort{MINDER}'s scoring mechanism successfully uses sparse but highly discriminative synthetic identifiers. %TODO recheck numbers
 
@@ -684,6 +676,8 @@ Numerically, pseudo-queries constitute a negligible fraction of the generated id
 \textbf{TODO}
 
 \subsection{Key Findings}
+
+\textbf{EVERYTHING IN THIS SUBSECTION IS OUTDATED AND NOT RELEVANT. TODO}
 
 The empirical analysis of \glsxtrshort{SEAL}'s retrieval outputs reveals several findings about the failure modes of n-gram-based generative retrieval systems and about SEAL itself.
 
@@ -706,6 +700,8 @@ Only 16.8\% of the top-1 retrieved passage includes the answer in any generated 
 The LLM-as-a-judge analysis reveals that 48.8\% of cases where the answer appears in a non-ground-truth passage represent genuine retrieval successes (Table~\ref{tab:llm-judge-results}). Adjusting for these annotation artifacts increases \glsxtrshort{SEAL}'s estimated top-2 recall from 52.4\% to 55.6\%--57.2\%. This finding has implications for interpreting retrieval benchmarks more broadly, as incomplete ground-truth annotations systematically penalize systems that find valid alternative evidence.
 
 \subsection{Scope and Limitations}
+
+\textbf{TODO UPDATE}
 
 Three important caveats apply to this analysis:
 
