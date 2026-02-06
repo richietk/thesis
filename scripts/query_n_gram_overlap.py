@@ -5,10 +5,11 @@ import pandas as pd
 from scipy.stats import spearmanr
 import sys
 import os
-from scripts.utils.utils import get_dataset_name, strip_ngram_markers, parse_ngrams, calculate_retrieval_metrics
+from transformers import GPT2TokenizerFast
+from utils.utils import get_dataset_name, strip_ngram_markers, parse_ngrams, calculate_retrieval_metrics
 
 def analyze_query_ngram_overlap_topk(datapath="data/seal_output.json"):
-    """Analyze lexical overlap between query and generated n-grams for top-1, top-2, and top-10."""
+    """Analyze token-level overlap between query and generated n-grams for top-1 and top-10."""
     script_name = "query_n_gram_overlap"
     print(f"running {script_name}")
 
@@ -17,19 +18,22 @@ def analyze_query_ngram_overlap_topk(datapath="data/seal_output.json"):
         output_dir = f"generated_data/{dataset_name}"
         os.makedirs(output_dir, exist_ok=True)
 
+        # Initialize tokenizer for token-level analysis
+        tokenizer = GPT2TokenizerFast.from_pretrained('gpt2')
+
         results = []
 
         with open(datapath, 'r', encoding='utf-8') as f:
             for entry in ijson.items(f, 'item'):
                 query = entry['question']
-                query_tokens = set(query.lower().split())
+                query_tokens = set(tokenizer.encode(query.lower(), add_special_tokens=False))
 
                 positive_ids = {ctx['passage_id'] for ctx in entry.get('positive_ctxs', [])}
                 ctxs = entry.get('ctxs', [])
                 if not ctxs:
                     continue
 
-                topk = [1, 2, 10]
+                topk = [1, 10]
                 topk_ctxs = {
                     k: ctxs[:k] if len(ctxs) >= k else ctxs[:]  # handle fewer than k retrieved
                     for k in topk
@@ -43,6 +47,7 @@ def analyze_query_ngram_overlap_topk(datapath="data/seal_output.json"):
                     'query': query,
                     'num_query_tokens': len(query_tokens),
                     'precision_at_1': metrics['precision_at_1'],
+                    'hits_at_10': metrics['hits_at_10'],
                     'r_precision': metrics['r_precision']
                 }
 
@@ -53,7 +58,7 @@ def analyze_query_ngram_overlap_topk(datapath="data/seal_output.json"):
                         all_ngrams.extend(parse_ngrams(ctx.get('keys', '')))
 
                     ngram_text = ' '.join([strip_ngram_markers(ng[0], datapath).lower() for ng in all_ngrams])
-                    ngram_tokens = set(ngram_text.split())
+                    ngram_tokens = set(tokenizer.encode(ngram_text, add_special_tokens=False))
 
                     intersection = query_tokens & ngram_tokens
                     union = query_tokens | ngram_tokens
@@ -76,12 +81,13 @@ def analyze_query_ngram_overlap_topk(datapath="data/seal_output.json"):
         total_queries = len(df)
 
         # Define decile-based coverage bins
-        topk = [1, 2, 10]
+        topk = [1, 10]
 
         # Collect output data
         output_data = {
             "total_queries": total_queries,
             "precision_at_1": float(df['precision_at_1'].mean()),
+            "hits_at_10": float(df['hits_at_10'].mean()),
             "r_precision": float(df['r_precision'].mean())
         }
 
@@ -103,7 +109,7 @@ def analyze_query_ngram_overlap_topk(datapath="data/seal_output.json"):
                     "decile": int(decile) + 1,
                     "coverage_min": float(cov_min),
                     "coverage_max": float(cov_max),
-                    "success_pct": float(success_rate * 100),
+                    f"hits_at_{k}": float(success_rate * 100),
                     "count": int(count)
                 })
 
