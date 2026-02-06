@@ -7,7 +7,7 @@ from scipy.stats import spearmanr
 import sys
 import os
 import matplotlib.pyplot as plt
-from scripts.utils.utils import get_dataset_name, strip_ngram_markers, parse_ngrams, calculate_retrieval_metrics
+from utils.utils import get_dataset_name, strip_ngram_markers, parse_ngrams, calculate_retrieval_metrics
 
 def analyze_ngram_length_bias(datapath="data/seal_output.json"):
     """Analyze over-generation of unigrams vs multi-grams with bins and deciles."""
@@ -31,7 +31,14 @@ def analyze_ngram_length_bias(datapath="data/seal_output.json"):
                 if not top_ctx:
                     continue
 
-                success_top1 = top_ctx['passage_id'] in positive_ids
+                hits_at_1 = top_ctx['passage_id'] in positive_ids
+
+                # Hits@2 and Hits@10
+                top2_ctxs = entry['ctxs'][:2] if len(entry.get('ctxs', [])) >= 2 else entry.get('ctxs', [])
+                hits_at_2 = any(ctx['passage_id'] in positive_ids for ctx in top2_ctxs)
+
+                top10_ctxs = entry['ctxs'][:10] if len(entry.get('ctxs', [])) >= 10 else entry.get('ctxs', [])
+                hits_at_10 = any(ctx['passage_id'] in positive_ids for ctx in top10_ctxs)
 
                 ngrams = parse_ngrams(top_ctx.get('keys', ''))
                 if not ngrams:
@@ -48,7 +55,9 @@ def analyze_ngram_length_bias(datapath="data/seal_output.json"):
                 results.append({
                     'query': query,
                     'unigram_frac': unigram_frac,
-                    'success_top1': success_top1,
+                    'hits_at_1': hits_at_1,
+                    'hits_at_2': hits_at_2,
+                    'hits_at_10': hits_at_10,
                     'num_ngrams': len(ngrams),
                     'avg_length': avg_length,
                     'precision_at_1': metrics['precision_at_1'],
@@ -68,25 +77,6 @@ def analyze_ngram_length_bias(datapath="data/seal_output.json"):
         mean_avg_length = float(df['avg_length'].mean())
         median_avg_length = float(df['avg_length'].median())
 
-        # Fixed-frequency bins
-        bins_data = []
-        bins = {
-            'Low (<0.7)': df['unigram_frac'] < 0.7,
-            'Medium (0.7–0.9)': (df['unigram_frac'] >= 0.7) & (df['unigram_frac'] <= 0.9),
-            'High (>0.9)': df['unigram_frac'] > 0.9
-        }
-
-        for label, mask in bins.items():
-            if mask.sum() == 0:
-                continue
-            bins_data.append({
-                "bin": label,
-                "count": int(mask.sum()),
-                "mean_unigram_frac": float(df.loc[mask, 'unigram_frac'].mean()),
-                "median_unigram_frac": float(df.loc[mask, 'unigram_frac'].median()),
-                "success_top1_pct": float(df.loc[mask, 'success_top1'].mean() * 100)
-            })
-
         # Decile analysis
         df_sorted = df.sort_values('unigram_frac')
         num_bins = 10
@@ -101,12 +91,15 @@ def analyze_ngram_length_bias(datapath="data/seal_output.json"):
                 "decile": i + 1,
                 "unigram_frac_min": float(bin_data['unigram_frac'].min()),
                 "unigram_frac_max": float(bin_data['unigram_frac'].max()),
-                "success_top1_pct": float(bin_data['success_top1'].mean() * 100),
+                "hits_at_1_pct": float(bin_data['hits_at_1'].mean() * 100),
+                "hits_at_2_pct": float(bin_data['hits_at_2'].mean() * 100),
+                "hits_at_10_pct": float(bin_data['hits_at_10'].mean() * 100),
                 "count": len(bin_data)
             })
 
-        # Correlation
-        corr, p_val = spearmanr(df['unigram_frac'], df['success_top1'])
+        # Correlations
+        corr_hits1, p_val_hits1 = spearmanr(df['unigram_frac'], df['hits_at_1'])
+        corr_hits10, p_val_hits10 = spearmanr(df['unigram_frac'], df['hits_at_10'])
 
         # Collect output data
         output_data = {
@@ -115,19 +108,23 @@ def analyze_ngram_length_bias(datapath="data/seal_output.json"):
             "median_unigram_frac": median_unigram_frac,
             "mean_avg_length": mean_avg_length,
             "median_avg_length": median_avg_length,
+            "hits_at_1": float(df['hits_at_1'].mean()),
+            "hits_at_2": float(df['hits_at_2'].mean()),
+            "hits_at_10": float(df['hits_at_10'].mean()),
             "precision_at_1": float(df['precision_at_1'].mean()),
             "r_precision": float(df['r_precision'].mean()),
-            "bins": bins_data,
             "deciles": deciles_data,
-            "spearman_correlation": float(corr),
-            "spearman_p_value": float(p_val)
+            "spearman_correlation_hits_at_1": float(corr_hits1),
+            "spearman_p_value_hits_at_1": float(p_val_hits1),
+            "spearman_correlation_hits_at_10": float(corr_hits10),
+            "spearman_p_value_hits_at_10": float(p_val_hits10)
         }
 
         # ------------------------------
-        # Plot: Unigram fraction vs Top-1 success (deciles)
+        # Plot: Unigram fraction vs Hits@1 (deciles)
         # ------------------------------
         bin_centers = []
-        success_rates = []
+        hits_at_1_rates = []
 
         for i in range(num_bins):
             start = i * bin_size
@@ -136,18 +133,18 @@ def analyze_ngram_length_bias(datapath="data/seal_output.json"):
             if len(bin_data) == 0:
                 continue
             u_mean = bin_data['unigram_frac'].mean()
-            t1 = 100 * bin_data['success_top1'].mean()
+            t1 = 100 * bin_data['hits_at_1'].mean()
             bin_centers.append(u_mean)
-            success_rates.append(t1)
+            hits_at_1_rates.append(t1)
 
         plt.figure(figsize=(8, 5))
-        plt.plot(bin_centers, success_rates, marker='o', linestyle='-', linewidth=3, markersize=8)
+        plt.plot(bin_centers, hits_at_1_rates, marker='o', linestyle='-', linewidth=3, markersize=8)
         plt.xlabel("Mean Unigram Fraction (decile)", fontsize=16, fontweight='bold')
-        plt.ylabel("Top-1 Success Rate (%)", fontsize=16, fontweight='bold')
-        plt.title("Unigram Fraction vs Top-1 Success (Deciles)", fontsize=18, fontweight='bold')
+        plt.ylabel("Hits@1 (%)", fontsize=16, fontweight='bold')
+        plt.title("Unigram Fraction vs Hits@1 (Deciles)", fontsize=18, fontweight='bold')
         plt.grid(True)
         plt.tight_layout()
-        plot_path = os.path.join(output_dir, f"{script_name}_unigram_frac_vs_success.png")
+        plot_path = os.path.join(output_dir, f"{script_name}_unigram_frac_vs_hits_at_1.png")
         plt.savefig(plot_path, dpi=300, bbox_inches='tight')
         plt.close()
 

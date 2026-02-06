@@ -261,7 +261,7 @@ Similarly, the previously mentioned forgetting and cold-start problems that aris
 
 Non-differentiable optimization, training instability, and struggles with learning fine-grained features that might occur during model training rather than inference are another category of issues we cannot account for in this thesis. Analysis of these failures would require access to training dynamics, gradient statistics, or intermediate checkpoints not available in inference outputs.
 
-\paragraph{Failure Mapping} %(Mapping the abstract failures from Section 2.5 to the observable metrics like unigram fraction) EITHER THINK THROUGH THAT OR REWORK THE WHOLE SUBSECTION OR DEBLOAT OR REWRITE OR DELETE OR IDK.
+\paragraph{Failure Mapping} %(Mapping the abstract failures from Section 2.5 to the observable metrics like unigram proportion) EITHER THINK THROUGH THAT OR REWORK THE WHOLE SUBSECTION OR DEBLOAT OR REWRITE OR DELETE OR IDK.
 \textbf{TOBEWRITTEN}
 \textbf{UPDATE AND REWORK THIS TO FIT THIS BUT THIS SHOULD BE IN THE METHODOLOGY}
 \subsection{Failure Analysis }
@@ -516,24 +516,45 @@ We can see that in D1, where the top-1 passage's top-5 scored n-grams average fr
 
 Notably, using average frequency across all n-grams (instead of top-5) shows no significant correlation with performance (\glsxtrshort{SEAL}: $\rho=0.029,\space p=0.02$; \glsxtrshort{MINDER}: $\rho=-0.008,\space p=0.51$), suggesting that the presence of highly-ranked generic terms, rather than overall genericity, drives performance degradation. This happens because such high-frequency n-grams match many topically-related passages, diluting discriminative power among passages. While \glsxtrshort{SEAL}'s scoring function theoretically downweights common n-grams through the $P(n)$ term in Equation~\ref{eq:ngram-score}, this analysis reveals that high-frequency n-grams can still dominate the top-ranked positions. \glsxtrshort{MINDER} does not penalize high frequency n-grams. Instead, it artifically boosts the score of pseudoqueries \cite{li2023multiviewidentifiersenhancedgenerative}.
 
-\paragraph{Bias Toward Short Identifiers}
-\label{sec:failure-7}
+\paragraph{Preference for Unigrams \& Effects}
+\label{sec:unigrams}
 
-N-gram length bias examines whether \glsxtrshort{SEAL} disproportionately generates short n-grams (unigrams and bigrams) rather than longer, more distinctive multi-word sequences. Longer n-grams generally provide stronger discriminative power, as multi-word phrases are far less likely to appear across multiple passages than individual words. For example, the unigram ``president'' may occur in thousands of Wikipedia passages, whereas the 4-gram ``youngest president in history'' identifies a far more specific set of passages.
+Here we examine whether the analyzed systems disproportionately generate short n-grams (unigrams and bigrams) rather than longer, more distinctive multi-word sequences. Longer n-grams generally provide stronger discriminative power, as multi-word phrases are far less likely to appear across multiple passages than individual words.
 
-We quantify this bias by measuring the fraction of generated n-grams that consist of a single token in the top-1 retrieved passage. Across 6,515 queries, the mean unigram fraction is 0.869 (median 0.878), and the average n-gram length is 1.28 tokens (median 1.24), indicating that, on average, nearly 87\% of generated n-grams are unigrams. This indicates a strong skew toward short n-grams despite \glsxtrshort{SEAL}’s ability to generate longer sequences.
+We quantify this generation bias by measuring the fraction of generated n-grams that consist of a single token in the top-1 retrieved passage. Across 6,515 queries, the mean unigram proportion is 0.869 (median 0.878) for \glsxtrshort{SEAL}, 0.853 (0.863) for \glsxtrshort{MINDER}, respectively, and the average n-gram length is 1.28 words (median 1.24) for \glsxtrshort{SEAL}, and 1.48 (1.35) for \glsxtrshort{MINDER}, respectively. indicating that, on average, more than four-fifth of generated n-grams are unigrams for both systems. This indicates a strong skew toward short n-grams despite \glsxtrshort{SEAL}’s ability to generate longer sequences and \glsxtrshort{MINDER} specifically generated long pseudoqueries occasionally being used as n-grams.
 
-We further stratify queries into fixed bins based on the unigram fraction. Queries in the low unigram fraction bin (<0.7) achieve a success rate of 80.8\%, compared to 48.3\% for the medium bin (0.7–0.9) and 27.5\% for the high bin (>0.9). This indicates that passages with a higher proportion of multi-word n-grams are substantially more likely to retrieve the correct document, while passages dominated by unigrams correspond to poorer retrieval performance. Interestingly, only 130 queries fit into the low unigram fraction bin, 4103 into the medium, and 2282 into the high fraction bin, consistent with the high mean unigram fraction of 0.869.
+We categorize queries into deciles based on the unigram proportion. Queries in D1 have lower unigram proportion than in D10 and achieve considerably higher hitrate both with $k=1,\space k=10$, as evidenced by Table \ref{tab:unigram-dec}. This indicates that passages with a higher proportion of multi-word n-grams are substantially more likely to retrieve the correct document, while passages dominated by unigrams correspond to poorer retrieval performance.
 
-Decile-based binning of the unigram fraction similarly shows the success rate decline as the unigram fraction increases, from 67.7\% in the lowest decile (0.51–0.78) to 22.6\% in the highest decile (0.94–1.0). The Spearman correlation $\rho$ between unigram fraction and precision\@1 is $-0.278 \space (p<0.001)$, indicating a statistically significant, but moderate negative relationship between unigram dominance and retrieval effectiveness.
+\begin{table}[htbp]
+    \centering
+    \caption{Hits@$k$ success rate by unigram proportion deciles.}
+    \label{tab:unigram-dec}
+    \begin{tabular}{l|rr|rr}
+        \toprule
+        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
+        \textbf{Decile} & \textbf{Div. Range} & \textbf{H@1 / H@10} & \textbf{Div. Range} & \textbf{H@1 / H@10} \\
+        \midrule
+        D1  & 0.51--0.78 & 67.7\% / 91.2\% & 0.48--0.76 & 73.4\% / 92.8\% \\
+        D2  & 0.78--0.82 & 61.6\% / 87.1\% & 0.76--0.80 & 69.4\% / 92.2\% \\
+        D3  & 0.82--0.84 & 48.8\% / 82.5\% & 0.80--0.83 & 56.8\% / 85.6\% \\
+        D5  & 0.86--0.88 & 44.2\% / 81.0\% & 0.85--0.86 & 47.8\% / 81.9\% \\
+        D8  & 0.91--0.92 & 28.4\% / 69.9\% & 0.89--0.91 & 31.8\% / 73.7\% \\
+        D10 & 0.94--1.00 & 22.6\% / 60.5\% & 0.93--1.00 & 21.2\% / 55.9\% \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
-The graph below shows the success rate of the top-1 retrieved passage mapped with the mean fraction of unigrams among the generated n-grams for each query, grouped by decile bins. Higher unigram fractions correlate with lower retrieval success, with success rates declining from 67.7\% in the lowest decile to 22.6\% in the highest decile ($\rho = -0.278$, $p < 0.001$)
+The results are interesting for \glsxtrshort{MINDER} specifically, as \glsxtrshort{MINDER} is able to use its generated pseudoqueries (which tend to be longer) as n-grams. This correlates with the results presented below at Section \ref{sec:pseudo-minder-contrib}, indicating that pseudoqueries appearing in n-grams provides the retrieval model with a higher hitrate. \glsxtrshort{MINDER} also shows a higher hit rate at lower unigram proportion deciles.
+
+The Spearman $\rho$ between unigram proportion and hits@k for \glsxtrshort{SEAL} is $\rho - 0.278$ for $k=1$ and  $\rho - 0.220$ for $k=10$, while for \glsxtrshort{MINDER} is $\rho - 0.330$ for $k=1$ and  $\rho - 0.260$ for $k=10$. Each value is statistically significant at $p<0.001$.
+
+To understand the results more illustratively, we summarized the table in the following chart, clearly showing \glsxtrshort{MINDER}'s marginally higher success rate at low unigram proportions. The hit rates converge at higher unigram proportions.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.7\textwidth]{assets/unigram_line_plot.png}
-    \caption{precision\@1 rate by mean fraction of unigrams among n-grams generated (decile bins)}
+    \includegraphics[width=0.7\textwidth]{assets/ngram_length_bias_comparison.png}
 \end{figure}
+
 
 \paragraph{Semantic Convergence vs. Identifier Diversity}
 \label{sec:failure-5}
@@ -684,7 +705,7 @@ The relationship between n-gram count and retrieval success is notably weak (Spe
 Here it is important to note that because the document score is computed as a summation of individual n-gram weights without normalization for quantity, in high-count scenarios, a passage may be ranked first not due to high precision, but because it contains a larger volume of moderately relevant vocabulary that the model associates with the query context. Notably, the mean n-gram corpus frequency ($\bar{F}_c$) remains stable across all deciles. This stability indicates that the performance plateau is not caused by the model reverting to generic "filler" tokens at higher counts. Instead, the lackluster retrieval quality likely stems from the scoring mechanism's inability to distinguish between a small set of highly discriminative n-grams and a large aggregate score from multiple, less specific identifiers.
 
 \paragraph{Pseudo-Query Contribution in MINDER}
-
+\label{sec:pseudo-minder-contrib}
 In addition to examining \glsxtrshort{SEAL}'s n-gram distribution, we analyze the contribution of synthetic identifiers in the \glsxtrshort{MINDER} framework. As detailed in Section \ref{sec:minderarch}, \glsxtrshort{MINDER} incorporates pseudo-queries alongside titles and substrings to capture high-level semantic information. Our analysis of 6,515 queries reveals an interesting divergence between the quantity of generated pseudo-queries and their influence on the final ranking.
 
 Numerically, pseudo-queries constitute a negligible fraction of the generated identifiers, accounting for only 1.4\% of the total n-grams (379,080 out of 26.9 million). However, their contribution to the total accumulated score is disproportionately high, representing 27.7\% of the total score mass (91.1 million out of 328.5 million). This confirms that \glsxtrshort{MINDER}'s scoring mechanism successfully uses sparse but highly discriminative synthetic identifiers. %TODO recheck numbers
