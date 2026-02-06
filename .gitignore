@@ -1,4 +1,5 @@
 .vscode
+.claude
 temp_data/
 generated_data/
 papers/
@@ -29,6 +30,7 @@ notes.txt
 notes_to_self.md
 
 scripts/__pycache__/
+scripts/utils/__pycache__/
 
 generated_data_old/
 

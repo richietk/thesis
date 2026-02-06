@@ -556,35 +556,35 @@ To understand the results more illustratively, we summarized the table in the fo
 \end{figure}
 
 
-\paragraph{Semantic Convergence vs. Identifier Diversity}
+\paragraph{Overlapping N-gram Tokens}
 \label{sec:failure-5}
 
-We originally hypothesized that cases where the model produces semantically redundant n-grams with high token overlap would constitute a failure mode by inflating scores without providing new evidence. To test this, we measure a ratio defined as the number of unique tokens divided by the total number of tokens across all generated n-grams for the top-1 retireved query, which we will refer to as ``diversity''.
+We initially hypothesized that cases where the model produces semantically redundant n-grams with high token overlap would constitute a failure mode by inflating scores without providing new evidence. To test this, we measure a ratio defined as the number of unique tokens divided by the total number of tokens across all generated n-grams for the top-1 retrieved query, which we will refer to as ``diversity''. We split up the n-grams into tokens using \texttt{GPT2TokenizerFast}.
 
-Contrary to our initial hypothesis, the results reveal a negative correlation between diversity and retrieval success. For \glsxtrshort{SEAL}, we observe a Spearman correlation of $\rho = -0.227$ ($p < 10^{-76}$), where queries with most repetitive n-grams (Decile 1, diversity 0.50--0.78) achieved a 59.1\% success rate, compared to just 25.7\% for the most diverse queries (Decile 10, diversity 0.98--1.00).
+Table \ref{tab:token-diversity-ratio} illustrates the results. Contrary to our initial hypothesis, the results reveal a  negative correlation between diversity and hits@k. For \glsxtrshort{SEAL}, $\rho = -0.111$ for  $k=1$ and $\rho = -0.101 $ for  $k=10$. For \glsxtrshort{MINDER}, the Spearman correlations are $\rho = -0.289$ and $\rho = -0.242$, respectively. All values are statistically significant at $p<0.001$.
 
-\begin{table}[htbp]
+\begin{table}[H]
     \centering
-    \caption{Top-1 retrieval success rate by token diversity deciles (unique / total tokens).}
-    \label{tab:token-diversity}
+    \caption{Hits@k by token-based diversity ratio deciles (unique / total tokens).}
+    \label{tab:token-diversity-ratio}
     \begin{tabular}{l|rr|rr}
         \toprule
-        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}} (Mean: 0.88)} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}} (Mean: 0.79)} \\
-        \textbf{Decile} & \textbf{Div.\ Range} & \textbf{Success} & \textbf{Div.\ Range} & \textbf{Success} \\
+        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
+        \textbf{Decile} & \textbf{Div. Range} & \textbf{H@1 / H@10} & \textbf{Div. Range} & \textbf{H@1 / H@10} \\
         \midrule
-        D1  & 0.50--0.78 & 59.1\% & 0.30--0.58 & 70.8\% \\
-        D2  & 0.78--0.82 & 55.1\% & 0.58--0.67 & 60.9\% \\
-        D3  & 0.82--0.85 & 52.2\% & 0.67--0.74 & 53.9\% \\
-        D5  & 0.87--0.89 & 43.2\% & 0.79--0.83 & 51.5\% \\
-        D8  & 0.93--0.95 & 31.3\% & 0.89--0.92 & 34.0\% \\
-        D10 & 0.98--1.00 & 25.7\% & 0.95--1.00 & 20.6\% \\
+        D1  & 0.36--0.48 & 52.6\% / 84.4\% & 0.28--0.56 & 70.9\% / 91.4\% \\
+        D2  & 0.48--0.49 & 46.3\% / 81.4\% & 0.56--0.64 & 64.3\% / 88.6\% \\
+        D3  & 0.49--0.50 & 43.1\% / 78.2\% & 0.64--0.71 & 53.2\% / 85.6\% \\
+        D5  & 0.51--0.52 & 40.4\% / 73.9\% & 0.76--0.79 & 53.7\% / 84.1\% \\
+        D8  & 0.53--0.54 & 34.9\% / 68.1\% & 0.86--0.88 & 32.2\% / 73.2\% \\
+        D10 & 0.56--0.63 & 32.4\% / 69.8\% & 0.92--1.00 & 22.0\% / 55.6\% \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-This trend is also visible in \glsxtrshort{MINDER} ($\rho = -0.279$, $p < 0.001$), which exhibits a lower mean diversity of 0.79 compared to \glsxtrshort{SEAL}'s 0.88. This is expected, as \glsxtrshort{MINDER}'s generates titles, pseudo-queries, and substrings simultaneously, which indicates that the model frequently repeats key tokens across these different identifier views. The highest success rate (70.8\%) is found in the lowest diversity decile, which suggests that the model is able to reinforce a specific semantic cluster through multiview identifiers.
+It is interesting to note that \glsxtrshort{MINDER} has a considerably higher success rate at low diversity scenarios. This is expected, as \glsxtrshort{MINDER}'s generates titles, pseudo-queries, and substrings simultaneously, meaning that the model frequently repeats key tokens across these different identifier views. The highest success rate is found in the lowest diversity decile, which suggests that the model is able to reinforce a specific semantic cluster through multiview identifiers.
 
-These findings suggest that token repetition is not a redundancy failure, but rather a signal of model certainty. When \glsxtrshort{SEAL} or \glsxtrshort{MINDER} is highly confident in a target document, it generates multiple overlapping n-grams that concentrate score on a specific semantic cluster. In contrast, high identifier diversity often indicates a lack of model confidence, where the model produces a wide variety of topically related but lexically distinct tokens that fail to converge.
+These findings suggest that token repetition is not a redundancy failure, but rather a signal of model certainty. When \glsxtrshort{SEAL} and \glsxtrshort{MINDER} are highly confident in a target document, it generates multiple overlapping n-grams that concentrate score on a specific semantic cluster. In contrast, high identifier diversity indicates a lack of model confidence, where the model produces a wide variety of topically related but lexically distinct tokens that fail to converge.
 
 
 \paragraph{Insufficient Query Coverage}

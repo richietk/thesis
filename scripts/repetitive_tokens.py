@@ -5,7 +5,8 @@ from collections import Counter
 from scipy.stats import spearmanr
 import sys
 import os
-from scripts.utils.utils import get_dataset_name, strip_ngram_markers, parse_ngrams, calculate_retrieval_metrics
+from transformers import GPT2TokenizerFast
+from utils.utils import get_dataset_name, strip_ngram_markers, parse_ngrams, calculate_retrieval_metrics
 
 def analyze_repetitive_generation(datapath="data/seal_output.json"):
     """Analyze token diversity in generated n-grams."""
@@ -16,6 +17,9 @@ def analyze_repetitive_generation(datapath="data/seal_output.json"):
         dataset_name = get_dataset_name(datapath)
         output_dir = f"generated_data/{dataset_name}"
         os.makedirs(output_dir, exist_ok=True)
+
+        # Initialize tokenizer for token-level analysis
+        tokenizer = GPT2TokenizerFast.from_pretrained('gpt2')
 
         results = []
 
@@ -36,7 +40,8 @@ def analyze_repetitive_generation(datapath="data/seal_output.json"):
                     continue
 
                 all_ngram_text = ' '.join([strip_ngram_markers(ng[0], datapath) for ng in ngrams])
-                all_tokens = all_ngram_text.split()
+                # Tokenize at subword level using GPT-2 tokenizer
+                all_tokens = tokenizer.encode(all_ngram_text, add_special_tokens=False)
                 if not all_tokens:
                     continue
 
@@ -59,6 +64,7 @@ def analyze_repetitive_generation(datapath="data/seal_output.json"):
                     'diversity_ratio': diversity_ratio,
                     'max_repetition': max_repetition,
                     'precision_at_1': metrics['precision_at_1'],
+                    'hits_at_10': metrics['hits_at_10'],
                     'r_precision': metrics['r_precision']
                 })
 
@@ -81,6 +87,7 @@ def analyze_repetitive_generation(datapath="data/seal_output.json"):
             if mask.sum() == 0:
                 continue
             success_rate = df.loc[mask, 'success'].mean()
+            hits10_rate = df.loc[mask, 'hits_at_10'].mean()
             div_min = df.loc[mask, 'diversity_ratio'].min()
             div_max = df.loc[mask, 'diversity_ratio'].max()
             count = mask.sum()
@@ -89,25 +96,32 @@ def analyze_repetitive_generation(datapath="data/seal_output.json"):
                 "decile": int(decile) + 1,
                 "diversity_min": float(div_min),
                 "diversity_max": float(div_max),
-                "success_pct": float(success_rate * 100),
+                "hits_at_1": float(success_rate * 100),
+                "hits_at_10": float(hits10_rate * 100),
                 "count": int(count)
             })
 
         # Drop the temporary column
         df = df.drop(columns=['diversity_decile'])
 
-        # Correlation
-        corr, p_val = spearmanr(df['diversity_ratio'], df['success'])
+        # Correlation with hits@1
+        corr_hits1, p_val_hits1 = spearmanr(df['diversity_ratio'], df['success'])
+
+        # Correlation with hits@10
+        corr_hits10, p_val_hits10 = spearmanr(df['diversity_ratio'], df['hits_at_10'])
 
         # Collect output data
         output_data = {
             "total_queries": len(df),
             "mean_diversity": mean_diversity,
             "precision_at_1": float(df['precision_at_1'].mean()),
+            "hits_at_10": float(df['hits_at_10'].mean()),
             "r_precision": float(df['r_precision'].mean()),
             "deciles": deciles_data,
-            "spearman_correlation": float(corr),
-            "spearman_p_value": float(p_val)
+            "spearman_correlation_hits1": float(corr_hits1),
+            "spearman_p_value_hits1": float(p_val_hits1),
+            "spearman_correlation_hits10": float(corr_hits10),
+            "spearman_p_value_hits10": float(p_val_hits10)
         }
 
         # Write JSON output

@@ -184,23 +184,27 @@ class DecileTablePrinter:
 
 def calculate_retrieval_metrics(retrieved_ids, gold_ids):
     """
-    Calculate precision@1 and R-precision for retrieval results.
+    Calculate precision@1, hits@10, and R-precision for retrieval results.
 
     Args:
         retrieved_ids: List of passage IDs from SEAL 'ctxs' (in retrieval order)
         gold_ids: Set of ground truth passage IDs from 'positive_ctxs'
 
     Returns:
-        dict: Contains "precision_at_1" and "r_precision"
+        dict: Contains "precision_at_1", "hits_at_10", and "r_precision"
     """
     if not gold_ids:
-        return {"precision_at_1": 0.0, "r_precision": 0.0}
+        return {"precision_at_1": 0.0, "hits_at_10": 0.0, "r_precision": 0.0}
 
     if not retrieved_ids:
-        return {"precision_at_1": 0.0, "r_precision": 0.0}
+        return {"precision_at_1": 0.0, "hits_at_10": 0.0, "r_precision": 0.0}
 
     # Precision@1: 1 if top retrieved document is relevant, else 0
     p1 = 1.0 if retrieved_ids[0] in gold_ids else 0.0
+
+    # Hits@10: 1 if any of top-10 retrieved documents are relevant, else 0
+    top_10 = retrieved_ids[:10]
+    hits_10 = 1.0 if any(pid in gold_ids for pid in top_10) else 0.0
 
     # R-Precision: precision at R where R = number of relevant documents
     R = len(gold_ids)
@@ -210,5 +214,6 @@ def calculate_retrieval_metrics(retrieved_ids, gold_ids):
 
     return {
         "precision_at_1": p1,
+        "hits_at_10": hits_10,
         "r_precision": r_prec
     }
