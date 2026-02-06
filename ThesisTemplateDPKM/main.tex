@@ -592,12 +592,12 @@ These findings suggest that token repetition is not a redundancy failure, but ra
 
 Here we measure the lexical alignment between query terms and the n-grams. We use \texttt{GPT2TokenizerFast} for this. High overlap indicates that the model successfully generated n-grams containing query-relevant terms, while low overlap suggests a mismatch where generated n-grams, though potentially topically related, do not directly address the query's specific terms. We quantify this using the fraction of query tokens that appear in any generated n-gram in the highest-scored retrieved passage, denoted by $C(Q, G_n)$, where $Q$ denotes the query tokens and $G_n$ denotes the tokens of the generated n-grams.
 
-Our analysis across 6,515 queries shows that the token-level lexical overlap varies substantially across the top-1 retrieved passages. As visible in Table~\ref{tab:query_ngram_overlap}, there is a positive correlation between lexican overlap and retrieval success. For \glsxtrshort{SEAL}, $\rho = 0.323$ for  $k=1$ and $\rho = 0.190 $ for  $k=10$. For \glsxtrshort{MINDER}, the Spearman correlations are $\rho = 0.380$ and $\rho = 0.202$, respectively. All values are statistically significant at $p<0.001$. 
+Our analysis across 6,515 queries shows that the token-level lexical overlap varies substantially across the top-1 retrieved passages. As visible in Table~\ref{tab:p-unique-coverage}, there is a positive correlation between lexican overlap and retrieval success. For \glsxtrshort{SEAL}, $\rho = 0.323$ for  $k=1$ and $\rho = 0.190 $ for  $k=10$. For \glsxtrshort{MINDER}, the Spearman correlations are $\rho = 0.380$ and $\rho = 0.202$, respectively. All values are statistically significant at $p<0.001$. 
 
 \begin{table}[H]
     \centering
     \caption{Hits@$k$ by $C(Q, G_n)$ deciles.}
-    \label{tab:query_ngram_overlap}
+    \label{tab:p-unique-coverage}
     \begin{tabular}{l|rr|rr}
         \toprule
         & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
@@ -613,15 +613,35 @@ Our analysis across 6,515 queries shows that the token-level lexical overlap var
     \end{tabular}
 \end{table}
 
-As visible from Table~\ref{tab:query_ngram_overlap}, the hit rate of \glsxtrshort{SEAL} and \glsxtrshort{MINDER} are relatively similar, and are positively correlated with $C(Q, G_n)$. Similar to other failure modes, low query coverage typically arises when the model generates semantically related but lexically distinct n-grams (e.g., for a query containing ``automobile,'' the model could generate n-grams with ``car'') or when the model generates generic topical n-grams that lack the specific query terms needed to isolate the answer (e.g., a query about ``Victorian architecture in London'' generates only ``architecture'' and ``London'').
+As visible from Table~\ref{tab:p-unique-coverage}, the hit rate of \glsxtrshort{SEAL} and \glsxtrshort{MINDER} are relatively similar, and are positively correlated with $C(Q, G_n)$. Similar to other failure modes, low query coverage typically arises when the model generates semantically related but lexically distinct n-grams (e.g., for a query containing ``automobile,'' the model could generate n-grams with ``car'') or when the model generates generic topical n-grams that lack the specific query terms needed to isolate the answer (e.g., a query about ``Victorian architecture in London'' generates only ``architecture'' and ``London'').
 
 
-\paragraph{Direct vs. Indirect Document Identification}
-\label{sec:failure-4}
+\paragraph{Answer as N-gram}
+\label{sec:answer-ngram}
 
-We analyze whether retrieval success depends on the model's ability to generate the specific answer string as an identifier, or whether it relies on the surrounding context. While generating the answer string provides a valuable anchor for a passage, the primary goal of \glsxtrshort{SEAL} is document identification, not direct question answering.
+We analyze whether retrieval success correlates with the model's ability to generate the specific answer string as an identifier, or whether it relies on the surrounding context. While generating the answer string provides a valuable anchor for a passage, the primary goal of \glsxtrshort{gr} is document identification, not direct question answering.
 
-Of 6,515 queries, the answer string appears in at least one generated n-gram for the top-1 retrieved passage in only 1,096 case (16.8\%). When this ``direct identification'' occurs, the success rate is exceptionally high at 75.0\%. However, in the vast majority of cases (83.2\%), the model's top-1 retrieved passage the answer string is never generated. In these cases, the success rate is 34.9\%.
+Table \ref{tab:answer-presence-impact} illustrates the results of out analysis. We looked at whether the top-scored retrieved passage contained the answer string or not and what the Hits@1 value is for these cases. The results are mostly similar between \glsxtrshort{SEAL} and \glsxtrshort{MINDER}, with most top-1 ranked retrieved passages not containing the answer string, yet when they do, the respective query's Hits@1 rate doubles.
+\textbf{TODO FINISH THIS. maybe try to do Of passages that have the answer, what \% are ground truth? and Of ground truth passages, what \% have the answer?}
+\begin{table}[htbp]
+    \centering
+    \caption{Performance metrics by answer string presence.}
+    \label{tab:answer-presence-impact}
+    \begin{tabular}{l|rr|rr}
+        \toprule
+        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
+        \textbf{Metric} & \textbf{Ans. Pres.} & \textbf{Ans. Abs.} & \textbf{Ans. Pres.} & \textbf{Ans. Abs.} \\
+        \midrule
+        \textit{Query Level (top-1 psg)} & & & & \\
+        Queries ($N$)       & 1,096  & 5,419  & 1,457  & 5,058  \\
+        Hits@1              & 75.0\% & 34.9\% & 75.4\% & 38.2\% \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+
+\textbf{BELOW IS OUTDATED}
+ Of 6,515 queries, the answer string appears in at least one generated n-gram for the top-1 retrieved passage in only 1,096 case (16.8\%). When this ``direct identification'' occurs, the success rate is exceptionally high at 75.0\%. However, in the vast majority of cases (83.2\%), the model's top-1 retrieved passage the answer string is never generated. In these cases, the success rate is 34.9\%.
 
 This finding suggests that while direct identification is a much stronger predictor of success ($\Delta = 40.1$ pp), the model is able to identify the semantic environment in which an answer is likely to be in. For instance, for a query about a Supreme Court justice, the model may successfully retrieve the correct passage by generating contextual n-grams like ``Supreme Court,'' ``nominated by,'' or ``associate justice,'' even if it never generates the justice's name itself.  However, the performance gap between the two cases suggests that when the model fails to generate the specific answer as an identifier, the remaining contextual cues are oftentimes too generic to distinguish the correct passage from topically similar alternatives.
 

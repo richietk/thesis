@@ -4,7 +4,7 @@ import pandas as pd
 from pathlib import Path
 import sys
 import os
-from scripts.utils.utils import strip_ngram_markers, get_dataset_name, parse_ngrams, calculate_retrieval_metrics
+from utils.utils import strip_ngram_markers, get_dataset_name, parse_ngrams, calculate_retrieval_metrics
 
 def analyze_answer_coverage(datapath="data/seal_output.json"):
     """Analyze whether answer string appears in generated n-grams."""
@@ -17,6 +17,7 @@ def analyze_answer_coverage(datapath="data/seal_output.json"):
         os.makedirs(output_dir, exist_ok=True)
 
         results = []
+        passage_results = []
 
         with open(datapath, 'r', encoding='utf-8') as f:
             for entry in ijson.items(f, 'item'):
@@ -51,9 +52,27 @@ def analyze_answer_coverage(datapath="data/seal_output.json"):
                     'success': success,
                     'answer_in_ngrams': answer_in_ngrams,
                     'num_ngrams': len(ngrams),
-                    'precision_at_1': metrics['precision_at_1'],
+                    'hits@1': metrics['precision_at_1'],
                     'r_precision': metrics['r_precision']
                 })
+
+                # Passage-level analysis: check top-10 retrieved passages
+                for ctx in entry.get('ctxs', [])[:10]:
+                    passage_id = ctx['passage_id']
+                    is_positive = passage_id in positive_ids
+
+                    ngrams_p = parse_ngrams(ctx.get('keys', ''))
+                    if not ngrams_p:
+                        continue
+
+                    ngram_text_p = ' '.join([strip_ngram_markers(ng[0], datapath).lower() for ng in ngrams_p])
+                    answer_in_passage = any(ans.lower() in ngram_text_p for ans in answers)
+
+                    passage_results.append({
+                        'passage_id': passage_id,
+                        'answer_in_ngrams': answer_in_passage,
+                        'is_positive': is_positive
+                    })
 
         df = pd.DataFrame(results)
 
@@ -65,21 +84,51 @@ def analyze_answer_coverage(datapath="data/seal_output.json"):
         answer_present = df[df['answer_in_ngrams']]
         answer_absent = df[~df['answer_in_ngrams']]
 
+        # Passage-level statistics
+        passage_df = pd.DataFrame(passage_results)
+        passages_with_answer = passage_df[passage_df['answer_in_ngrams']]
+        passages_without_answer = passage_df[~passage_df['answer_in_ngrams']]
+
+        # 2x2 Contingency Table
+        # A: has answer AND is ground truth
+        # B: has answer AND NOT ground truth
+        # C: no answer AND is ground truth
+        # D: no answer AND NOT ground truth
+        A = int(passages_with_answer['is_positive'].sum())
+        B = len(passages_with_answer) - A
+        C = int(passages_without_answer['is_positive'].sum())
+        D = len(passages_without_answer) - C
+
+        # Standard correlation metrics
+        precision = A / (A + B) if (A + B) > 0 else 0.0
+        recall = A / (A + C) if (A + C) > 0 else 0.0
+        odds_ratio = (A * D) / (B * C) if (B > 0 and C > 0) else float('inf')
+
         # Collect output data
         output_data = {
-            "total_queries": len(df),
-            "answer_in_ngrams_count": len(answer_present),
-            "answer_in_ngrams_pct": float(100 * len(answer_present) / len(df)),
-            "answer_not_in_ngrams_count": len(answer_absent),
-            "answer_not_in_ngrams_pct": float(100 * len(answer_absent) / len(df)),
-            "success_rate_answer_present": float(answer_present['success'].mean()),
-            "success_rate_answer_absent": float(answer_absent['success'].mean()),
-            "precision_at_1": float(df['precision_at_1'].mean()),
-            "r_precision": float(df['r_precision'].mean()),
-            "precision_at_1_answer_present": float(answer_present['precision_at_1'].mean()) if len(answer_present) > 0 else 0.0,
-            "precision_at_1_answer_absent": float(answer_absent['precision_at_1'].mean()) if len(answer_absent) > 0 else 0.0,
-            "r_precision_answer_present": float(answer_present['r_precision'].mean()) if len(answer_present) > 0 else 0.0,
-            "r_precision_answer_absent": float(answer_absent['r_precision'].mean()) if len(answer_absent) > 0 else 0.0
+            # Query-level analysis (top-1 passage)
+            "query_level": {
+                "total_queries": len(df),
+                "answer_in_top1_count": len(answer_present),
+                "answer_in_top1_pct": float(100 * len(answer_present) / len(df)),
+                "answer_not_in_top1_count": len(answer_absent),
+                "answer_not_in_top1_pct": float(100 * len(answer_absent) / len(df)),
+                "hits@1": float(df['hits@1'].mean()),
+                "hits@1_answer_present": float(answer_present['hits@1'].mean()) if len(answer_present) > 0 else 0.0,
+                "hits@1_answer_absent": float(answer_absent['hits@1'].mean()) if len(answer_absent) > 0 else 0.0
+            },
+            # Passage-level analysis (top-20 passages)
+            "passage_level": {
+                "contingency_table": {
+                    "has_answer_and_ground_truth": A,
+                    "has_answer_not_ground_truth": B,
+                    "no_answer_and_ground_truth": C,
+                    "no_answer_not_ground_truth": D
+                },
+                "precision": float(precision),
+                "recall": float(recall),
+                "odds_ratio": float(odds_ratio) if odds_ratio != float('inf') else "inf"
+            }
         }
 
         # Write JSON output
