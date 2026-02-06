@@ -486,15 +486,35 @@ When counting only YES verdicts, \glsxtrshort{SEAL}'s effective hits@2 increases
 Using the identified failure modes in Table \ref{tab:failure-summary}, we present the analysis results pertaining to generation below.
 
 \paragraph{Low Lexical Specificity}
-\label{sec:failure-1}
+\label{sec:failure-low-lex-spec}
 
-N-gram corpus frequency reflects how distinctive a generated n-gram is. Rare n-grams provide stronger evidence for specific documents, while common n-grams match many topically-related passages. We analyze the average corpus frequency of the top-scored n-grams (ranked by \glsxtrshort{SEAL}'s scoring function) to determine whether high-frequency n-grams contribute to retrieval failures.
+N-gram corpus frequency reflects how distinctive a generated n-gram is. Rare n-grams provide stronger evidence for specific documents, while common n-grams match many topically-related passages. We analyze the average corpus frequency of the top-scored n-grams to determine whether the frequency (and thus score) of n-grams contribute to retrieval outcomes.
 
-Across 6,515 queries, the average mean corpus frequency of the top-5 scored n-grams is 28753. When stratified by frequency, for queries whose rank-1 retrieved passage has an average corpus frequency of its top-5 scored n-grams below 500, 59.8\% of those queries contain at least one positive (ground truth) passage (somewhere) in the top-1, 69.2\% in the top-2, 88.3\% in the top-10 retrieved results. Interestingly, for queries whose rank-1 retrieved passage has an average corpus frequency of its top-5 scored n-grams over 5000, 32.5\% of those queries contain at least one positive (ground truth) passage (somewhere) in the top-1, 43.7\% in the top-2, 70.1\% in the top-10 retrieved results. Please note thresholds like 500 and 5000 are arbitrary and can be freely adjusted. We can observe a significant drop in retrieval quality when the lexical uniqueness of the top scoring n-grams increase. Across all queries, the average corpus frequency of the top-5 scored n-grams in the rank-1 passage is weakly negatively correlated with precision\@1 (Spearman $\rho = -0.238$, $p < 0.001$).
+Across 6,515 queries, the average mean corpus frequency of the top-5 scored n-grams for the top-1 retrieved passage is 28753 for \glsxtrshort{SEAL} and 21310 for \glsxtrshort{MINDER}, while the same value using all-ngrams for such passage is 382,136 and 497,399, respectively. $k=5$ was arbitrarily selected as a representation of the n-grams with the strongest influence on the overall score of each passage.
 
-This finding confirms that when \glsxtrshort{SEAL} generates high-frequency n-grams as its top-ranked identifiers, these n-grams match many topically-related passages, diluting discriminative power. In queries where top-scored n-grams has very high corpus frequency, the model struggles to distinguish the target passage from hundreds of similar alternatives. While \glsxtrshort{SEAL}'s scoring function theoretically downweights common n-grams through the $P(n)$ term in Equation~\ref{eq:ngram-score}, this analysis reveals that high-frequency n-grams still frequently dominate the top-ranked positions, suggesting that the conditional probability $P(n|q)$ assigned by the language model can override frequency-based penalties when the model strongly associates common terms with the query.
+Table \ref{tab:nonspec-decile-freq} summarizes the results. The decimals of the frequencies have been truncated for readability. 
 
-To illustrate when high $P(n|q)$ occurs for generic n-grams, consider the query ``who sings does he love me with reba.'' The model assigns high conditional probability to \texttt{`` country music singer''} (corpus frequency: 4,024, score: 39.20) because the query's semantic content (such as mentioning ``Reba'', a country artist, and ``sings'') strongly activates associations with the country music domain. During training, \glsxtrshort{SEAL} learned that passages answering questions about country artists frequently contain such phrases. The BART language model's pre-trained knowledge further reinforces this, as it associates ``Reba'' with ``country music.'' Despite the frequency penalty in Equation~\ref{eq:ngram-score}, the conditional probability is sufficiently high that this generic n-gram still contributes meaningfully to the ranking. Because the n-gram appears in over 4,000 passages discussing various country artists unrelated to the specific song, it matches many incorrect documents and dilutes the retrieval quality.
+\begin{table}[htbp]
+    \centering
+    \caption{Hits@$k$ success rate by n-gram frequency deciles.}
+    \label{tab:nonspec-decile-freq}
+    \begin{tabular}{l|rr|rr}
+        \toprule
+        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
+        \textbf{Decile} & \textbf{Freq. Range} & \textbf{H@1 / H@10} & \textbf{Freq. Range} & \textbf{H@1 / H@10} \\
+        \midrule
+        D1  & 2.0--91          & 71.0\% / 92.8\% & 1--16          & 76.5\% / 93.9\% \\
+        D2  & 91--356        & 51.5\% / 85.1\% & 16--55         & 65.9\% / 89.4\% \\
+        D5  & 2,940--5,698   & 43.0\% / 76.3\% & 513--1,359     & 45.8\% / 80.2\% \\
+        D8  & 18,581--35,824 & 31.4\% / 70.4\% & 7,434--16,582  & 36.7\% / 72.1\% \\
+        D10 & 81,049--719,139& 25.9\% / 65.8\% & 44,813--1.7M     & 26.8\% / 60.7\% \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+We can see that in D1, where the top-1 passage's top-5 scored n-grams average frequency is low, both hits@1 and hits@10 is surprisingly high for both systems, with \glsxtrshort{MINDER} performing marginally better, while in D10, where the same average frequency is considerably high (implying generic n-grams), the retrieval performance drops significantly for both systems. The Spearman’s $\rho$ between such frequency and hits@1 is $-0.238$ and $-0.290$ respectively, both being $p < 0.001$, indicating that average n-gram frequency is inversely correlated with retrieval success.
+
+Notably, using average frequency across all n-grams (instead of top-5) shows no significant correlation with performance (\glsxtrshort{SEAL}: $\rho=0.029,\space p=0.02$; \glsxtrshort{MINDER}: $\rho=-0.008,\space p=0.51$), suggesting that the presence of highly-ranked generic terms, rather than overall genericity, drives performance degradation. This happens because such high-frequency n-grams match many topically-related passages, diluting discriminative power among passages. While \glsxtrshort{SEAL}'s scoring function theoretically downweights common n-grams through the $P(n)$ term in Equation~\ref{eq:ngram-score}, this analysis reveals that high-frequency n-grams can still dominate the top-ranked positions. \glsxtrshort{MINDER} does not penalize high frequency n-grams. Instead, it artifically boosts the score of pseudoqueries \cite{li2023multiviewidentifiersenhancedgenerative}.
 
 \paragraph{Bias Toward Short Identifiers}
 \label{sec:failure-7}

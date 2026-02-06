@@ -7,7 +7,7 @@ from pathlib import Path
 from scipy.stats import spearmanr
 import sys
 import os
-from scripts.utils.utils import get_dataset_name, strip_ngram_markers, parse_ngrams, calculate_retrieval_metrics
+from utils.utils import get_dataset_name, strip_ngram_markers, parse_ngrams, calculate_retrieval_metrics
 
 def analyze_ngram_frequency(datapath="data/seal_output.json"):
     script_name = "nonspecific_highfreq_ngrams"
@@ -57,9 +57,9 @@ def analyze_ngram_frequency(datapath="data/seal_output.json"):
 
                 results.append({
                     'query': query,
-                    'success_top1': success_top1,
-                    'success_top2': success_top2,
-                    'success_top10': success_top10,
+                    'hits@1': success_top1,
+                    'hits@2': success_top2,
+                    'hits@10': success_top10,
                     'num_ngrams': len(ngrams),
                     'avg_frequency_all': np.mean(frequencies),
                     'median_frequency_all': np.median(frequencies),
@@ -81,39 +81,45 @@ def analyze_ngram_frequency(datapath="data/seal_output.json"):
         avg_freq_top5 = float(df['avg_top5_frequency'].mean())
         avg_freq_top10 = float(df['avg_top10_frequency'].mean())
 
-        # Decile-based frequency analysis
-        freq_values = df['avg_top5_frequency']
+        # Helper function for decile analysis
+        def compute_deciles(df, freq_column, temp_col_name):
+            freq_values = df[freq_column]
+            df[temp_col_name] = pd.qcut(freq_values, q=10, labels=False, duplicates='drop')
 
-        # Create decile bins
-        df['freq_decile'] = pd.qcut(freq_values, q=10, labels=False, duplicates='drop')
+            deciles_data = []
+            for decile in sorted(df[temp_col_name].unique()):
+                mask = df[temp_col_name] == decile
+                if mask.sum() == 0:
+                    continue
+                bin_min = freq_values[mask].min()
+                bin_max = freq_values[mask].max()
+                top1_rate = df.loc[mask, 'hits@1'].mean()
+                top2_rate = df.loc[mask, 'hits@2'].mean()
+                top10_rate = df.loc[mask, 'hits@10'].mean()
+                count = mask.sum()
 
-        deciles_data = []
-        for decile in sorted(df['freq_decile'].unique()):
-            mask = df['freq_decile'] == decile
-            if mask.sum() == 0:
-                continue
-            bin_min = freq_values[mask].min()
-            bin_max = freq_values[mask].max()
-            top1_rate = df.loc[mask, 'success_top1'].mean()
-            top2_rate = df.loc[mask, 'success_top2'].mean()
-            top10_rate = df.loc[mask, 'success_top10'].mean()
-            count = mask.sum()
+                deciles_data.append({
+                    "decile": int(decile) + 1,
+                    "freq_min": float(bin_min),
+                    "freq_max": float(bin_max),
+                    "hits@1_pct": float(top1_rate * 100),
+                    "hits@2_pct": float(top2_rate * 100),
+                    "hits@10_pct": float(top10_rate * 100),
+                    "count": int(count)
+                })
 
-            deciles_data.append({
-                "decile": int(decile) + 1,
-                "freq_min": float(bin_min),
-                "freq_max": float(bin_max),
-                "success_top1_pct": float(top1_rate * 100),
-                "success_top2_pct": float(top2_rate * 100),
-                "success_top10_pct": float(top10_rate * 100),
-                "count": int(count)
-            })
+            df = df.drop(columns=[temp_col_name])
+            return deciles_data, df
 
-        # Drop the temporary column
-        df = df.drop(columns=['freq_decile'])
+        # Decile-based frequency analysis for top-5 n-grams
+        deciles_top5, df = compute_deciles(df, 'avg_top5_frequency', 'freq_decile_top5')
 
-        # Spearman correlation
-        corr, p_val = spearmanr(df['avg_top5_frequency'], df['success_top1'])
+        # Decile-based frequency analysis for all n-grams
+        deciles_all, df = compute_deciles(df, 'avg_frequency_all', 'freq_decile_all')
+
+        # Spearman correlations
+        corr_top5, p_val_top5 = spearmanr(df['avg_top5_frequency'], df['hits@1'])
+        corr_all, p_val_all = spearmanr(df['avg_frequency_all'], df['hits@1'])
 
         # Collect output data
         output_data = {
@@ -123,9 +129,16 @@ def analyze_ngram_frequency(datapath="data/seal_output.json"):
             "avg_frequency_top10": avg_freq_top10,
             "precision_at_1": float(df['precision_at_1'].mean()),
             "r_precision": float(df['r_precision'].mean()),
-            "deciles": deciles_data,
-            "spearman_correlation": float(corr),
-            "spearman_p_value": float(p_val)
+            "deciles_top5": deciles_top5,
+            "deciles_all": deciles_all,
+            "spearman_top5_vs_hit1": {
+                "correlation": float(corr_top5),
+                "p_value": float(p_val_top5)
+            },
+            "spearman_all_vs_hit1": {
+                "correlation": float(corr_all),
+                "p_value": float(p_val_all)
+            }
         }
 
         # Write JSON output
