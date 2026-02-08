@@ -89,10 +89,21 @@ def analyze_corpus_coverage(fm_index, output_data_path, dataset_name, sample_siz
 
     print(f"Analyzed {len(all_data)} queries\n")
 
+    # Calculate coverage statistics
+    coverages = [d["coverage"] for d in all_data]
+    mean_coverage = np.mean(coverages)
+    median_coverage = np.median(coverages)
+    pct_high_coverage = sum(1 for c in coverages if c >= 0.7) / len(coverages) * 100
+
+    print("COVERAGE STATISTICS:")
+    print(f"  Mean coverage:   {mean_coverage:.1%}")
+    print(f"  Median coverage: {median_coverage:.1%}")
+    print(f"  Queries with ≥70% coverage: {pct_high_coverage:.1f}%")
+    print()
+
     # Calculate correlations with p-values
     from scipy import stats
 
-    coverages = [d["coverage"] for d in all_data]
     hits_1_vals = [1 if d["hits_1"] else 0 for d in all_data]
     hits_10_vals = [1 if d["hits_10"] else 0 for d in all_data]
 
@@ -161,6 +172,9 @@ def analyze_corpus_coverage(fm_index, output_data_path, dataset_name, sample_siz
 
     return {
         "total_analyzed": len(all_data),
+        "mean_coverage": float(mean_coverage),
+        "median_coverage": float(median_coverage),
+        "pct_high_coverage": float(pct_high_coverage),
         "correlation_hits_1": float(corr_hits_1),
         "p_value_hits_1": float(p_hits_1),
         "correlation_hits_10": float(corr_hits_10),
