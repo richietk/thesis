@@ -357,6 +357,36 @@ We also categorize keys into three sets: keys appearing exclusively in positive 
 
 Although the results between the two systems are fairly similar, with \glsxtrshort{MINDER} performing marginally better, it is noticable that both \glsxtrshort{SEAL} and \glsxtrshort{MINDER} generates substantially more keys matching negative passages than positive passages. Second, keys unique to negative passages receive marginally higher average scores than keys unique to positive passages, with keys shared having he highest average score. This pattern indicates that both systems assign higher scores to n-grams that are not discriminative enough, to either way.
 
+\subsection{Query Terms Corpus Coverage}
+
+We analyzed the relationship between query term availability and retrieval success using SEAL's FM-Index. For each of 6,515 Natural Questions queries, we measured the percentage of query words present in the Wikipedia corpus and correlated this with retrieval performance (Hits@1 and Hits@10). Queries were stratified into deciles based on coverage scores. The mean coverage was $85.2\%$ with $90.5\%$ of all queries having $\geq70\%$ of their terms present in the corpus.
+
+
+Results revealed no meaningful correlation between corpus coverage and retrieval success (Pearson's $r = 0.017$, $p = 0.165$ for Hits@1; $r = 0.001$, $p = 0.962$ for Hits@10). As shown in Table~\ref{tab:coverage}, queries in D1 achieved 42.1\% Hits@1 and 77.1\% Hits@10, while queries with complete coverage in D1 achieved 44.8\% Hits@1 and 77.4\% Hits@10, effectively identical performance. This null result demonstrates that SEAL's retrieval failures are not primarily driven by out-of-vocabulary terms or lexical gaps.
+
+\begin{table}[H]
+\centering
+\caption{Retrieval performance across corpus coverage deciles. Coverage represents the percentage of query words present in the Wikipedia corpus.}
+\label{tab:coverage}
+\begin{tabular}{lcccc}
+\hline
+\textbf{Decile} & \textbf{Coverage} & \textbf{Hits@1} & \textbf{Hits@10} & \textbf{N} \\
+\hline
+D1 (lowest)  & 0.38--0.70 & 42.1\% & 77.1\% & 651 \\
+D2           & 0.70--0.75 & 37.6\% & 74.7\% & 651 \\
+D3           & 0.75--0.78 & 41.9\% & 76.5\% & 651 \\
+D4           & 0.78--0.88 & 39.2\% & 73.4\% & 651 \\
+D5           & 0.88--0.88 & 40.2\% & 77.1\% & 651 \\
+D6           & 0.88--0.89 & 43.6\% & 76.7\% & 651 \\
+D7           & 0.89--0.90 & 41.5\% & 75.7\% & 651 \\
+D8           & 0.90--1.00 & 41.6\% & 79.3\% & 651 \\
+D9           & 1.00--1.00 & 43.9\% & 73.6\% & 651 \\
+D10 (highest)& 1.00--1.00 & 44.8\% & 77.4\% & 656 \\
+\hline
+\end{tabular}
+\end{table}
+
+
 \subsection{LLM-as-a-Judge Results}
 \label{sec:llmresults}
 
