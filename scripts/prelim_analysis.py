@@ -125,6 +125,9 @@ def analyze_query_sets(query_data: Dict, top_k: int = 10, datapath: str = "") ->
         "sum_score_unique_P": float(np.sum(scores_unique_P)) if scores_unique_P else 0.0,
         "sum_score_unique_N": float(np.sum(scores_unique_N)) if scores_unique_N else 0.0,
         "sum_score_shared": float(np.sum(scores_shared)) if scores_shared else 0.0,
+        "std_score_unique_P": float(np.std(scores_unique_P)) if scores_unique_P else 0.0,
+        "std_score_unique_N": float(np.std(scores_unique_N)) if scores_unique_N else 0.0,
+        "std_score_shared": float(np.std(scores_shared)) if scores_shared else 0.0,
     }
 
     return stats
@@ -181,7 +184,10 @@ def main(datapath="data/seal_output.json"):
                     "avg_count_shared": float(np.mean([r['count_shared'] for r in all_results])),
                     "avg_score_unique_P": float(np.mean([r['avg_score_unique_P'] for r in all_results])),
                     "avg_score_unique_N": float(np.mean([r['avg_score_unique_N'] for r in all_results])),
-                    "avg_score_shared": float(np.mean([r['avg_score_shared'] for r in all_results]))
+                    "avg_score_shared": float(np.mean([r['avg_score_shared'] for r in all_results])),
+                    "std_score_unique_P": float(np.std([r['avg_score_unique_P'] for r in all_results])),
+                    "std_score_unique_N": float(np.std([r['avg_score_unique_N'] for r in all_results])),
+                    "std_score_shared": float(np.std([r['avg_score_shared'] for r in all_results])),
                 },
                 "per_query_results": all_results
             }

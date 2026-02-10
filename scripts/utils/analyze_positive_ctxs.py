@@ -4,6 +4,7 @@ import json
 import os
 from collections import Counter, defaultdict
 import matplotlib.pyplot as plt
+import numpy as np
 
 def analyze(json_file):
     counts = []
@@ -19,9 +20,11 @@ def analyze(json_file):
 
     total = len(counts)
     avg = sum(counts) / total
+    std_count = float(np.std(counts))
     min_count = min(counts)
     max_count = max(counts)
     distribution = Counter(counts)
+
 
     mid_count = None
     for target in range(10, 0, -1):
@@ -32,11 +35,13 @@ def analyze(json_file):
     return {
         'total': total,
         'avg': avg,
+        'std': std_count,
         'min': min_count,
         'max': max_count,
         'distribution': dict(distribution),
         'mid_count': mid_count
     }
+
 
 # Hardcoded input file
 input_file = 'data/seal_output.json'

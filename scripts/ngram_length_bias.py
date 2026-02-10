@@ -74,8 +74,10 @@ def analyze_ngram_length_bias(datapath="data/seal_output.json"):
         # Calculate statistics
         mean_unigram_frac = float(df['unigram_frac'].mean())
         median_unigram_frac = float(df['unigram_frac'].median())
+        std_unigram_frac = float(df['unigram_frac'].std())
         mean_avg_length = float(df['avg_length'].mean())
         median_avg_length = float(df['avg_length'].median())
+        std_avg_length = float(df['avg_length'].std())
 
         # Decile analysis
         df_sorted = df.sort_values('unigram_frac')
@@ -91,11 +93,14 @@ def analyze_ngram_length_bias(datapath="data/seal_output.json"):
                 "decile": i + 1,
                 "unigram_frac_min": float(bin_data['unigram_frac'].min()),
                 "unigram_frac_max": float(bin_data['unigram_frac'].max()),
+                "unigram_frac_std": float(bin_data['unigram_frac'].std()),
                 "hits_at_1_pct": float(bin_data['hits_at_1'].mean() * 100),
+                "hits_at_1_std": float(bin_data['hits_at_1'].std() * 100),
                 "hits_at_2_pct": float(bin_data['hits_at_2'].mean() * 100),
                 "hits_at_10_pct": float(bin_data['hits_at_10'].mean() * 100),
                 "count": len(bin_data)
             })
+
 
         # Correlations
         corr_hits1, p_val_hits1 = spearmanr(df['unigram_frac'], df['hits_at_1'])
@@ -106,11 +111,16 @@ def analyze_ngram_length_bias(datapath="data/seal_output.json"):
             "total_queries": len(df),
             "mean_unigram_frac": mean_unigram_frac,
             "median_unigram_frac": median_unigram_frac,
+            "std_unigram_frac": std_unigram_frac,
             "mean_avg_length": mean_avg_length,
             "median_avg_length": median_avg_length,
+            "std_avg_length": std_avg_length,
             "hits_at_1": float(df['hits_at_1'].mean()),
+            "std_hits_at_1": float(df['hits_at_1'].std()),
             "hits_at_2": float(df['hits_at_2'].mean()),
+            "std_hits_at_2": float(df['hits_at_2'].std()),
             "hits_at_10": float(df['hits_at_10'].mean()),
+            "std_hits_at_10": float(df['hits_at_10'].std()),
             "precision_at_1": float(df['precision_at_1'].mean()),
             "r_precision": float(df['r_precision'].mean()),
             "deciles": deciles_data,

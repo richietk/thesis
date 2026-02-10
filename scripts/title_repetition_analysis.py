@@ -86,25 +86,35 @@ def analyze_title_repetition(datapath="data/seal_output.json"):
         for count in sorted(df['same_title_count'].unique()):
             group = df[df['same_title_count'] == count]
 
-            grouped_stats.append({
-                'same_title_count': int(count),
-                'num_queries': len(group),
-                'pct_of_total': float(100 * len(group) / len(df)),
-                'hits@10_rate': float(group['hits@10'].mean() * 100),
-                'hits@1_rate': float(group['hits@1'].mean() * 100),
-                'r_precision_avg': float(group['r_precision'].mean()),
-                'avg_unique_titles': float(group['unique_titles_in_top10'].mean())
-            })
+        grouped_stats.append({
+            'same_title_count': int(count),
+            'num_queries': len(group),
+            'pct_of_total': float(100 * len(group) / len(df)),
+            'hits@10_rate': float(group['hits@10'].mean() * 100),
+            'hits@10_std': float(group['hits@10'].std() * 100),
+            'hits@1_rate': float(group['hits@1'].mean() * 100),
+            'hits@1_std': float(group['hits@1'].std() * 100),
+            'r_precision_avg': float(group['r_precision'].mean()),
+            'r_precision_std': float(group['r_precision'].std()),
+            'avg_unique_titles': float(group['unique_titles_in_top10'].mean()),
+            'unique_titles_std': float(group['unique_titles_in_top10'].std())
+        })
+
 
         # Overall statistics
         overall_stats = {
             'total_queries': len(df),
             'overall_hits@10_rate': float(df['hits@10'].mean() * 100),
+            'overall_hits@10_std': float(df['hits@10'].std() * 100),
             'overall_hits@1_rate': float(df['hits@1'].mean() * 100),
+            'overall_hits@1_std': float(df['hits@1'].std() * 100),
             'overall_r_precision': float(df['r_precision'].mean()),
+            'overall_r_precision_std': float(df['r_precision'].std()),
             'avg_same_title_count': float(df['same_title_count'].mean()),
+            'std_same_title_count': float(df['same_title_count'].std()),
             'median_same_title_count': float(df['same_title_count'].median())
         }
+
 
         # Collect output data
         output_data = {

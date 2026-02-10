@@ -67,6 +67,8 @@ def analyze_single_ngram_dominance(datapath="data/seal_output.json"):
         # Summary statistics
         mean_dom = float(df['dominance'].mean())
         median_dom = float(df['dominance'].median())
+        std_dom = float(df['dominance'].std())
+
 
         # Create decile bins
         df['dominance_decile'] = pd.qcut(df['dominance'], q=10, labels=False, duplicates='drop')
@@ -78,17 +80,23 @@ def analyze_single_ngram_dominance(datapath="data/seal_output.json"):
                 continue
 
             success_rate = df.loc[mask, 'success_top1'].mean()
+            success_std = df.loc[mask, 'success_top1'].std()
             dom_min = df.loc[mask, 'dominance'].min()
             dom_max = df.loc[mask, 'dominance'].max()
+            dom_std = df.loc[mask, 'dominance'].std()
             count = mask.sum()
+
 
             deciles_data.append({
                 "decile": int(decile) + 1,
                 "dominance_min": float(dom_min),
                 "dominance_max": float(dom_max),
+                "dominance_std": float(dom_std),
                 "success_top1_pct": float(success_rate * 100),
+                "success_top1_std": float(success_std * 100),
                 "count": int(count)
             })
+
 
         # Drop the temporary column
         df = df.drop(columns=['dominance_decile'])
@@ -101,6 +109,7 @@ def analyze_single_ngram_dominance(datapath="data/seal_output.json"):
             "total_queries": len(df),
             "mean_dominance": mean_dom,
             "median_dominance": median_dom,
+            "std_dominance": std_dom,
             "precision_at_1": float(df['precision_at_1'].mean()),
             "r_precision": float(df['r_precision'].mean()),
             "deciles": deciles_data,

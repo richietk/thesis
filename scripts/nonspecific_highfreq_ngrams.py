@@ -78,8 +78,11 @@ def analyze_ngram_frequency(datapath="data/seal_output.json"):
 
         # Calculate statistics
         avg_freq_all = float(df['avg_frequency_all'].mean())
+        std_freq_all = float(df['avg_frequency_all'].std())
         avg_freq_top5 = float(df['avg_top5_frequency'].mean())
+        std_freq_top5 = float(df['avg_top5_frequency'].std())
         avg_freq_top10 = float(df['avg_top10_frequency'].mean())
+        std_freq_top10 = float(df['avg_top10_frequency'].std())
 
         # Helper function for decile analysis
         def compute_deciles(df, freq_column, temp_col_name):
@@ -94,19 +97,27 @@ def analyze_ngram_frequency(datapath="data/seal_output.json"):
                 bin_min = freq_values[mask].min()
                 bin_max = freq_values[mask].max()
                 top1_rate = df.loc[mask, 'hits@1'].mean()
+                top1_std = df.loc[mask, 'hits@1'].std()
                 top2_rate = df.loc[mask, 'hits@2'].mean()
+                top2_std = df.loc[mask, 'hits@2'].std()
                 top10_rate = df.loc[mask, 'hits@10'].mean()
+                top10_std = df.loc[mask, 'hits@10'].std()
                 count = mask.sum()
+
 
                 deciles_data.append({
                     "decile": int(decile) + 1,
                     "freq_min": float(bin_min),
                     "freq_max": float(bin_max),
                     "hits@1_pct": float(top1_rate * 100),
+                    "hits@1_std": float(top1_std * 100),
                     "hits@2_pct": float(top2_rate * 100),
+                    "hits@2_std": float(top2_std * 100),
                     "hits@10_pct": float(top10_rate * 100),
+                    "hits@10_std": float(top10_std * 100),
                     "count": int(count)
                 })
+
 
             df = df.drop(columns=[temp_col_name])
             return deciles_data, df
@@ -125,8 +136,11 @@ def analyze_ngram_frequency(datapath="data/seal_output.json"):
         output_data = {
             "total_queries": len(df),
             "avg_frequency_all": avg_freq_all,
+            "std_frequency_all": std_freq_all,
             "avg_frequency_top5": avg_freq_top5,
+            "std_frequency_top5": std_freq_top5,
             "avg_frequency_top10": avg_freq_top10,
+            "std_frequency_top10": std_freq_top10,
             "precision_at_1": float(df['precision_at_1'].mean()),
             "r_precision": float(df['r_precision'].mean()),
             "deciles_top5": deciles_top5,

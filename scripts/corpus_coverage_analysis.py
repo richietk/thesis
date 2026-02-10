@@ -93,6 +93,7 @@ def analyze_corpus_coverage(fm_index, output_data_path, dataset_name, sample_siz
     coverages = [d["coverage"] for d in all_data]
     mean_coverage = np.mean(coverages)
     median_coverage = np.median(coverages)
+    std_coverage = np.std(coverages)
     pct_high_coverage = sum(1 for c in coverages if c >= 0.7) / len(coverages) * 100
 
     print("COVERAGE STATISTICS:")
@@ -150,16 +151,23 @@ def analyze_corpus_coverage(fm_index, output_data_path, dataset_name, sample_siz
 
         if decile_data:
             hits_1_rate = sum(d["hits_1"] for d in decile_data) / len(decile_data) * 100
+            hits_1_std = np.std([d["hits_1"] for d in decile_data]) * 100
             hits_10_rate = sum(d["hits_10"] for d in decile_data) / len(decile_data) * 100
+            hits_10_std = np.std([d["hits_10"] for d in decile_data]) * 100
             min_cov = min(d["coverage"] for d in decile_data)
             max_cov = max(d["coverage"] for d in decile_data)
+            coverage_std = np.std([d["coverage"] for d in decile_data])
 
-            deciles[f"D{i+1}"] = {
-                "coverage_range": [min_cov, max_cov],
-                "hits_1_rate": hits_1_rate,
-                "hits_10_rate": hits_10_rate,
-                "count": len(decile_data)
-            }
+        deciles[f"D{i+1}"] = {
+            "coverage_range": [min_cov, max_cov],
+            "coverage_std": coverage_std,
+            "hits_1_rate": hits_1_rate,
+            "hits_1_std": hits_1_std,
+            "hits_10_rate": hits_10_rate,
+            "hits_10_std": hits_10_std,
+            "count": len(decile_data)
+        }
+
 
     print("DECILE BREAKDOWN:")
     print(f"  {'Decile':<8} {'Coverage':<20} {'Hits@1':<10} {'Hits@10':<10}")
@@ -174,6 +182,7 @@ def analyze_corpus_coverage(fm_index, output_data_path, dataset_name, sample_siz
         "total_analyzed": len(all_data),
         "mean_coverage": float(mean_coverage),
         "median_coverage": float(median_coverage),
+        "std_coverage": float(std_coverage),
         "pct_high_coverage": float(pct_high_coverage),
         "correlation_hits_1": float(corr_hits_1),
         "p_value_hits_1": float(p_hits_1),
