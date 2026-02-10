@@ -127,7 +127,7 @@ To illustrate \glsxtrshort{SEAL}'s n-gram based scoring, lets examine the query 
     \label{tab:ngram-example}
 \end{table}
 
-It is worth noting that while the additive nature of the scoring mechanism could theoretically bias retrieval toward longer documents in a corpus of varying document lengths, this effect is neutralized in our setup as the NQ corpus consists of uniform 100-token passages.
+It is worth noting that while the additive nature of the scoring mechanism could theoretically bias retrieval toward longer documents in a corpus of varying document lengths, this effect is neutralized by dividing $F(n, R)$ by the total number of tokens in the corpus $R$.
 
 \subsection{MINDER Architecture}
 \label{sec:minderarch}

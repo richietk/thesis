@@ -34,9 +34,7 @@ scripts/utils/__pycache__/
 
 generated_data_old/
 
-
-seal_paper.txt
-minder_paper.txt
+*.txt
 
 seal_kilt/
 seal_nq/
