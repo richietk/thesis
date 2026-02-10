@@ -8,10 +8,10 @@ from utils.utils import parse_ngrams
 def main(datapath="data/seal_output.json"):
     tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
     
-    # Track unique ngrams seen: {text: (length, freq)}
+    # Track unique ngrams seen: {text: {'length': L, 'freq': F, 'total_score': S, 'count': C}}
     unique_ngrams = {}
 
-    print(f"Analyzing unique ngrams in {datapath}...")
+    print(f"Analyzing unique ngrams and scores in {datapath}...")
 
     try:
         with open(datapath, "rb") as f:
@@ -21,10 +21,19 @@ def main(datapath="data/seal_output.json"):
                 # Process n-grams from the top context
                 ngrams = parse_ngrams(item["ctxs"][0].get("keys", ""))
                 
-                for text, freq, _ in ngrams:
+                for text, freq, score in ngrams:
                     if text not in unique_ngrams:
                         length = len(tokenizer.encode(text, add_special_tokens=False))
-                        unique_ngrams[text] = (length, freq)
+                        unique_ngrams[text] = {
+                            'length': length,
+                            'freq': freq,
+                            'total_score': 0.0,
+                            'count': 0
+                        }
+                    
+                    # Accumulate score for this unique ngram from all occurrences
+                    unique_ngrams[text]['total_score'] += score
+                    unique_ngrams[text]['count'] += 1
                     
         if not unique_ngrams:
             print("No ngrams found.")
@@ -33,27 +42,41 @@ def main(datapath="data/seal_output.json"):
         # Separate stats
         title_lengths = []
         title_freqs = []
-        total_counts_by_len = defaultdict(int)
-        title_counts_by_len = defaultdict(int)
         
-        # Store examples: {length: [title1, title2]}
+        # Aggregators by length
+        total_unique_counts_by_len = defaultdict(int)
+        title_unique_counts_by_len = defaultdict(int)
+        total_score_by_len = defaultdict(float)
+        title_score_by_len = defaultdict(float)
         title_examples_by_len = defaultdict(list)
+        
+        global_total_score = sum(d['total_score'] for d in unique_ngrams.values())
 
-        for text, (length, freq) in unique_ngrams.items():
-            total_counts_by_len[length] += 1
+        for text, data in unique_ngrams.items():
+            length = data['length']
+            freq = data['freq']
+            score_accum = data['total_score']
+            
+            total_unique_counts_by_len[length] += 1
+            total_score_by_len[length] += score_accum
             
             if text.strip().startswith("</s>"):
                 title_lengths.append(length)
                 title_freqs.append(freq)
-                title_counts_by_len[length] += 1
+                title_unique_counts_by_len[length] += 1
+                title_score_by_len[length] += score_accum
                 
-                # Capture up to 2 examples per length
                 if len(title_examples_by_len[length]) < 2:
-                    # Clean up the display string slightly for readability
                     clean_text = text.replace("</s>", "").replace("@@", "").strip()
                     title_examples_by_len[length].append(clean_text)
 
+        total_title_score = sum(title_score_by_len.values())
+        total_title_score_pct = (total_title_score / global_total_score) * 100 if global_total_score > 0 else 0
+
         print(f"Found {len(unique_ngrams)} unique ngrams.")
+        print(f"Global Total Score: {global_total_score:.4f}")
+        print(f"Total Title Score:  {total_title_score:.4f} ({total_title_score_pct:.2f}% of global score)")
+
         if title_lengths:
             print(f"Found {len(title_lengths)} unique title ngrams.")
             
@@ -67,22 +90,22 @@ def main(datapath="data/seal_output.json"):
             print(f"  Median: {np.median(title_freqs):.4f}")
             print(f"  SD:     {np.std(title_freqs):.4f}")
 
-        print("\nPercentage of Unique Title N-grams by Token Length:")
-        # Layout: Length | Total | Titles | % Title | Examples
-        print(f"{'Len':<4} | {'Total':<8} | {'Titles':<8} | {'% Title':<8} | {'Examples (First 2)'}")
-        print("-" * 100)
+        print("\nUnique Title N-gram Analysis by Token Length:")
+        print(f"{'Len':<4} | {'Total':<8} | {'Titles':<8} | {'% Title':<8} | {'% Score':<8} | {'Examples (First 2)'}")
+        print("-" * 110)
         
-        for length in sorted(total_counts_by_len.keys()):
-            total = total_counts_by_len[length]
-            titles = title_counts_by_len[length]
-            pct = (titles / total) * 100
+        for length in sorted(total_unique_counts_by_len.keys()):
+            total_unique = total_unique_counts_by_len[length]
+            titles_unique = title_unique_counts_by_len[length]
+            pct_title_unique = (titles_unique / total_unique) * 100 if total_unique > 0 else 0
             
-            # Format examples
+            title_score_this_len = title_score_by_len[length]
+            pct_score = (title_score_this_len / global_total_score) * 100 if global_total_score > 0 else 0
+            
             examples = title_examples_by_len.get(length, [])
-            # Truncate long examples for display
-            ex_str = ", ".join([f"'{e[:500]}...'" if len(e) > 500 else f"'{e}'" for e in examples])
+            ex_str = ", ".join([f"'{e[:30]}...'" if len(e) > 30 else f"'{e}'" for e in examples])
             
-            print(f"{length:<4} | {total:<8} | {titles:<8} | {pct:6.2f}% | {ex_str}")
+            print(f"{length:<4} | {total_unique:<8} | {titles_unique:<8} | {pct_title_unique:6.2f}% | {pct_score:6.2f}% | {ex_str}")
 
     except Exception as e:
         print(f"Error: {e}")

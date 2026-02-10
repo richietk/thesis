@@ -6,9 +6,12 @@ from utils.utils import parse_ngrams
 
 def main(datapath="data/seal_output.json"):
     tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
-    token_len_cache = {}
-    lengths = []
-    freqs = []
+    
+    # Use a dictionary to dedupe by text
+    # We store (length, freq) for each unique n-gram text
+    unique_ngrams = {}
+
+    print(f"Reading and deduping n-grams from {datapath}...")
 
     try:
         with open(datapath, "rb") as f:
@@ -16,21 +19,26 @@ def main(datapath="data/seal_output.json"):
                 if not item.get("ctxs"): continue
                 
                 # Process n-grams from the top context
+                # Assuming we analyze the first context as per previous conventions
                 ngrams = parse_ngrams(item["ctxs"][0].get("keys", ""))
                 
                 for text, freq, _ in ngrams:
-                    if text not in token_len_cache:
-                        token_len_cache[text] = len(tokenizer.encode(text, add_special_tokens=False))
+                    if text not in unique_ngrams:
+                        # Calculate length only once
+                        length = len(tokenizer.encode(text, add_special_tokens=False))
+                        unique_ngrams[text] = (length, freq)
                     
-                    lengths.append(token_len_cache[text])
-                    freqs.append(freq)
-                    
-        if not lengths:
+        if not unique_ngrams:
             print("No n-grams found.")
             return
 
+        # Extract vectors for correlation
+        lengths = [val[0] for val in unique_ngrams.values()]
+        freqs = [val[1] for val in unique_ngrams.values()]
+
         correlation, p_value = spearmanr(lengths, freqs)
-        print(f"Analyzed {len(lengths)} n-grams.")
+        
+        print(f"Analyzed {len(lengths)} unique n-grams.")
         print(f"Spearman Correlation (Length vs Frequency): {correlation:.4f}")
         print(f"P-value: {p_value:.4g}")
 

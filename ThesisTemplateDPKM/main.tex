@@ -75,7 +75,7 @@ Passages are then ranked by additively aggregating the scores from all n-grams t
 This architecture helps explain why \glsxtrshort{SEAL} can overcome vocabulary mismatch issues. While the model cannot generate n-grams that do not exist in the corpus, it can find paraphrases and related terms as long as those appear in corpus documents using BART's parametric knowledge.
 
 \paragraph{Scoring Mechanism}
-
+\label{par:scormech}
 \glsxtrshort{SEAL}'s failure modes are directly influenced by its scoring function. \glsxtrshort{SEAL} computes n-gram scores by combining the language model's conditional probability of an n-gram given a query with corpus frequency to favor distinctive n-grams.
 
 The unconditional n-gram probability is computed from corpus statistics:
@@ -93,6 +93,8 @@ The n-gram score combines conditional and unconditional probabilities:
 
 This formulation promotes n-grams that have high conditional probability given the query ($P(n|q)$), computed by BART, but low unconditional probability in the corpus ($P(n)$). This means that distinctive, query-relevant n-grams are prioritized.
 
+It is important to highlight that $P(n|q)$ is computed autoregressively by BART and depends on both the n-gram $n$ and the query $q$. Consequently, the same n-gram string can receive different scores for different queries. Therefore n-gram scores are query-dependent.
+
 Finally, the document score aggregates contributions from multiple non-overlapping n-grams:
 \begin{equation}
     W(d, q) = \sum_{n \in K^{(d)}} w(n, q)^\alpha \cdot \text{cover}(n, K^{(d)})
@@ -103,6 +105,7 @@ An n-gram is included in $K^{(d)}$ only if it has at least one occurrence
 in $d$ that does not positionally overlap with a higher-scoring n-gram's 
 occurrence. The parameter $\alpha$ is a hyperparameter. The coverage weight $\text{cover}(n, K^{(d)})$ downweights individual n-grams whose tokens overlap with tokens of higher-scoring n-grams in the same document, preventing passages from receiving inflated scores when they contain many lexically similar n-grams.\cite{bevilacqua2022autoregressivesearchenginesgenerating}. %todo clear enough or should I expand?
 
+Here it is worth noting that \glsxtrshort{SEAL}, generates fixed token-length ngrams (by default $k=10$, except for titles). However, they save all partially-decoded sequences from the beam-search \cite{bevilacqua2022autoregressivesearchenginesgenerating}. Because the system records this history, the final score of a passage is always the sum of strings of different lengths. As expected, n-gram length is strongly correlated with frequency ($\rho=-0.835, p<0.001$). Consequentially, 
 
 To illustrate \glsxtrshort{SEAL}'s n-gram based scoring, lets examine the query ``who sings does he love me with reba''. The top-ranked passage (titled ``Linda Davis'') matched the following keys (excerpt):
 
@@ -511,9 +514,6 @@ To understand the results more illustratively, we summarized the table in the fo
     \centering
     \includegraphics[width=0.7\textwidth]{assets/ngram_length_bias_comparison.png}
 \end{figure}
-
-
-Here it is worth noting that \glsxtrshort{SEAL}, generates fixed token-length ngrams (by default $k=10$, except for titles). However, they save all partially-decoded sequences from the beam-search \cite{bevilacqua2022autoregressivesearchenginesgenerating}. Because the system records this history, the final score of a passage is always the sum of strings of different lengths. As expected, n-gram length is strongly correlated with frequency ($\rho=-0.55, p<0.001$). Consequentially, 
 
 \paragraph{Overlapping N-gram Tokens}
 \label{sec:overlapping-ngram-tokens}
