@@ -721,7 +721,7 @@ Here we analyze the contribution of synthetic identifiers in the \glsxtrshort{MI
 
 Numerically, pseudo-queries constitute a negligible fraction of the generated identifiers, accounting for only 1.4\% of the total n-grams (379,080 out of 26.9 million). However, their contribution to the total accumulated score is disproportionately high, representing 27.7\% of the total score mass (91.1 million out of 328.5 million). This confirms that \glsxtrshort{MINDER}'s scoring mechanism successfully uses sparse but highly discriminative synthetic identifiers. %TODO recheck numbers
 
-\subsection{Qualitative Example}
+\subsection{Context Mismatch - Qualitative}
 
 \textbf{TODO MAYBE RENAME TO STH CULTURAL OR STH ABOUT TRAINING DATA}
 
@@ -733,7 +733,9 @@ propped up by their connection to the US, a major entity in both Wikipedia and t
 There is no ground truth passages retrieved in the \textit{top-100} retrieved passages, which consists entirely of passages about the southern United States.
 
 A very important observation is that \glsxtrshort{MINDER} successfully retrieved the relevant passages. All queries in the \textit{top-100} retrieved passages were in some way relevant to Ancient China, with the first ground-truth passage appearing at rank-5. Both systems use BART-large as their autoregressive language model and the same dataset to build their FM-index, except that \glsxtrshort{MINDER} includes pseudoqueries. The observed success is therefore likely due to the inclusion of pseudoqueries. %TODO REALLY? Can you validate this? Maybe find another similar passage? or how can you frame this as more of a failure mode? n.b. Does the title "view" relevant and is it in any way different than just putting the title in as an ngram? maybe sth as BART is capable of generating the correct terms, failure in SEAL is likely the lack of disriminative identifiers in the query? minder provides stuff like titles (does SEAL not?) and pseudoqueries. This cultural thiing is important bc. SEAL failed partly because it is keyword centric and isnt much aware, right? and also BC in parametric training, these keywords have a much stronger association with southern US than song dynasy, and also bc corpus (english WIKI) is western-centric, and likely contains southern and capital in US context multiple times than in chinese history context. this would likely be the problem also with MS marco as it is from bing search logs, which is used mostly in the US I think, and also includes questions that are geography relevant such as idk when is tax season or idk, especially since the GT passages I think are web pages, which are mostly US specific right? TODO mayybe a passage about this. What would LTRGR and DGR do in this case?
+It can be argued that \glsxtrshort{LTRGR} and \glsxtrshort{DGR} are also likely to succeed on such queries. %TODO WHY? 
 
+%note:_ other interesting queries: is banana a fruit or berry, when was the louisiana purchase
 \textbf{Does this warrant a passage about cultural biases?}  
 
 \section{Discussion}
