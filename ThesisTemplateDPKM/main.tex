@@ -101,10 +101,7 @@ Finally, the document score aggregates contributions from multiple non-overlappi
 where $K^{(d)}$ is the subset of generated n-grams $n$ matching document $d$. 
 An n-gram is included in $K^{(d)}$ only if it has at least one occurrence 
 in $d$ that does not positionally overlap with a higher-scoring n-gram's 
-occurrence. The parameter $\alpha$ is a hyperparameter. The coverage weight 
-$\text{cover}(n, K^{(d)})$ downweights individual n-grams whose tokens 
-overlap with tokens in higher-scoring n-grams, preventing passages from 
-receiving inflated scores when they contain many lexically similar n-grams.\cite{bevilacqua2022autoregressivesearchenginesgenerating}. %todo what is w?
+occurrence. The parameter $\alpha$ is a hyperparameter. The coverage weight $\text{cover}(n, K^{(d)})$ downweights individual n-grams whose tokens overlap with tokens of higher-scoring n-grams in the same document, preventing passages from receiving inflated scores when they contain many lexically similar n-grams.\cite{bevilacqua2022autoregressivesearchenginesgenerating}. %todo clear enough or should I expand?
 
 
 To illustrate \glsxtrshort{SEAL}'s n-gram based scoring, lets examine the query ``who sings does he love me with reba''. The top-ranked passage (titled ``Linda Davis'') matched the following keys (excerpt):
@@ -142,7 +139,7 @@ To address this, \glsxtrshort{MINDER} assigns three distinct ``views'' of identi
 
 The inclusion of pseudo-queries is intended to bridge the gap between user queries and document content. While \glsxtrshort{SEAL} is limited to the exact word orderings present in the corpus, \glsxtrshort{MINDER}'s thus allows the model to match queries against rephrased or summarized versions of the document via pseudo-queries.
 
-\glsxtrshort{MINDER} relies on the conditional probability $P(i|q)$ of the identifier $i$ given query $q$, computed by the autoregressive language model. Because pseudo-queries are typically much longer than n-grams, their raw log-probabilities are naturally lower due to the multiplicative nature of autoregressive decoding. To ensure that pseudo-queries can compete with shorter identifiers, \glsxtrshort{MINDER} introduces a biased score to offset this length penalty. The final relevance score for a passage $p$ is an aggregation of the scores from all predicted identifiers that appear in that passage across all three views:
+\glsxtrshort{MINDER} relies on the conditional probability $P(i\allowbreak|q)$ of the identifier $i$ given query $q$, computed by the autoregressive language model. Because pseudo-queries are typically much longer than n-grams, their raw log-probabilities are naturally lower due to the multiplicative nature of autoregressive decoding. To ensure that pseudo-queries can compete with shorter identifiers, \glsxtrshort{MINDER} introduces a biased score to offset this length penalty. The final relevance score for a passage $p$ is an aggregation of the scores from all predicted identifiers that appear in that passage across all three views:
 \begin{equation}
    S(q, p) = \sum_{i \in I_p} s(i, q)
    \label{eq:minder-aggregation}
@@ -305,7 +302,7 @@ To understand what the 349 ``answer in different passage'' cases actually look l
 
 These examples show that these cases are a mix of such cases. To determine how many fall into each category, in section~\ref{sec:llm-judge}, we apply LLM-as-a-judge to classify whether each retrieved passage genuinely answers the question or not. If most of the 349 cases are genuine retrievals, then \glsxtrshort{SEAL}'s effective top-10 recall is closer to 81.5\% rather than 76.1\%. If most are coincidental matches, then 76.1\% remains the accurate figure. Similar calculations can be done for \glsxtrshort{MINDER}.
 
-For each case, we present a large language model (\texttt{claude-sonnet-4-5-20250929}) with the original question, the expected answer, and the retrieved passage text, asking it to determine whether the passage genuinely answers the question or whether the answer string's presence is coincidental. The model was chosen based on expected reasoning capabilities and cost of operation.
+For each case, we present a large language model (\texttt{claude-sonnet-4-5\-20250929}) with the original question, the expected answer, and the retrieved passage text, asking it to determine whether the passage genuinely answers the question or whether the answer string's presence is coincidental. The model was chosen based on expected reasoning capabilities and cost of operation.
 
 The judge classifies each case into one of three categories:
 \begin{itemize}
@@ -455,6 +452,7 @@ Table \ref{tab:nonspec-decile-freq} summarizes the results. The decimals of the 
 
 \begin{table}[htbp]
     \centering
+    \setlength{\tabcolsep}{3pt}
     \caption{Hits@$k$ success rate by n-gram frequency deciles.}
     \label{tab:nonspec-decile-freq}
     \begin{tabular}{l|rr|rr}
@@ -737,7 +735,8 @@ Some portions of code for this thesis were generated with the assistance of \tex
 
 The prompt used for the LLM-as-Ludge component in Section \ref{sec:llm-judge} is pasted below:
 
-\begin{verbatim}
+\lstset{breaklines=true}
+\begin{lstlisting}
 Question: [QUESTION]
 Expected answer: [ANSWER]
 Retrieved passage title: [PASSAGE TITLE]
@@ -749,4 +748,4 @@ Does this passage answer the question?
 - PARTIAL: Contains relevant information but requires inference.
 
 The answer explanation should not exceed 100 words. 
-\end{verbatim}
+\end{lstlisting}
