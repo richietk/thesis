@@ -355,14 +355,16 @@ We also categorize keys into three sets: keys appearing exclusively in positive 
         $\mu$ \% Keys Unique to $N$          & 78.2\% & 75.3\% \\
         $\mu$ \% Keys Shared ($P \cap N$)    & 10.2\% & 12.5\% \\
         \midrule
-        $\mu$ Score (Unique $P$)             & 5.67   & 6.12   \\
-        $\mu$ Score (Unique $N$)             & 6.66   & 6.94   \\
-        $\mu$ Score (Shared)                 & 17.28  & 17.34  \\
+        $\mu$ Score (Unique $P$)             & 5.67 ($\pm$6.69)   & 6.12 ($\pm$7.01)  \\
+        $\mu$ Score (Unique $N$)             & 6.66 ($\pm$2.90)   & 6.94 ($\pm$2.89)  \\
+        $\mu$ Score (Shared)                 & 17.28 ($\pm$12.20)  & 17.34 ($\pm$11.49) \\
         \bottomrule
     \end{tabular}
 \end{table}
 
 Although the results between the two systems are fairly similar, with \glsxtrshort{MINDER} performing marginally better, it is noticable that both \glsxtrshort{SEAL} and \glsxtrshort{MINDER} generates substantially more keys matching negative passages than positive passages. Second, keys unique to negative passages receive marginally higher average scores than keys unique to positive passages, with keys shared having he highest average score. This pattern indicates that both systems assign higher scores to n-grams that are not discriminative enough, to either way.
+
+The high variance in scores for unique positive keys compared to unique negative keys suggests that the models' ability to identify relevant n-grams is highly inconsistent. While some ``Unique P'' keys receive very high scores, many others likeyly receive negligible scores, dragging down the mean. Furthermore, the high variance in the 'Shared' category indicates a lack of discriminative power and their influence on the final ranking is unpredictable.
 
 \subsection{Query Terms Corpus Coverage}
 
@@ -481,9 +483,10 @@ Notably, using average frequency across all n-grams (instead of top-5) shows no 
 
 Here we examine whether the analyzed systems disproportionately generate short n-grams (unigrams and bigrams) rather than longer, more distinctive multi-word sequences. Longer n-grams generally provide stronger discriminative power, as multi-word phrases are far less likely to appear across multiple passages than individual words.
 
-We quantify this generation bias by measuring the fraction of generated n-grams that consist of a single token in the top-1 retrieved passage. Across 6,515 queries, the mean unigram proportion is 0.869 (median 0.878) for \glsxtrshort{SEAL}, 0.853 (0.863) for \glsxtrshort{MINDER}, respectively, and the average n-gram length is 1.28 words (median 1.24) for \glsxtrshort{SEAL}, and 1.48 (1.35) for \glsxtrshort{MINDER}, respectively. indicating that, on average, more than four-fifth of generated n-grams are unigrams for both systems. This indicates a strong skew toward short n-grams despite \glsxtrshort{SEAL}’s ability to generate longer sequences and \glsxtrshort{MINDER} specifically generated long pseudoqueries occasionally being used as n-grams.
+We quantify this generation bias by measuring the fraction of generated n-grams that consist of a single token in the top-1 retrieved passage. Across 6,515 queries, the mean unigram proportion is $0.869 \pm 0.066$ (median 0.878) for \glsxtrshort{SEAL} and $0.853 \pm 0.071$ (median 0.863) for \glsxtrshort{MINDER}. The average n-gram length is $1.28 \pm 0.18$ words (median 1.24) for \glsxtrshort{SEAL}, and $1.48 \pm 0.39$ (median 1.35) for \glsxtrshort{MINDER}. This indicates that, on average, more than four-fifths of generated n-grams are unigrams for both systems. \glsxtrshort{MINDER} shows slightly higher variance in length ($\sigma=0.39$ vs. $0.18$).
 
-We categorize queries into deciles based on the unigram proportion. Queries in D1 have lower unigram proportion than in D10 and achieve considerably higher hitrate both with $k=1,\space k=10$, as evidenced by Table \ref{tab:unigram-dec}. This indicates that passages with a higher proportion of multi-word n-grams are substantially more likely to retrieve the correct document, while passages dominated by unigrams correspond to poorer retrieval performance.
+We categorize queries into deciles based on the unigram proportion. Queries in D1 (lowest unigram proportion) achieve considerably higher hit rates than those in D10, as evidenced by Table \ref{tab:unigram-dec}.
+
 
 \begin{table}[htbp]
     \centering
