@@ -513,6 +513,8 @@ To understand the results more illustratively, we summarized the table in the fo
 \end{figure}
 
 
+Here it is worth noting that \glsxtrshort{SEAL}, generates fixed token-length ngrams (by default $k=10$, except for titles). However, they save all partially-decoded sequences from the beam-search \cite{bevilacqua2022autoregressivesearchenginesgenerating}. Because the system records this history, the final score of a passage is always the sum of strings of different lengths. As expected, n-gram length is strongly correlated with frequency ($\rho=-0.55, p<0.001$). Consequentially, 
+
 \paragraph{Overlapping N-gram Tokens}
 \label{sec:overlapping-ngram-tokens}
 
