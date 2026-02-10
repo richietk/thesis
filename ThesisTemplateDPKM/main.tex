@@ -98,7 +98,14 @@ Finally, the document score aggregates contributions from multiple non-overlappi
     W(d, q) = \sum_{n \in K^{(d)}} w(n, q)^\alpha \cdot \text{cover}(n, K^{(d)})
     \label{eq:doc-score}
 \end{equation}
-where $K^{(d)}$ is the set of non-overlapping n-grams matched in document $d$, $n$ is the specific n-gram being scored in the summation, $\alpha$ is a hyperparameter, and $\text{cover}(n, K(d))$ downweights n-grams whose tokens overlap with higher-scoring n-grams. The purpose of the coverage weight is to avoid the overscoring of repetitive passages, as they contain many overlapping or nearly identical n-grams \cite{bevilacqua2022autoregressivesearchenginesgenerating}. 
+where $K^{(d)}$ is the subset of generated n-grams $n$ matching document $d$. 
+An n-gram is included in $K^{(d)}$ only if it has at least one occurrence 
+in $d$ that does not positionally overlap with a higher-scoring n-gram's 
+occurrence. The parameter $\alpha$ is a hyperparameter. The coverage weight 
+$\text{cover}(n, K^{(d)})$ downweights individual n-grams whose tokens 
+overlap with tokens in higher-scoring n-grams, preventing passages from 
+receiving inflated scores when they contain many lexically similar n-grams.\cite{bevilacqua2022autoregressivesearchenginesgenerating}. %todo what is w?
+
 
 To illustrate \glsxtrshort{SEAL}'s n-gram based scoring, lets examine the query ``who sings does he love me with reba''. The top-ranked passage (titled ``Linda Davis'') matched the following keys (excerpt):
 
