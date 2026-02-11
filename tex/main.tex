@@ -18,7 +18,7 @@ This thesis addresses two interconnected research questions:
 
 \textbf{RQ1:} What is a systematic classification of the failures, behavioral biases, and structural limitations observed in generative retrieval systems?
 
-\textbf{RQ2:} What are the most frequent failure modes observed in \glsxtrshort{SEAL}'s and \glsxtrshort{MINDER}'s n-gram-based retrieval, and which failures stem from the generation component versus the scoring mechanism?
+\textbf{RQ2:} What are the most frequent failure modes observed in \glsxtrshort{SEAL}'s and \glsxtrshort{MINDER}'s n-gram-based retrieval, and to which mechanisms in the retrieval process can these failures be attributed?
 
 \subsection{Contributions}
 
@@ -51,7 +51,7 @@ Traditional \glsxtrfull{ir} has long been structured around the ``index-retrieve
 
 \subsection{DocID Design}
 
-\glsxtrfull{docid} design is the one of the key decisive factors for retrieval effectiveness, as it replaces traditional external indices with the model’s internal parametric memory. %todo rewrite for clarity
+\Glsxtrfull{docid} design is the one of the key decisive factors for retrieval effectiveness, as it replaces traditional external indices with the model’s internal parametric memory. %todo rewrite for clarity
 A \glsxtrshort{docid} serves as a unique ``index'' that the model must autoregressively generate to point toward a specific document or passage. Initial foundational works categorized these identifiers into three main types: unstructured atomic identifiers (such as unique random integers), naively structured string identifiers (such as titles), and semantically structured, numeric identifiers (such hierarchical cluster paths). While atomic IDs require the model to memorize random associations, semantic IDs group similar documents together under shared prefix tokens, improving retrieval quality \cite{pradeep2023doesgenerativeretrievalscale}.
 
 String identifiers use natural language such as document titles, n-grams, URLs, or synthetic pseudo-queries, which allow the model to use its pre-trained linguistic knowledge rather than learning a new symbolic system from scratch. Substring or n-gram identifiers allow any span of text within a document to act as its identifier. In \glsxtrshort{SEAL} and \glsxtrshort{MINDER}, the documents aren't assigned a single identifier per document, unlike in other frameworks such as DSI \cite{tay2022transformermemorydifferentiablesearch} or GENRE \cite{sun2023learningtokenizegenerativeretrieval}. A single document can have multiple possible identifiers, as evidenced in \glsxtrshort{SEAL}, which treats all n-grams within the passage as valid identifiers. Additionally, \glsxtrshort{MINDER} also generates pseudo-queries for each document, %note: for each document or passage?
