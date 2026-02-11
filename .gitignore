@@ -2,11 +2,8 @@
 .claude
 temp_data/
 generated_data/
-papers/
-SEAL-main/
-MINDER
 data/
-notes/
+wip_dirs/
 
 *.acn
 *.acr
@@ -26,15 +23,5 @@ notes/
 *.synctex.gz
 *.toc
 
-notes.txt
-notes_to_self.md
-
 scripts/__pycache__/
 scripts/utils/__pycache__/
-
-generated_data_old/
-
-*.txt
-
-seal_kilt/
-seal_nq/
