@@ -5,7 +5,10 @@ from pathlib import Path
 from collections import defaultdict
 
 def is_pseudoquery(key_text):
-    return '@@' in key_text or key_text.strip().startswith('||')
+    return '@@' in key_text and key_text.strip().startswith('||')
+
+def is_title(key_text):
+    return '@@' in key_text and key_text.strip().startswith('</s>')
 
 def analyze_minder_output(filepath):
     stats = {
@@ -13,6 +16,9 @@ def analyze_minder_output(filepath):
         'total_ngrams': 0,
         'pseudoquery_ngrams': 0,
         'pseudoquery_score': 0.0,
+        'title_ngrams': 0,
+        'title_score': 0.0,
+        'regular_ngrams': 0,
         'regular_score': 0.0,
         'questions_with_keys': 0,
     }
@@ -35,16 +41,44 @@ def analyze_minder_output(filepath):
                                     if is_pseudoquery(key_text):
                                         stats['pseudoquery_ngrams'] += 1
                                         stats['pseudoquery_score'] += key_score
+                                    elif is_title(key_text):
+                                        stats['title_ngrams'] += 1
+                                        stats['title_score'] += key_score
                                     else:
+                                        stats['regular_ngrams'] += 1
                                         stats['regular_score'] += key_score
 
             if has_keys:
                 stats['questions_with_keys'] += 1
 
-    total_score = stats['pseudoquery_score'] + stats['regular_score']
-    stats['pseudoquery_ngram_pct'] = (stats['pseudoquery_ngrams'] / stats['total_ngrams'] * 100) if stats['total_ngrams'] > 0 else 0
-    stats['pseudoquery_score_pct'] = (stats['pseudoquery_score'] / total_score * 100) if total_score > 0 else 0
-    stats['regular_ngrams'] = stats['total_ngrams'] - stats['pseudoquery_ngrams']
+    # Calculate combined (pseudoquery + title)
+    stats['combined_ngrams'] = stats['pseudoquery_ngrams'] + stats['title_ngrams']
+    stats['combined_score'] = stats['pseudoquery_score'] + stats['title_score']
+
+    total_score = stats['pseudoquery_score'] + stats['title_score'] + stats['regular_score']
+
+    if stats['total_ngrams'] > 0:
+        stats['pseudoquery_ngram_pct'] = (stats['pseudoquery_ngrams'] / stats['total_ngrams'] * 100)
+        stats['title_ngram_pct'] = (stats['title_ngrams'] / stats['total_ngrams'] * 100)
+        stats['combined_ngram_pct'] = (stats['combined_ngrams'] / stats['total_ngrams'] * 100)
+        stats['regular_ngram_pct'] = (stats['regular_ngrams'] / stats['total_ngrams'] * 100)
+    else:
+        stats['pseudoquery_ngram_pct'] = 0
+        stats['title_ngram_pct'] = 0
+        stats['combined_ngram_pct'] = 0
+        stats['regular_ngram_pct'] = 0
+
+    if total_score > 0:
+        stats['pseudoquery_score_pct'] = (stats['pseudoquery_score'] / total_score * 100)
+        stats['title_score_pct'] = (stats['title_score'] / total_score * 100)
+        stats['combined_score_pct'] = (stats['combined_score'] / total_score * 100)
+        stats['regular_score_pct'] = (stats['regular_score'] / total_score * 100)
+    else:
+        stats['pseudoquery_score_pct'] = 0
+        stats['title_score_pct'] = 0
+        stats['combined_score_pct'] = 0
+        stats['regular_score_pct'] = 0
+
     stats['total_score'] = total_score
 
     return stats

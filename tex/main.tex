@@ -728,16 +728,17 @@ Notably, the mean n-gram corpus frequency ($\bar{F}_c$) remains stable across al
 \label{sec:pseudo-minder-contrib}
 Here we analyze the contribution of synthetic identifiers in the \glsxtrshort{MINDER} framework. As detailed in Section \ref{sec:minderarch}, \glsxtrshort{MINDER} incorporates pseudo-queries alongside titles and substrings to capture high-level semantic information. Our analysis of 6,515 queries reveals an interesting divergence between the quantity of generated pseudo-queries and their influence on the final ranking.
 
-Numerically, pseudo-queries constitute a negligible fraction of the generated identifiers, accounting for only 1.4\% of the total n-grams (379,080 out of 26.9 million). However, their contribution to the total accumulated score is disproportionately high, representing 27.7\% of the total score mass (91.1 million out of 328.5 million). This confirms that \glsxtrshort{MINDER}'s scoring mechanism successfully uses sparse but highly discriminative synthetic identifiers. %TODO recheck numbers
+Numerically, pseudo-queries constitute a negligible fraction of the generated identifiers, accounting for only 0.32\% of the total n-grams (87714 out of 26.9 million). However, their contribution to the total accumulated score is disproportionately high, representing 4.52\% of the total score mass (14.8 million out of 328.5 million). This confirms that \glsxtrshort{MINDER}'s scoring mechanism successfully uses sparse but highly discriminative synthetic identifiers. 
 
-\subsection{Context Mismatch - Qualitative}
+Interestingly, titles still dominate the picture the scoring disproportionately, as only 1.08\% of ngrams are titles yet contribute 23.2\% of the total score. If we combine pseudoqueries and titles, the resulting numbers are 1.4\% and 27.72\%, respectively.
+
+\subsection{Cultural Mismatch - Qualitative}
 
 \textbf{TODO MAYBE RENAME TO STH CULTURAL OR STH ABOUT TRAINING DATA OR DATASET}
+Since both SEAL and MINDER uses BART language model, which was trained on the English Wikipedia and on BookCorpus \cite{7410368, liu2019robertarobustlyoptimizedbert}, as well as the NQ dataset being similarly based on the English Wikipedia \cite{kwiatkowski-etal-2019-natural}, we presume the models might implicitly favor passages referring to Western entities. This is best illustrated by the query: 'where did the southern song have their capital'.
 
-An interesting example of \glsxtrshort{gr} failure, where the model fails to ``understand'' the passage context is best illustrated by the query: 'where did the southern song have their capital'.
-
-Although the correct answer is Lin'an (the query referring to the Southern Song Dynasty), \glsxtrshort{SEAL} focused entierly on passages about the southern United States, especially about about Tennessee and Virginia. The model likely found a quasi-perfect ``query keyword match'' for such passages and connected ``southern'' with the southern US, ``song'' with country music, the 'Dixie' song and the 'Music City' sobriquet of Nashville, Tennessee, and, building onto these, ``capital'' with Nashville being the capital of Tennesse and Richmond being the capital of Virginia and the former capital of the confederate South. These substrings, while common, were likely %TODO Likely? check it.
-propped up by their connection to the US, a major entity in both Wikipedia and the datasets BART was trained on \cite{liu2019robertarobustlyoptimizedbert} but possess different meanings in a US geography context versus a 12th-century Chinese history context.
+Although the correct answer is Lin'an (the query referring to the Southern Song Dynasty), \glsxtrshort{SEAL} focused entirely on passages about the southern United States, especially about about Tennessee and Virginia. The model likely found a quasi-perfect ``query keyword match'' for such passages and connected ``southern'' with the southern US, ``song'' with country music, the 'Dixie' song and the 'Music City' sobriquet of Nashville, Tennessee, and, building onto these, ``capital'' with Nashville being the capital of Tennesse and Richmond being the capital of Virginia and the former capital of the confederate South. These substrings, while common, were likely %TODO Likely? check it.
+propped up by their implicit connection to the US in the dataset and BART, even though but possess different meanings in a US geography context versus a 12th-century Chinese history context.
 
 There is no ground truth passages retrieved in the \textit{top-100} retrieved passages, which consists entirely of passages about the southern United States.
 
