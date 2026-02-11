@@ -451,6 +451,15 @@ The results reveal that \textbf{TBD}
 
 Please note that we will refrain from ``updating the dataset'', as that would make our results incomparable with other papers' results on the standard \glsxtrshort{nq} dataset.
 
+\paragraph{Title Heuristic}
+
+Both SEAL and MINDER rely passage metadata heavily to retrieve the correct passages. For SEAL, in the top-100 retrieved passages among the 6515 queries analyzed, titles account for 39.85\% of total score. For MINDER, titles make up  29.6\% and pseudoqueries 19.67\% of total score. In cases where the answer string is found exactly both as a ``title n-gram'' and ``nontitle n-gram'', the title n-gram receieves on average 2866\% more score in SEAL and 2499\% in MINDER. Interestingly, this overreliance drops when we only account for successfully retrieved passages, with titles accounting for 29.1\% for SEAL and 20.6\% for MINDER (11,27\% for pseudoqueries). The scoring differential between the answer string being a ``title n-gram'' and ``nontitle n-gram'' also drops to 1876\% for SEAL and 1439\% for MINDER. This can indicate that when the model is ``correct'', it is using more of the body-textThis can be considered a ``feature'' on cases where there is clear metadata in the dataset (e.g. NQ) and cases where retrieving the correct document is more important than retrieving the current passage. However, if our aim is to create a generalized GR model, this should be considered a ``failure''.
+
+Both Bevilaqua et al (2022) and Li et al. (2023a, 2023b, 2024) note that performance drops when titles are unavailable \cite{bevilacqua2022autoregressivesearchenginesgenerating,li2023multiviewidentifiersenhancedgenerative,li2023learningrankgenerativeretrieval,li2024distillationenhancedgenerativeretrieval}. Bevilaqua et.al (2022), however, does not report SEAL ablation results without titles as identifiers. MINDER performs 10.3\% worse recall@5 and 7.4\% worse recall@20 on NQ without titles and pseudoqueries. On MSMARCO \cite{bajaj2018msmarcohumangenerated}, SEAL had a 30.7\% worse Recall@5 than BM25 on MSMARCO, with MINDER only marignally (3.1\%) better than BM25, likely due to pseudoqueries. Neither SEAL nor MINDER achieved a Recall@5 larger than 30\% on MSMARCO. LTRGR and DGR achieved 40.2\% and 42.9\%, respectively. It is also worth noting that NQ is based on highly structured Wikipedia passages, while MSMarco is less cleanly structured with messier or lacking metadata.
+
+Our analysis shows that for SEAL, title score is higher by ~280\% on average for positive ``ground truth'' retrieved passages than negative ones. However, the median is only ~41\% and the \sigma ~1113\%, indicating that there is a subset of queries where the title is massively scored, indicating that the model uses it as quasi the only identifier, while for others the title is much less helpful. For MINDER, accordingly, the values are ~325\%, 57.5\%, ~939\%. An extreme example was found in SEAL, where for the query ``who sang this is how we do it'', correct passages have ~545x more title score than incorrect passages (in passages where a title-as-ngram is present). In these cases, title matching is extremely discriminative, which makes it well suited for datasets with clear metadata, but potentially bad for ones without.
+
+
 \subsection{Generative Failures}
 \label{sec:gen-fail}
 Using the identified failure modes in Table \ref{tab:failure-summary}, we present the analysis results pertaining to generation below.
@@ -723,7 +732,7 @@ Numerically, pseudo-queries constitute a negligible fraction of the generated id
 
 \subsection{Context Mismatch - Qualitative}
 
-\textbf{TODO MAYBE RENAME TO STH CULTURAL OR STH ABOUT TRAINING DATA}
+\textbf{TODO MAYBE RENAME TO STH CULTURAL OR STH ABOUT TRAINING DATA OR DATASET}
 
 An interesting example of \glsxtrshort{gr} failure, where the model fails to ``understand'' the passage context is best illustrated by the query: 'where did the southern song have their capital'.
 
