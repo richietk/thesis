@@ -1,7 +1,7 @@
 \appendix
 
 \section{Annotation Issues}
-
+\label{sec:annot}
 \textbf{TODO REWRITE}
 To identify such cases, we check whether the answer string appears in any top-$k$ retrieved passage based on token-level overlap using \texttt{GPT2TokenizerFast}. We use $k=10$, as discussed above. Table~\ref{tab:answer-passage-mismatch} presents the results.
 
@@ -28,7 +28,7 @@ To understand what the 349 ``answer in different passage'' cases actually look l
 \subsection{LLM-as-a-Judge Results}
 \label{sec:llmresults}
 
-According to the methodology explained in Section \ref{sec:llm-judge}, we adjust the estimate of \glsxtrshort{SEAL}'s and \glsxtrshort{MINDER}'s retrieval performance. Table~\ref{tab:adjusted-recall} presents the adjusted hits@10 under different inclusion criteria. \textbf{MINDER DATA IS TBD. TODO}
+According to the methodology explained in Section \ref{sec:annot}, we adjust the estimate of \glsxtrshort{SEAL}'s and \glsxtrshort{MINDER}'s retrieval performance. Table~\ref{tab:adjusted-recall} presents the adjusted hits@10 under different inclusion criteria. \textbf{MINDER DATA IS TBD. TODO}
 
 Table~\ref{tab:llm-judge-results} presents the classification results.
 
@@ -163,3 +163,37 @@ Table \ref{tab:token-diversity-ratio} illustrates the results. Contrary to our i
 It is interesting to note that \glsxtrshort{MINDER} has a considerably higher success rate at low diversity scenarios. This is expected, as \glsxtrshort{MINDER}'s generates titles, pseudo-queries, and substrings simultaneously, meaning that the model frequently repeats key tokens across these different identifier views. The highest success rate is found in the lowest diversity decile, which suggests that the model is able to reinforce a specific semantic cluster through multiview identifiers.
 
 These findings suggest that token repetition is not a redundancy failure, but rather a signal of model certainty. When \glsxtrshort{SEAL} and \glsxtrshort{MINDER} are highly confident in a target document, it generates multiple overlapping n-grams that concentrate score on a specific semantic cluster. In contrast, high identifier diversity indicates a lack of model confidence, where the model produces a wide variety of topically related but lexically distinct tokens that fail to converge.
+
+\paragraph{Unique Articles among Passages}
+
+Firstly, we analyze whether there is a correlation with retrieval failure and the amoung of unique titles retrieved in the top-k passages. For this, according to the other analyses, we use $k=10$. Thie analysis is possible, as Wikipedia articles have unique titles.
+
+The results are illustrated in the following table and line chart:
+
+\begin{table}[H]
+    \centering
+    \caption{Hits@k by title repetition count.}
+    \label{tab:title-repetition-impact}
+    \begin{tabular}{l|rr|rr}
+        \toprule
+        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
+        \textbf{Max Repetition\textsuperscript{*}} & \textbf{$N$} & \textbf{H@1 / H@10} & \textbf{$N$} & \textbf{H@1 / H@10} \\
+        \midrule
+        1 & 23    & 30.4\% / 60.9\% & 38    & 28.9\% / 60.5\% \\
+        2                 & 556   & 45.3\% / 70.1\% & 665   & 46.9\% / 72.9\% \\
+        4                 & 653   & 42.1\% / 77.3\% & 819   & 46.8\% / 77.7\% \\
+        6                 & 573   & 41.5\% / 76.1\% & 650   & 45.1\% / 79.5\% \\
+        8                 & 567   & 44.3\% / 78.0\% & 609   & 49.8\% / 82.8\% \\
+        10 & 1,606 & 38.0\% / 76.7\% & 990   & 42.1\% / 79.1\% \\
+        \bottomrule
+        \multicolumn{5}{l}{\small \textsuperscript{*}Maximum number of passages sharing the same title in the top-10 results.}
+    \end{tabular}
+\end{table}
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{assets/title_repetition_comparison.png}
+\end{figure}
+
+We can see that when stratified by maximum title repetition, i.e. the maximum number of passages from the same Wikipedia article per query, \glsxtrshort{MINDER} marginally outperforms \glsxtrshort{SEAL}, especially on queries where the system is relatively sure of the answer, as evidenced by a specific title appearing in several of the top-10 results. We can see that in cases where the max repetition is very low, i.e. the model couldn't confidently pinpoint a single document and is likely guessing, retrieval success suffers. Based on this analysis, there are significantly more cases with high title repetition than low title repetition, indicating that the models are fairly certain about the correct document (or, alternatively, are confidently incorrect about one).
