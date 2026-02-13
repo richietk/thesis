@@ -278,50 +278,6 @@ A fundamental structural constraint of n-gram-based retrieval is that n-grams mu
 
 Consider a passage stating ``Tom likes pizza and tomatoes'' and a query ``does Tom like tomatoes?'' The semantically relevant n-gram ``likes tomatoes'' does not exist as a contiguous substring in the passage due to the intervening words ``pizza'' and ``and.''  This issue is partially mitigated by the fact that n-grams ``and tomatoes,'' ``pizza and tomatoes,'' ``tomatoes.'' are still generated and scored, however this is not a robust solution. Including skip-grams in addition to ngrams or forcing overlap between passages could theoretically be solutions to this problem. These are, however, out of scope for this thesis.
 
-\subsection{Data Validation} %(The LLM-as-a-Judge procedure)
-\label{sec:llm-judge}
-
-We identified cases where \glsxtrshort{SEAL} or \glsxtrshort{MINDER} retrieves a passage containing the answer, but this passage differs from the annotated ground-truth.
-
-To identify such cases, we check whether the answer string appears in any top-$k$ retrieved passage based on token-level overlap using \texttt{GPT2TokenizerFast}. We use $k=10$, as discussed above. Table~\ref{tab:answer-passage-mismatch} presents the results.
-
-\begin{table}[htbp]
-    \centering
-    \caption{Retrieval outcomes based on answer string matching ($k=10$).}
-    \label{tab:answer-passage-mismatch}
-    \begin{tabular}{l|rr|rr}
-        \toprule
-        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
-        \textbf{Outcome} & \textbf{$n$} & \textbf{\%} & \textbf{$n$} & \textbf{\%} \\
-        \midrule
-        Answer in top-$k$ (Hits@$k$)     & 4,961 & 76.1\% & 5,113 & 78.5\% \\
-        Answer in unannotated passage   & 349   & 5.4\%  & 362   & 5.6\%  \\
-        Answer string not in top-$k$    & 1,205 & 18.5\% & 1,040 & 16.0\% \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-For \glsxtrshort{SEAL} in 5.4\% of the queries, for \glsxtrshort{MINDER} in 5.6\% of the queries, the answer string appears in (at least) one of the top-10 retrieved passages that is not the annotated ground truth. However, string matching alone does not determine whether the passage genuinely answers the question.
- 
-To understand what the 349 ``answer in different passage'' cases actually look like, we examine three examples in detail extracted form the \glsxtrshort{SEAL} outputs. Similar cases can be found in \glsxtrshort{MINDER}'s output too.
-
-\textbf{Example 1: ``which apostle had a thorn in his side'' (answer: Paul).} The ground-truth passage is from the Wikipedia article ``Thorn in the flesh,'' which explains that Paul the Apostle used this phrase in 2 Corinthians 12:7--9. \glsxtrshort{SEAL}'s top result was from Galatians 3, which mentions ``Paul the Apostle'' as the author of that epistle but contains nothing about a thorn. Even though \glsxtrshort{SEAL} seemed to be able to identify ``Paul'' as a relevant term (potentially from BART's parametric), Galatians 3 is the wrong chapter entirely. \glsxtrshort{SEAL} matched on generic terms (``Paul,'' ``apostle'') but never generated n-grams containing ``thorn.''
-
-\textbf{Example 2: ``how many judges currently serve on the supreme court'' (answer: nine).} The ground-truth passage directly states the current composition of the Court. \glsxtrshort{SEAL}'s top result is a historical passage stating that in 1869, ``the Circuit Judges Act returned the number of justices to nine, where it has since remained.'' This is borderline, because the reader could infer the answer, but the passage is not specifically about the current number of judges.
-
-\textbf{Example 3: ``who is the youngest judge currently sitting on the u.s. supreme court'' (answer: Neil Gorsuch).} The ground-truth passage discusses Gorsuch's nomination process and him being the youngest sitting justice. \glsxtrshort{SEAL}'s top result directly states: ``Neil Gorsuch is the youngest justice sitting, at 50 years of age.'' This is a success, because \glsxtrshort{SEAL} found a passage that answers the question, even if not annotated.
-
-These examples show that these cases are a mix of such cases. To determine how many fall into each category, in section~\ref{sec:llm-judge}, we apply LLM-as-a-judge to classify whether each retrieved passage genuinely answers the question or not. If most of the 349 cases are genuine retrievals, then \glsxtrshort{SEAL}'s effective top-10 recall is closer to 81.5\% rather than 76.1\%. If most are coincidental matches, then 76.1\% remains the accurate figure. Similar calculations can be done for \glsxtrshort{MINDER}.
-
-For each case, we present a large language model (\texttt{claude-sonnet-4-5\-20250929}) with the original question, the expected answer, and the retrieved passage text, asking it to determine whether the passage genuinely answers the question or whether the answer string's presence is coincidental. The model was chosen based on expected reasoning capabilities and cost of operation.
-
-The judge classifies each case into one of three categories:
-\begin{itemize}
-    \item \textbf{YES}: The passage directly and unambiguously answers the question.
-    \item \textbf{NO}: The answer string appears coincidentally and the passage does not answer the question.
-    \item \textbf{PARTIAL}: The passage provides relevant information from which the answer could be inferred, but does not state it directly.
-\end{itemize}
-
 \section{Results}
 
 \subsection{Preliminary Analysis}
@@ -475,6 +431,57 @@ An important observation is that \glsxtrshort{MINDER} successfully retrieved the
 
 %note:_ other interesting queries: is banana a fruit or berry, when was the louisiana purchase
 
+
+
+\subsection{Annotation Issues}
+\label{sec:annotation}
+
+The reliability of GR evaluation depends on the quality of GT annotations in benchmark datasets. When those contain annotation errors, such as relevant passages incorrectly labeled as negative or vice versa, the measured performance metrics no longer accurately reflect a system's true retrieval capabilities. These can lead to misleading conclusions being published that do not generalize to real-world scenarios or accurately represent comparisons.
+
+For QA tasks, multiple passages may contain semantically equivalent answers but only a subset are annotated as ground truth. The authors of MS MARCO, TriviaQA, and NQ each acknowledge this concern \cite{bajaj2018msmarcohumangenerated, joshi-etal-2017-triviaqa,kwiatkowski-etal-2019-natural}.
+
+\textbf{TODO BELOW EITHER REWRITE OR IDK or maybe add the tables as appendix or idk. this below isnt really relevant to actual failure modes, similarly how most correl analysis isnt relevant either.}
+
+We identified cases where \glsxtrshort{SEAL} or \glsxtrshort{MINDER} retrieves a passage containing the answer, but this passage differs from the annotated ground-truth.
+
+To identify such cases, we check whether the answer string appears in any top-$k$ retrieved passage based on token-level overlap using \texttt{GPT2TokenizerFast}. We use $k=10$, as discussed above. Table~\ref{tab:answer-passage-mismatch} presents the results.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Retrieval outcomes based on answer string matching ($k=10$).}
+    \label{tab:answer-passage-mismatch}
+    \begin{tabular}{l|rr|rr}
+        \toprule
+        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
+        \textbf{Outcome} & \textbf{$n$} & \textbf{\%} & \textbf{$n$} & \textbf{\%} \\
+        \midrule
+        Answer in top-$k$ (Hits@$k$)     & 4,961 & 76.1\% & 5,113 & 78.5\% \\
+        Answer in unannotated passage   & 349   & 5.4\%  & 362   & 5.6\%  \\
+        Answer string not in top-$k$    & 1,205 & 18.5\% & 1,040 & 16.0\% \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+For \glsxtrshort{SEAL} in 5.4\% of the queries, for \glsxtrshort{MINDER} in 5.6\% of the queries, the answer string appears in (at least) one of the top-10 retrieved passages that is not the annotated ground truth. However, string matching alone does not determine whether the passage genuinely answers the question.
+ 
+To understand what the 349 ``answer in different passage'' cases actually look like, we examine three examples in detail extracted form the \glsxtrshort{SEAL} outputs. Similar cases can be found in \glsxtrshort{MINDER}'s output too.
+
+\textbf{Example 1: ``which apostle had a thorn in his side'' (answer: Paul).} The ground-truth passage is from the Wikipedia article ``Thorn in the flesh,'' which explains that Paul the Apostle used this phrase in 2 Corinthians 12:7--9. \glsxtrshort{SEAL}'s top result was from Galatians 3, which mentions ``Paul the Apostle'' as the author of that epistle but contains nothing about a thorn. Even though \glsxtrshort{SEAL} seemed to be able to identify ``Paul'' as a relevant term (potentially from BART's parametric), Galatians 3 is the wrong chapter entirely. \glsxtrshort{SEAL} matched on generic terms (``Paul,'' ``apostle'') but never generated n-grams containing ``thorn.''
+
+\textbf{Example 2: ``how many judges currently serve on the supreme court'' (answer: nine).} The ground-truth passage directly states the current composition of the Court. \glsxtrshort{SEAL}'s top result is a historical passage stating that in 1869, ``the Circuit Judges Act returned the number of justices to nine, where it has since remained.'' This is borderline, because the reader could infer the answer, but the passage is not specifically about the current number of judges.
+
+\textbf{Example 3: ``who is the youngest judge currently sitting on the u.s. supreme court'' (answer: Neil Gorsuch).} The ground-truth passage discusses Gorsuch's nomination process and him being the youngest sitting justice. \glsxtrshort{SEAL}'s top result directly states: ``Neil Gorsuch is the youngest justice sitting, at 50 years of age.'' This is a success, because \glsxtrshort{SEAL} found a passage that answers the question, even if not annotated.
+
+These examples show that these cases are a mix of such cases. To determine how many fall into each category, in section~\ref{sec:llm-judge}, we apply LLM-as-a-judge to classify whether each retrieved passage genuinely answers the question or not. If most of the 349 cases are genuine retrievals, then \glsxtrshort{SEAL}'s effective top-10 recall is closer to 81.5\% rather than 76.1\%. If most are coincidental matches, then 76.1\% remains the accurate figure. Similar calculations can be done for \glsxtrshort{MINDER}.
+
+For each case, we present a large language model (\texttt{claude-sonnet-4-5\-20250929}) with the original question, the expected answer, and the retrieved passage text, asking it to determine whether the passage genuinely answers the question or whether the answer string's presence is coincidental. The model was chosen based on expected reasoning capabilities and cost of operation.
+
+The judge classifies each case into one of three categories:
+\begin{itemize}
+    \item \textbf{YES}: The passage directly and unambiguously answers the question.
+    \item \textbf{NO}: The answer string appears coincidentally and the passage does not answer the question.
+    \item \textbf{PARTIAL}: The passage provides relevant information from which the answer could be inferred, but does not state it directly.
+\end{itemize}
 
 \subsection{Generative Failures}
 \label{sec:gen-fail}
