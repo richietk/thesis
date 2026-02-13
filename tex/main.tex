@@ -278,11 +278,16 @@ A fundamental structural constraint of n-gram-based retrieval is that n-grams mu
 
 Consider a passage stating ``Tom likes pizza and tomatoes'' and a query ``does Tom like tomatoes?'' The semantically relevant n-gram ``likes tomatoes'' does not exist as a contiguous substring in the passage due to the intervening words ``pizza'' and ``and.''  This issue is partially mitigated by the fact that n-grams ``and tomatoes,'' ``pizza and tomatoes,'' ``tomatoes.'' are still generated and scored, however this is not a robust solution. Including skip-grams in addition to ngrams or forcing overlap between passages could theoretically be solutions to this problem. These are, however, out of scope for this thesis.
 
-\section{Results}
+\section{Failure Analysis}
+
+%stop saying "we observed a correlation". it should be sth like "the system exhibits X failure mode, as evidenced by correlation Y" although idk if correls are even important anymore.
 
 \subsection{Preliminary Analysis}
 \label{sec:failure-pattern-analysis}
 %TODO FIND A BETTER NAME TODO
+
+% is this even relevant? why not just delete it? who cares about the PP PN NP NN acronyms when I dont tie it to any kinda failure mechanism reveal? its just noisy correlation analysis, not a failure mode.
+
 We analyze the distribution of generated n-gram keys across retrieved documents. We categorize each query based on Precision@2: PP (both correct), PN (rank-1 correct, rank-2 incorrect), NP (rank-1 incorrect, rank-2 correct), and NN (both incorrect). Table~\ref{tab:category-distribution} presents the distribution of queries across retrieval outcome categories. In our definition, positive means the retrieved passage corresponds to a ground truth passage, therefore ``correct'', while negative accordingly means ``incorrect''.
 
 \begin{table}[htbp]
@@ -330,83 +335,12 @@ Although the results between the two systems are fairly similar, with \glsxtrsho
 
 The high variance in scores for unique positive keys compared to unique negative keys suggests that the models' ability to identify relevant n-grams is highly inconsistent. While some ``Unique P'' keys receive very high scores, many others likeyly receive negligible scores, dragging down the mean. Furthermore, the high variance in the 'Shared' category indicates a lack of discriminative power and their influence on the final ranking is unpredictable.
 
-\subsection{Query Terms Corpus Coverage}
-
-We analyzed the relationship between query term availability and retrieval success using SEAL's FM-Index. For each of 6,515 Natural Questions queries, we measured the percentage of query words present in the Wikipedia corpus and correlated this with retrieval performance (Hits@1 and Hits@10). Queries were stratified into deciles based on coverage scores. The mean coverage was $85.2\%$ with $90.5\%$ of all queries having $\geq70\%$ of their terms present in the corpus.
 
 
-Results revealed no meaningful correlation between corpus coverage and retrieval success (Pearson's $r = 0.017$, $p = 0.165$ for Hits@1; $r = 0.001$, $p = 0.962$ for Hits@10). As shown in Table~\ref{tab:coverage}, queries in D1 achieved 42.1\% Hits@1 and 77.1\% Hits@10, while queries with complete coverage in D1 achieved 44.8\% Hits@1 and 77.4\% Hits@10, effectively identical performance. This null result demonstrates that SEAL's retrieval failures are not primarily driven by out-of-vocabulary terms or lexical gaps.
+\paragraph{Metadata Dependency}
 
-\begin{table}[H]
-\centering
-\caption{Retrieval performance across corpus coverage deciles. Coverage represents the percentage of query words present in the Wikipedia corpus.}
-\label{tab:coverage}
-\begin{tabular}{lcccc}
-\hline
-\textbf{Decile} & \textbf{Coverage} & \textbf{Hits@1} & \textbf{Hits@10} & \textbf{N} \\
-\hline
-D1 (lowest)  & 0.38--0.70 & 42.1\% & 77.1\% & 651 \\
-D2           & 0.70--0.75 & 37.6\% & 74.7\% & 651 \\
-D3           & 0.75--0.78 & 41.9\% & 76.5\% & 651 \\
-D4           & 0.78--0.88 & 39.2\% & 73.4\% & 651 \\
-D5           & 0.88--0.88 & 40.2\% & 77.1\% & 651 \\
-D6           & 0.88--0.89 & 43.6\% & 76.7\% & 651 \\
-D7           & 0.89--0.90 & 41.5\% & 75.7\% & 651 \\
-D8           & 0.90--1.00 & 41.6\% & 79.3\% & 651 \\
-D9           & 1.00--1.00 & 43.9\% & 73.6\% & 651 \\
-D10 (highest)& 1.00--1.00 & 44.8\% & 77.4\% & 656 \\
-\hline
-\end{tabular}
-\end{table}
-
-
-\subsection{LLM-as-a-Judge Results}
-\label{sec:llmresults}
-
-According to the methodology explained in Section \ref{sec:llm-judge}, we adjust the estimate of \glsxtrshort{SEAL}'s and \glsxtrshort{MINDER}'s retrieval performance. Table~\ref{tab:adjusted-recall} presents the adjusted hits@10 under different inclusion criteria. \textbf{MINDER DATA IS TBD. TODO}
-
-Table~\ref{tab:llm-judge-results} presents the classification results.
-
-\begin{table}[htbp]
-    \centering
-    \caption{LLM-as-a-judge classification of answer-in-different-passage cases.}
-    \label{tab:llm-judge-results}
-    \begin{tabular}{l|rr|rr}
-        \toprule
-        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
-        \textbf{Verdict} & \textbf{Count} & \textbf{Percentage} & \textbf{Count} & \textbf{Percentage} \\
-        \midrule
-        YES     & TBD & TBD & TBD & TBD \\
-        NO      & TBD & TBD & TBD & TBD \\
-        PARTIAL & TBD & TBD & TBD & TBD \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-The results reveal that \textbf{TBD}
-
-\begin{table}[htbp]
-    \centering
-    \caption{Adjusted hits@10 estimates based on LLM-as-a-judge results.}
-    \label{tab:adjusted-recall}
-    \begin{tabular}{l|rr|rr}
-        \toprule
-        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
-        \textbf{Inclusion Criterion} & \textbf{Hits@10} & \textbf{\%\textsuperscript{*}} & \textbf{Hits@10} & \textbf{\%\textsuperscript{*}} \\
-        \midrule
-        Hit@10 & 4961 & 76.1\% & 5113 & 78.4\% \\
-        + YES verdicts             & TBD & TBD & TBD & TBD \\
-        + YES and PARTIAL verdicts & TBD & TBD & TBD & TBD \\
-        \bottomrule
-        \multicolumn{5}{l}{\small \textsuperscript{*}Percentage of the total 6,515 queries.}
-    \end{tabular}
-\end{table}
-
-\textbf{TODO ANALYSIS TBD....}
-
-Please note that we will refrain from ``updating the dataset'', as that would make our results incomparable with other papers' results on the standard \glsxtrshort{nq} dataset.
-
-\paragraph{Title Heuristic}
+%focus not just on titles, but on metadata itself
+%Current: "Titles contribute 40% of the score. GUESS: this is a representation failure where the model failed to learn the content of the passages and has overfitted to the metadata. So is the model an actual robust retriever or a fancy title matcher, in which case why not just use a standard fuzzy search algorithm...
 
 Both SEAL and MINDER rely passage metadata heavily to retrieve the correct passages. For SEAL, in the top-100 retrieved passages among the 6515 queries analyzed, titles account for 39.85\% of total score. For MINDER, titles make up  29.6\% and pseudoqueries 19.67\% of total score. In cases where the answer string is found exactly both as a ``title n-gram'' and ``nontitle n-gram'', the title n-gram receieves on average 2866\% more score in SEAL and 2499\% in MINDER. Interestingly, this overreliance drops when we only account for successfully retrieved passages, with titles accounting for 29.1\% for SEAL and 20.6\% for MINDER (11,27\% for pseudoqueries). The scoring differential between the answer string being a ``title n-gram'' and ``nontitle n-gram'' also drops to 1876\% for SEAL and 1439\% for MINDER. This can indicate that when the model is ``correct'', it is using more of the body-textThis can be considered a ``feature'' on cases where there is clear metadata in the dataset (e.g. NQ) and cases where retrieving the correct document is more important than retrieving the current passage. However, if our aim is to create a generalized GR model, this should be considered a ``failure''.
 
@@ -416,13 +350,15 @@ Our analysis shows that for SEAL, title score is higher by ~280\% on average for
 
 \subsection{Cultural Bias}
 
-English content in public corpora is itself not culturally neutral, as a substantial portion reflects Western (particularly US and Eurocentric) perspectives and framing simply because such sources dominate English public corpora. As BART (which SEAL and MINDER uses) was trained on the English Wikipedia and on BookCorpus \cite{7410368, liu2019robertarobustlyoptimizedbert}, it can be presumed that BART would implicitly default to Western interpretations in ambiguous cases. Other commonly used language models, such as T5 and LLaMa-3 \cite{raffel2023exploringlimitstransferlearning, grattafiori2024llama3herdmodels} were also trained on overwhelmingly English data. Similar bias was also demonstrated for LLMs by several papers \cite{naous2024havingbeerprayermeasuring, aowal2023detectingnaturallanguagebiases, 10.1145/3597307}. 
+English content in public corpora is itself not culturally neutral, as a substantial portion reflects Western (particularly US and Eurocentric) perspectives and framing simply because such sources dominate English public corpora. As BART (which SEAL and MINDER uses) was trained on the English Wikipedia and on BookCorpus \cite{7410368, liu2019robertarobustlyoptimizedbert}, it can be presumed that BART would implicitly default to Western interpretations in ambiguous cases. Other commonly used language models, such as T5 and LLaMa-3 \cite{raffel2023exploringlimitstransferlearning, grattafiori2024llama3herdmodels} were also trained on overwhelmingly English data. Similar bias was also demonstrated for LLMs %which LLMs, autoregressive? or all kind of? also demonstrated for encoder-decoder seq2seq? for bidirectional masked models? T5? bart? bert? is bart even autoregressive? which does each paper analyze?
+by multiple papers \cite{naous2024havingbeerprayermeasuring, aowal2023detectingnaturallanguagebiases, 10.1145/3597307}. 
 
 Similarly, the NQ dataset is also based on the English Wikipedia \cite{kwiatkowski-etal-2019-natural}, adding onto the issue. Such a ``Western-centricity'' can be also be shown in other commonly used datasets, such as MSMarco cite{bajaj2018msmarcohumangenerated}, Trivia QA \cite{joshi-etal-2017-triviaqa }and the KILT datasets \cite{petroni2021kiltbenchmarkknowledgeintensive}.
 
 For SEAL, this is best illustrated by the query: ``where did the southern song have their capital''.
 
-Although the correct answer is Lin'an (the query referring to the Southern Song Dynasty), \glsxtrshort{SEAL} focused entirely on passages about the southern United States, especially about about Tennessee and Virginia. The model likely found a quasi-perfect ``query keyword match'' for such passages and connected ``southern'' with the southern US, ``song'' with country music, the 'Dixie' song and the 'Music City' sobriquet of Nashville, Tennessee, and, building onto these, ``capital'' with Nashville being the capital of Tennesse and Richmond being the capital of Virginia and the former capital of the confederate South. These substrings, while common, were likely propped up by their implicit connection to the US in the dataset and BART, even though they possess different meanings in a US geography context versus a 12th-century Chinese history context.
+Although the correct answer is Lin'an (the query referring to the Southern Song Dynasty), \glsxtrshort{SEAL} focused entirely on passages about the southern United States, especially about about Tennessee and Virginia. The model likely %likely? cant you be sure?
+found a quasi-perfect ``query keyword match'' for such passages and connected ``southern'' with the southern US, ``song'' with country music, the 'Dixie' song and the 'Music City' sobriquet of Nashville, Tennessee, and, building onto these, ``capital'' with Nashville being the capital of Tennesse and Richmond being the capital of Virginia and the former capital of the confederate South. These substrings, while common, were likely propped up by their implicit connection to the US in the dataset and BART, even though they possess different meanings in a US geography context versus a 12th-century Chinese history context.
 
 There is no ground truth passages retrieved in the \textit{top-100} retrieved passages, which consists entirely of passages about the southern United States. This is also an example of \textit{false pruning}, as SEAL seemingly %seemingly?
 discarded the tokens related to the Song Dynasty early on. 
@@ -436,43 +372,37 @@ An important observation is that \glsxtrshort{MINDER} successfully retrieved the
 \subsection{Annotation Issues}
 \label{sec:annotation}
 
+% this is not a failure of the GR system but of the dataset. Although GR is evaluated on such dataset, so implicitly it influences it. Maybe move out to discussion or limitations? or idk?
+
+
 The reliability of GR evaluation depends on the quality of GT annotations in benchmark datasets. When those contain annotation errors, such as relevant passages incorrectly labeled as negative or vice versa, the measured performance metrics no longer accurately reflect a system's true retrieval capabilities. These can lead to misleading conclusions being published that do not generalize to real-world scenarios or accurately represent comparisons.
 
 For QA tasks, multiple passages may contain semantically equivalent answers but only a subset are annotated as ground truth. The authors of MS MARCO, TriviaQA, and NQ each acknowledge this concern \cite{bajaj2018msmarcohumangenerated, joshi-etal-2017-triviaqa,kwiatkowski-etal-2019-natural}.
 
+%ideas for improvements:  try it on impartial datasets. what is even an impartial dataset? what is even the point of these systems, do they have to be impartial? do they have to be generalized? do they have to be only good at Wikipedia QA? or just QA with clear metadata and clear annotation?
+
 \textbf{TODO BELOW EITHER REWRITE OR IDK or maybe add the tables as appendix or idk. this below isnt really relevant to actual failure modes, similarly how most correl analysis isnt relevant either.}
 
-We identified cases where \glsxtrshort{SEAL} or \glsxtrshort{MINDER} retrieves a passage containing the answer, but this passage differs from the annotated ground-truth.
+During our analysis, we identified such cases where the annotation can cause misleading evaluation results. Here we present 3 such examples:
+\textbf{Example 1: ``which apostle had a thorn in his side'' (answer: Paul).} The ground-truth passage %the only GT passage?
+is from the Wikipedia article ``Thorn in the flesh,'' which explains that Paul the Apostle used this phrase in 2 Corinthians 12:7--9. \glsxtrshort{SEAL}'s %why report exactly SEAL its outdated
+ top result %who cares about top-1 result, why not report top-k?
+was from Galatians 3, which mentions ``Paul the Apostle'' as the author of that epistle but contains nothing about a thorn. Even though \glsxtrshort{SEAL} seemed to be able to identify ``Paul'' as a relevant term, potentially from BART's parametric knowledge, Galatians 3 is the wrong chapter entirely. \glsxtrshort{SEAL} matched on generic terms (``Paul,'' ``apostle'') but never generated n-grams containing ``thorn.'' %never, not even in the top-k?
 
-To identify such cases, we check whether the answer string appears in any top-$k$ retrieved passage based on token-level overlap using \texttt{GPT2TokenizerFast}. We use $k=10$, as discussed above. Table~\ref{tab:answer-passage-mismatch} presents the results.
+\textbf{Example 2: ``how many judges currently serve on the supreme court'' (answer: nine).} The ground-truth passage %which GT passage?
+ directly states the current composition of the Court. \glsxtrshort{SEAL}'s %why report exactly SEAL its outdated
+  top result is a historical passage stating that in 1869, ``the Circuit Judges Act returned the number of justices to nine, where it has since remained.'' This is borderline, because the reader could infer the answer, but the passage is not specifically about the current number of judges.
 
-\begin{table}[htbp]
-    \centering
-    \caption{Retrieval outcomes based on answer string matching ($k=10$).}
-    \label{tab:answer-passage-mismatch}
-    \begin{tabular}{l|rr|rr}
-        \toprule
-        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
-        \textbf{Outcome} & \textbf{$n$} & \textbf{\%} & \textbf{$n$} & \textbf{\%} \\
-        \midrule
-        Answer in top-$k$ (Hits@$k$)     & 4,961 & 76.1\% & 5,113 & 78.5\% \\
-        Answer in unannotated passage   & 349   & 5.4\%  & 362   & 5.6\%  \\
-        Answer string not in top-$k$    & 1,205 & 18.5\% & 1,040 & 16.0\% \\
-        \bottomrule
-    \end{tabular}
-\end{table}
+\textbf{Example 3: ``who is the youngest judge currently sitting on the u.s. supreme court'' (answer: Neil Gorsuch).} The ground-truth passage discusses Gorsuch's nomination process and him being the youngest sitting justice. \glsxtrshort{SEAL}'s top result %who cares about top-1 result, why not report top-k?. and why SEAL?
+directly states: ``Neil Gorsuch is the youngest justice sitting, at 50 years of age.'' This is a success, because \glsxtrshort{SEAL} found a passage that answers the question, even if not annotated.
 
-For \glsxtrshort{SEAL} in 5.4\% of the queries, for \glsxtrshort{MINDER} in 5.6\% of the queries, the answer string appears in (at least) one of the top-10 retrieved passages that is not the annotated ground truth. However, string matching alone does not determine whether the passage genuinely answers the question.
- 
-To understand what the 349 ``answer in different passage'' cases actually look like, we examine three examples in detail extracted form the \glsxtrshort{SEAL} outputs. Similar cases can be found in \glsxtrshort{MINDER}'s output too.
 
-\textbf{Example 1: ``which apostle had a thorn in his side'' (answer: Paul).} The ground-truth passage is from the Wikipedia article ``Thorn in the flesh,'' which explains that Paul the Apostle used this phrase in 2 Corinthians 12:7--9. \glsxtrshort{SEAL}'s top result was from Galatians 3, which mentions ``Paul the Apostle'' as the author of that epistle but contains nothing about a thorn. Even though \glsxtrshort{SEAL} seemed to be able to identify ``Paul'' as a relevant term (potentially from BART's parametric), Galatians 3 is the wrong chapter entirely. \glsxtrshort{SEAL} matched on generic terms (``Paul,'' ``apostle'') but never generated n-grams containing ``thorn.''
 
-\textbf{Example 2: ``how many judges currently serve on the supreme court'' (answer: nine).} The ground-truth passage directly states the current composition of the Court. \glsxtrshort{SEAL}'s top result is a historical passage stating that in 1869, ``the Circuit Judges Act returned the number of justices to nine, where it has since remained.'' This is borderline, because the reader could infer the answer, but the passage is not specifically about the current number of judges.
 
-\textbf{Example 3: ``who is the youngest judge currently sitting on the u.s. supreme court'' (answer: Neil Gorsuch).} The ground-truth passage discusses Gorsuch's nomination process and him being the youngest sitting justice. \glsxtrshort{SEAL}'s top result directly states: ``Neil Gorsuch is the youngest justice sitting, at 50 years of age.'' This is a success, because \glsxtrshort{SEAL} found a passage that answers the question, even if not annotated.
+These examples show that these cases are a mix of such cases. To determine how many fall into each category, in section~\ref{sec:llm-judge}, we apply LLM-as-a-judge to classify whether each retrieved passage genuinely answers the question or not. % why run in on SEAL and not on the whole NQ dataset?
 
-These examples show that these cases are a mix of such cases. To determine how many fall into each category, in section~\ref{sec:llm-judge}, we apply LLM-as-a-judge to classify whether each retrieved passage genuinely answers the question or not. If most of the 349 cases are genuine retrievals, then \glsxtrshort{SEAL}'s effective top-10 recall is closer to 81.5\% rather than 76.1\%. If most are coincidental matches, then 76.1\% remains the accurate figure. Similar calculations can be done for \glsxtrshort{MINDER}.
+\textbf{TODO FROM HERE}
+If most of the 349 cases are genuine retrievals, then \glsxtrshort{SEAL}'s effective top-10 recall is closer to 81.5\% rather than 76.1\%. If most are coincidental matches, then 76.1\% remains the accurate figure. Similar calculations can be done for \glsxtrshort{MINDER}.
 
 For each case, we present a large language model (\texttt{claude-sonnet-4-5\-20250929}) with the original question, the expected answer, and the retrieved passage text, asking it to determine whether the passage genuinely answers the question or whether the answer string's presence is coincidental. The model was chosen based on expected reasoning capabilities and cost of operation.
 
@@ -489,6 +419,8 @@ Using the identified failure modes in Table \ref{tab:failure-summary}, we presen
 
 \paragraph{Low Lexical Specificity}
 \label{sec:failure-low-lex-spec}
+
+%the Scoring Function fails to penalize high-frequency terms enough relative to the model's confidence. The model gets "stuck" in a local optimum of generating generic words  which technically appear in the document but are useless for passage-level retrieval. isnt this an optimization failure where the model generatessafe, high-freq nonsense instead of discriminative identifiers. which I guess is ok for document-level retrieval but not for passage-level, WHICH WOULD BE THE MAIN GOAL OF Q&A
 
 N-gram corpus frequency reflects how distinctive a generated n-gram is. Rare n-grams provide stronger evidence for specific documents, while common n-grams match many topically-related passages. We analyze the average corpus frequency of the top-scored n-grams to determine whether the frequency (and thus score) of n-grams contribute to retrieval outcomes.
 
@@ -521,6 +453,9 @@ Notably, using average frequency across all n-grams (instead of top-5) shows no 
 
 \paragraph{Preference for Unigrams}
 \label{sec:unigrams}
+
+% isnt this a failure of autoreg beam seach? bc the model greedily selects high-probability short tokens  because they are "safer" predictions than long, specific phrases? idk maybe the architecture inherently penalizes specificity in favor of high-frequency short tokens.
+
 
 Here we examine whether the analyzed systems disproportionately generate short n-grams (unigrams and bigrams) rather than longer, more distinctive multi-word sequences. Longer n-grams generally provide stronger discriminative power, as multi-word phrases are far less likely to appear across multiple passages than individual words.
 
@@ -559,36 +494,6 @@ To understand the results more illustratively, we summarized the table in the fo
     \includegraphics[width=0.7\textwidth]{assets/ngram_length_bias_comparison.png}
 \end{figure}
 
-\paragraph{Overlapping N-gram Tokens}
-\label{sec:overlapping-ngram-tokens}
-
-We initially hypothesized that cases where the model produces semantically redundant n-grams with high token overlap would constitute a failure mode by inflating scores without providing new evidence. To test this, we measure a ratio defined as the number of unique tokens divided by the total number of tokens across all generated n-grams for the top-1 retrieved query, which we will refer to as ``diversity''. We split up the n-grams into tokens using \texttt{GPT2TokenizerFast}.
-
-Table \ref{tab:token-diversity-ratio} illustrates the results. Contrary to our initial hypothesis, the results reveal a  negative correlation between diversity and hits@k. For \glsxtrshort{SEAL}, $\rho = -0.111$ for  $k=1$ and $\rho = -0.101 $ for  $k=10$. For \glsxtrshort{MINDER}, the Spearman correlations are $\rho = -0.289$ and $\rho = -0.242$, respectively. All values are statistically significant at $p<0.001$.
-
-\begin{table}[H]
-    \centering
-    \caption{Hits@k by token-based diversity ratio deciles (unique / total tokens).}
-    \label{tab:token-diversity-ratio}
-    \begin{tabular}{l|rr|rr}
-        \toprule
-        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
-        \textbf{Decile} & \textbf{Diversity} & \textbf{H@1 / H@10} & \textbf{Diversity} & \textbf{H@1 / H@10} \\
-        \midrule
-        D1  & 0.36--0.48 & 52.6\% / 84.4\% & 0.28--0.56 & 70.9\% / 91.4\% \\
-        D2  & 0.48--0.49 & 46.3\% / 81.4\% & 0.56--0.64 & 64.3\% / 88.6\% \\
-        D3  & 0.49--0.50 & 43.1\% / 78.2\% & 0.64--0.71 & 53.2\% / 85.6\% \\
-        D5  & 0.51--0.52 & 40.4\% / 73.9\% & 0.76--0.79 & 53.7\% / 84.1\% \\
-        D8  & 0.53--0.54 & 34.9\% / 68.1\% & 0.86--0.88 & 32.2\% / 73.2\% \\
-        D10 & 0.56--0.63 & 32.4\% / 69.8\% & 0.92--1.00 & 22.0\% / 55.6\% \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-It is interesting to note that \glsxtrshort{MINDER} has a considerably higher success rate at low diversity scenarios. This is expected, as \glsxtrshort{MINDER}'s generates titles, pseudo-queries, and substrings simultaneously, meaning that the model frequently repeats key tokens across these different identifier views. The highest success rate is found in the lowest diversity decile, which suggests that the model is able to reinforce a specific semantic cluster through multiview identifiers.
-
-These findings suggest that token repetition is not a redundancy failure, but rather a signal of model certainty. When \glsxtrshort{SEAL} and \glsxtrshort{MINDER} are highly confident in a target document, it generates multiple overlapping n-grams that concentrate score on a specific semantic cluster. In contrast, high identifier diversity indicates a lack of model confidence, where the model produces a wide variety of topically related but lexically distinct tokens that fail to converge.
-
 
 \paragraph{Query-to-n-gram Overlap}
 \label{sec:query-ngram-overlap}
@@ -622,6 +527,8 @@ As visible from Table~\ref{tab:p-unique-coverage}, the hit rate of \glsxtrshort{
 \paragraph{Answer as N-gram}
 \label{sec:answer-ngram}
 
+% do the models have access to the answer string beforehand? does the model works best when it memorizes (generates the answer string) rather than generalizes (generates context)? need to reread the paper again..
+% how would the model react to trivia QA? isnt in triviaqa the answer string being in the passage is an inherent indicator for being annotated GT? need to reread paper again...
 We analyze whether retrieval success correlates with the model's ability to generate the specific answer string as an identifier, or whether it relies on the surrounding context. While generating the answer string provides a valuable anchor for a passage, the primary goal of \glsxtrshort{gr} is document identification, not direct question answering.
 
 Table \ref{tab:answer-presence-impact} illustrates the results of our analysis. We looked at whether among the top-1 and top-10 scored retrieved passages, at least one of them contained the answer string or not and what the Hits@1 value is for these cases. The results are mostly similar between \glsxtrshort{SEAL} and \glsxtrshort{MINDER}, with most top-1 ranked retrieved passages not containing the answer string, yet when they do, the respective query's Hits@1 rate doubles and Hits@10 increases significantly.
@@ -687,6 +594,8 @@ We can see that when stratified by maximum title repetition, i.e. the maximum nu
 \paragraph{Overreliance on a Single Identifier}
 \label{sec:failure-6}
 
+% its less about bad queries relying on one big score. Are SEAL/MINDER are designed to work byaggregating weak signals or is this not an issue? When it relies on a single n-gram, it breaks the design philosophy. or does it? is this even a failure mode?
+
 Overreliance on a single identifier measures the extent to which the top-1 ranked passage's total score is concentrated in one high-scoring n-gram versus distributed across multiple n-grams. We define this as the ratio of the highest scored n-gram score and the sum of all matched n-gram scores for the passage.
 
 Our analysis across 6,515 queries reveals that lower such ratio correlates with higher retrieval success, as shown in Table~\ref{tab:identifier-dominance}. For \glsxtrshort{SEAL}, we observe a Spearman correlation of $\rho = -0.115$ ($p < 0.001$), with success rates declining from 48.6\% in the lowest decile (D1) to 29.6\% in the highest decile (D10).
@@ -715,37 +624,7 @@ This trend is also noticable in \glsxtrshort{MINDER} ($\rho = -0.169$, $p < 0.00
 This finding aligns with the additive scoring design, which benefits from distributed evidence by providing redundant confirmation across multiple n-grams. %TODO SOURCE
 Conversely, if the top-scoring n-gram matches many passages or identifies the wrong one, the remaining low-scoring n-grams may provide insufficient corrective evidence to ensure correct ranking.
 
-\paragraph{Impact of N-gram Quantity}
 
-While not a necessarily failure mode, given that \glsxtrshort{SEAL}'s scoring mechanism additively aggregates evidence from multiple n-grams, it is essential to examine whether the quantity of matched n-grams correlates with retrieval success. Intuitively, a higher number of matched n-grams should provide stronger cumulative evidence for a passage and a passage with more matched n-grams has a mathematical advantage over a passage with fewer matched n-grams. However, excessive generation may also introduce noise if additional n-grams are redundant or non-discriminative.
-
-Across 6,515 queries, the number of n-grams matched to the top-1 retrieved passage has a mean of 41.5 (median: 42.0, $\sigma$: 6.3), with a range of 11 to 65. Table~\ref{tab:ngram-count} presents retrieval performance stratified by n-gram count deciles.
-
-\begin{table}[htbp]
-    \centering
-    \caption{Hits@1 and mean n-gram corpus frequency $\bar{F}_c$ by n-gram count deciles for the top-1 retrieved passage.}
-    \label{tab:ngram-count}
-    \begin{tabular}{lrrrr}
-        \toprule
-        \textbf{Decile} & \textbf{Range} & \textbf{$N$} & \textbf{Hits@1} & \textbf{$\bar{F}_c$} \\
-        \midrule
-        D1  & 11--34 & 828  & 36.0\% & 384,785 \\
-        D2  & 35--36 & 495  & 37.4\% & 378,346 \\
-        D3  & 37--39 & 1,017 & 39.5\% & 380,174 \\
-        D4  & 40--40 & 425  & 46.1\% & 392,012 \\
-        D5  & 41--42 & 861  & 45.2\% & 382,931 \\
-        D6  & 43--43 & 448  & 43.8\% & 382,506 \\
-        D7  & 44--45 & 795  & 45.0\% & 385,779 \\
-        D8  & 46--47 & 622  & 42.4\% & 382,767 \\
-        D9  & 48--49 & 432  & 41.7\% & 380,999 \\
-        D10 & 50--65 & 592  & 41.6\% & 371,719 \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-The relationship between n-gram count and retrieval success is notably weak (Spearman $\rho = 0.040$, $p = 0.001$), exhibiting a non-monotonic, inverted-U pattern. Hits@1 increases from 36.0\% for passages with low identifier counts (D1, $<$34) to a peak of 46.1\% in the fourth decile, subsequently plateauing and slightly declining to 41.6\% for passages in the highest decile (D10, $>$50). This trend suggests that while a minimum amount of evidence is required to identify a passage, accumulating n-grams beyond a moderate threshold yields diminishing returns and does not significantly influence hit-rate.
-
-Notably, the mean n-gram corpus frequency ($\bar{F}_c$) remains stable across all deciles. This stability indicates that the hit-rate plateau is not caused by the model reverting to generic "filler" tokens at higher counts. Instead, the it likely stems from the scoring mechanism's inability to disambiguate between a small set of highly discriminative n-grams and the large aggregate score from multiple, less specific identifiers.
 
 \paragraph{Pseudo-Query Contribution in MINDER}
 \label{sec:pseudo-minder-contrib}

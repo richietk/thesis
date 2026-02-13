@@ -1,3 +1,165 @@
 \appendix
 
-\section{lorem ipsum}
+\section{Annotation Issues}
+
+\textbf{TODO REWRITE}
+To identify such cases, we check whether the answer string appears in any top-$k$ retrieved passage based on token-level overlap using \texttt{GPT2TokenizerFast}. We use $k=10$, as discussed above. Table~\ref{tab:answer-passage-mismatch} presents the results.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Retrieval outcomes based on answer string matching ($k=10$).}
+    \label{tab:answer-passage-mismatch}
+    \begin{tabular}{l|rr|rr}
+        \toprule
+        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
+        \textbf{Outcome} & \textbf{$n$} & \textbf{\%} & \textbf{$n$} & \textbf{\%} \\
+        \midrule
+        Answer in top-$k$ (Hits@$k$)     & 4,961 & 76.1\% & 5,113 & 78.5\% \\
+        Answer in unannotated passage   & 349   & 5.4\%  & 362   & 5.6\%  \\
+        Answer string not in top-$k$    & 1,205 & 18.5\% & 1,040 & 16.0\% \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+For \glsxtrshort{SEAL} in 5.4\% of the queries, for \glsxtrshort{MINDER} in 5.6\% of the queries, the answer string appears in (at least) one of the top-10 retrieved passages that is not the annotated ground truth. However, string matching alone does not determine whether the passage genuinely answers the question.
+ 
+To understand what the 349 ``answer in different passage'' cases actually look like, we examine three examples in detail extracted form the \glsxtrshort{SEAL} outputs. Similar cases can be found in \glsxtrshort{MINDER}'s output too.
+
+\subsection{LLM-as-a-Judge Results}
+\label{sec:llmresults}
+
+According to the methodology explained in Section \ref{sec:llm-judge}, we adjust the estimate of \glsxtrshort{SEAL}'s and \glsxtrshort{MINDER}'s retrieval performance. Table~\ref{tab:adjusted-recall} presents the adjusted hits@10 under different inclusion criteria. \textbf{MINDER DATA IS TBD. TODO}
+
+Table~\ref{tab:llm-judge-results} presents the classification results.
+
+\begin{table}[htbp]
+    \centering
+    \caption{LLM-as-a-judge classification of answer-in-different-passage cases.}
+    \label{tab:llm-judge-results}
+    \begin{tabular}{l|rr|rr}
+        \toprule
+        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
+        \textbf{Verdict} & \textbf{Count} & \textbf{Percentage} & \textbf{Count} & \textbf{Percentage} \\
+        \midrule
+        YES     & TBD & TBD & TBD & TBD \\
+        NO      & TBD & TBD & TBD & TBD \\
+        PARTIAL & TBD & TBD & TBD & TBD \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The results reveal that \textbf{TBD}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Adjusted hits@10 estimates based on LLM-as-a-judge results.}
+    \label{tab:adjusted-recall}
+    \begin{tabular}{l|rr|rr}
+        \toprule
+        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
+        \textbf{Inclusion Criterion} & \textbf{Hits@10} & \textbf{\%\textsuperscript{*}} & \textbf{Hits@10} & \textbf{\%\textsuperscript{*}} \\
+        \midrule
+        Hit@10 & 4961 & 76.1\% & 5113 & 78.4\% \\
+        + YES verdicts             & TBD & TBD & TBD & TBD \\
+        + YES and PARTIAL verdicts & TBD & TBD & TBD & TBD \\
+        \bottomrule
+        \multicolumn{5}{l}{\small \textsuperscript{*}Percentage of the total 6,515 queries.}
+    \end{tabular}
+\end{table}
+
+\textbf{TODO ANALYSIS TBD....}
+
+Please note that we will refrain from ``updating the dataset'', as that would make our results incomparable with other papers' results on the standard \glsxtrshort{nq} dataset.
+
+
+\subsection{Query Terms Corpus Coverage}
+
+We analyzed the relationship between query term availability and retrieval success using SEAL's FM-Index. For each of 6,515 Natural Questions queries, we measured the percentage of query words present in the Wikipedia corpus and correlated this with retrieval performance (Hits@1 and Hits@10). Queries were stratified into deciles based on coverage scores. The mean coverage was $85.2\%$ with $90.5\%$ of all queries having $\geq70\%$ of their terms present in the corpus.
+
+
+Results revealed no meaningful correlation between corpus coverage and retrieval success (Pearson's $r = 0.017$, $p = 0.165$ for Hits@1; $r = 0.001$, $p = 0.962$ for Hits@10). As shown in Table~\ref{tab:coverage}, queries in D1 achieved 42.1\% Hits@1 and 77.1\% Hits@10, while queries with complete coverage in D1 achieved 44.8\% Hits@1 and 77.4\% Hits@10, effectively identical performance. This null result demonstrates that SEAL's retrieval failures are not primarily driven by out-of-vocabulary terms or lexical gaps.
+
+\begin{table}[H]
+\centering
+\caption{Retrieval performance across corpus coverage deciles. Coverage represents the percentage of query words present in the Wikipedia corpus.}
+\label{tab:coverage}
+\begin{tabular}{lcccc}
+\hline
+\textbf{Decile} & \textbf{Coverage} & \textbf{Hits@1} & \textbf{Hits@10} & \textbf{N} \\
+\hline
+D1 (lowest)  & 0.38--0.70 & 42.1\% & 77.1\% & 651 \\
+D2           & 0.70--0.75 & 37.6\% & 74.7\% & 651 \\
+D3           & 0.75--0.78 & 41.9\% & 76.5\% & 651 \\
+D4           & 0.78--0.88 & 39.2\% & 73.4\% & 651 \\
+D5           & 0.88--0.88 & 40.2\% & 77.1\% & 651 \\
+D6           & 0.88--0.89 & 43.6\% & 76.7\% & 651 \\
+D7           & 0.89--0.90 & 41.5\% & 75.7\% & 651 \\
+D8           & 0.90--1.00 & 41.6\% & 79.3\% & 651 \\
+D9           & 1.00--1.00 & 43.9\% & 73.6\% & 651 \\
+D10 (highest)& 1.00--1.00 & 44.8\% & 77.4\% & 656 \\
+\hline
+\end{tabular}
+\end{table}
+
+
+\paragraph{Impact of N-gram Quantity}
+
+While not a necessarily failure mode, given that \glsxtrshort{SEAL}'s scoring mechanism additively aggregates evidence from multiple n-grams, it is essential to examine whether the quantity of matched n-grams correlates with retrieval success. Intuitively, a higher number of matched n-grams should provide stronger cumulative evidence for a passage and a passage with more matched n-grams has a mathematical advantage over a passage with fewer matched n-grams. However, excessive generation may also introduce noise if additional n-grams are redundant or non-discriminative.
+
+Across 6,515 queries, the number of n-grams matched to the top-1 retrieved passage has a mean of 41.5 (median: 42.0, $\sigma$: 6.3), with a range of 11 to 65. Table~\ref{tab:ngram-count} presents retrieval performance stratified by n-gram count deciles.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Hits@1 and mean n-gram corpus frequency $\bar{F}_c$ by n-gram count deciles for the top-1 retrieved passage.}
+    \label{tab:ngram-count}
+    \begin{tabular}{lrrrr}
+        \toprule
+        \textbf{Decile} & \textbf{Range} & \textbf{$N$} & \textbf{Hits@1} & \textbf{$\bar{F}_c$} \\
+        \midrule
+        D1  & 11--34 & 828  & 36.0\% & 384,785 \\
+        D2  & 35--36 & 495  & 37.4\% & 378,346 \\
+        D3  & 37--39 & 1,017 & 39.5\% & 380,174 \\
+        D4  & 40--40 & 425  & 46.1\% & 392,012 \\
+        D5  & 41--42 & 861  & 45.2\% & 382,931 \\
+        D6  & 43--43 & 448  & 43.8\% & 382,506 \\
+        D7  & 44--45 & 795  & 45.0\% & 385,779 \\
+        D8  & 46--47 & 622  & 42.4\% & 382,767 \\
+        D9  & 48--49 & 432  & 41.7\% & 380,999 \\
+        D10 & 50--65 & 592  & 41.6\% & 371,719 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The relationship between n-gram count and retrieval success is notably weak (Spearman $\rho = 0.040$, $p = 0.001$), exhibiting a non-monotonic, inverted-U pattern. Hits@1 increases from 36.0\% for passages with low identifier counts (D1, $<$34) to a peak of 46.1\% in the fourth decile, subsequently plateauing and slightly declining to 41.6\% for passages in the highest decile (D10, $>$50). This trend suggests that while a minimum amount of evidence is required to identify a passage, accumulating n-grams beyond a moderate threshold yields diminishing returns and does not significantly influence hit-rate.
+
+Notably, the mean n-gram corpus frequency ($\bar{F}_c$) remains stable across all deciles. This stability indicates that the hit-rate plateau is not caused by the model reverting to generic "filler" tokens at higher counts. Instead, the it likely stems from the scoring mechanism's inability to disambiguate between a small set of highly discriminative n-grams and the large aggregate score from multiple, less specific identifiers.
+
+\paragraph{Overlapping N-gram Tokens}
+\label{sec:overlapping-ngram-tokens}
+
+We initially hypothesized that cases where the model produces semantically redundant n-grams with high token overlap would constitute a failure mode by inflating scores without providing new evidence. To test this, we measure a ratio defined as the number of unique tokens divided by the total number of tokens across all generated n-grams for the top-1 retrieved query, which we will refer to as ``diversity''. We split up the n-grams into tokens using \texttt{GPT2TokenizerFast}.
+
+Table \ref{tab:token-diversity-ratio} illustrates the results. Contrary to our initial hypothesis, the results reveal a  negative correlation between diversity and hits@k. For \glsxtrshort{SEAL}, $\rho = -0.111$ for  $k=1$ and $\rho = -0.101 $ for  $k=10$. For \glsxtrshort{MINDER}, the Spearman correlations are $\rho = -0.289$ and $\rho = -0.242$, respectively. All values are statistically significant at $p<0.001$.
+
+\begin{table}[H]
+    \centering
+    \caption{Hits@k by token-based diversity ratio deciles (unique / total tokens).}
+    \label{tab:token-diversity-ratio}
+    \begin{tabular}{l|rr|rr}
+        \toprule
+        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
+        \textbf{Decile} & \textbf{Diversity} & \textbf{H@1 / H@10} & \textbf{Diversity} & \textbf{H@1 / H@10} \\
+        \midrule
+        D1  & 0.36--0.48 & 52.6\% / 84.4\% & 0.28--0.56 & 70.9\% / 91.4\% \\
+        D2  & 0.48--0.49 & 46.3\% / 81.4\% & 0.56--0.64 & 64.3\% / 88.6\% \\
+        D3  & 0.49--0.50 & 43.1\% / 78.2\% & 0.64--0.71 & 53.2\% / 85.6\% \\
+        D5  & 0.51--0.52 & 40.4\% / 73.9\% & 0.76--0.79 & 53.7\% / 84.1\% \\
+        D8  & 0.53--0.54 & 34.9\% / 68.1\% & 0.86--0.88 & 32.2\% / 73.2\% \\
+        D10 & 0.56--0.63 & 32.4\% / 69.8\% & 0.92--1.00 & 22.0\% / 55.6\% \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+It is interesting to note that \glsxtrshort{MINDER} has a considerably higher success rate at low diversity scenarios. This is expected, as \glsxtrshort{MINDER}'s generates titles, pseudo-queries, and substrings simultaneously, meaning that the model frequently repeats key tokens across these different identifier views. The highest success rate is found in the lowest diversity decile, which suggests that the model is able to reinforce a specific semantic cluster through multiview identifiers.
+
+These findings suggest that token repetition is not a redundancy failure, but rather a signal of model certainty. When \glsxtrshort{SEAL} and \glsxtrshort{MINDER} are highly confident in a target document, it generates multiple overlapping n-grams that concentrate score on a specific semantic cluster. In contrast, high identifier diversity indicates a lack of model confidence, where the model produces a wide variety of topically related but lexically distinct tokens that fail to converge.
