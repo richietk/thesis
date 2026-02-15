@@ -1,4 +1,14 @@
 @inproceedings{
+TODO,
+title={TODO},
+author={TODO},
+booktitle={TODO},
+editor={TODO},
+year={TODO},
+url={TODO}
+}
+
+@inproceedings{
 bevilacqua2022autoregressivesearchenginesgenerating,
 title={Autoregressive Search Engines: Generating Substrings as Document Identifiers},
 author={Michele Bevilacqua and Giuseppe Ottaviano and Patrick Lewis and Scott Yih and Sebastian Riedel and Fabio Petroni},
@@ -52,6 +62,36 @@ url={https://openreview.net/forum?id=Z4kZxAjg8Y}
     doi = "10.18653/v1/2024.findings-acl.662",
     pages = "11119--11129",
     abstract = "Generative retrieval is a promising new paradigm in text retrieval that generates identifier strings of relevant passages as the retrieval target. This paradigm leverages powerful generative language models, distinct from traditional sparse or dense retrieval methods. In this work, we identify a viable direction to further enhance generative retrieval via distillation and propose a feasible framework, named DGR. DGR utilizes sophisticated ranking models, such as the cross-encoder, in a teacher role to supply a passage rank list, which captures the varying relevance degrees of passages instead of binary hard labels; subsequently, DGR employs a specially designed distilled RankNet loss to optimize the generative retrieval model, considering the passage rank order provided by the teacher model as labels. This framework only requires an additional distillation step to enhance current generative retrieval systems and does not add any burden to the inference stage. We conduct experiments on four public datasets, and the results indicate that DGR achieves state-of-the-art performance among the generative retrieval methods. Additionally, DGR demonstrates exceptional robustness and generalizability with various teacher models and distillation losses."
+}
+
+@misc{decao2021autoregressiveentityretrieval,
+      title={Autoregressive Entity Retrieval}, 
+      author={Nicola De Cao and Gautier Izacard and Sebastian Riedel and Fabio Petroni},
+      year={2021},
+      eprint={2010.00904},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2010.00904}, 
+}
+
+@article{10.1145/362686.362692,
+author = {Bloom, Burton H.},
+title = {Space/time trade-offs in hash coding with allowable errors},
+year = {1970},
+issue_date = {July 1970},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {13},
+number = {7},
+issn = {0001-0782},
+url = {https://doi.org/10.1145/362686.362692},
+doi = {10.1145/362686.362692},
+abstract = {In this paper trade-offs among certain computational factors in hash coding are analyzed. The paradigm problem considered is that of testing a series of messages one-by-one for membership in a given set of messages. Two new hash-coding methods are examined and compared with a particular conventional hash-coding method. The computational factors considered are the size of the hash area (space), the time required to identify a message as a nonmember of the given set (reject time), and an allowable error frequency.The new methods are intended to reduce the amount of space required to contain the hash-coded information from that associated with conventional methods. The reduction in space is accomplished by exploiting the possibility that a small fraction of errors of commission may be tolerable in some applications, in particular, applications in which a large amount of data is involved and a core resident hash area is consequently not feasible using conventional methods.In such applications, it is envisaged that overall performance could be improved by using a smaller core resident hash area in conjunction with the new methods and, when necessary, by using some secondary and perhaps time-consuming test to “catch” the small fraction of errors associated with the new methods. An example is discussed which illustrates possible areas of application for the new methods.Analysis of the paradigm problem demonstrates that allowing a small number of test messages to be falsely identified as members of the given set will permit a much smaller hash area to be used without increasing reject time.},
+journal = {Commun. ACM},
+month = jul,
+pages = {422–426},
+numpages = {5},
+keywords = {hash addressing, hash coding, retrieval efficiency, retrieval trade-offs, scatter storage, searching, storage efficiency, storage layout}
 }
 
 @misc{bajaj2018msmarcohumangenerated,
@@ -231,6 +271,16 @@ month =Dec}
       archivePrefix={arXiv},
       primaryClass={cs.IR},
       url={https://arxiv.org/abs/2412.18768}, 
+}
+
+@misc{wang2023neuralcorpusindexerdocument,
+      title={A Neural Corpus Indexer for Document Retrieval}, 
+      author={Yujing Wang and Yingyan Hou and Haonan Wang and Ziming Miao and Shibin Wu and Hao Sun and Qi Chen and Yuqing Xia and Chengmin Chi and Guoshuai Zhao and Zheng Liu and Xing Xie and Hao Allen Sun and Weiwei Deng and Qi Zhang and Mao Yang},
+      year={2023},
+      eprint={2206.02743},
+      archivePrefix={arXiv},
+      primaryClass={cs.IR},
+      url={https://arxiv.org/abs/2206.02743}, 
 }
 
 @misc{yuan2024generativedenseretrievalmemory,
@@ -449,6 +499,17 @@ keywords = {Model-based IR, generative model, document retrieval, knowledge dist
       archivePrefix={arXiv},
       primaryClass={cs.CL},
       url={https://arxiv.org/abs/2004.04906}, 
+}
+
+@article{bm25robertson2009,
+author = {Robertson, Stephen and Zaragoza, Hugo},
+year = {2009},
+month = {01},
+pages = {333-389},
+title = {The Probabilistic Relevance Framework: BM25 and Beyond},
+volume = {3},
+journal = {Foundations and Trends in Information Retrieval},
+doi = {10.1561/1500000019}
 }
 
 @misc{xiong2020approximatenearestneighbornegative,
