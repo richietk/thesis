@@ -61,7 +61,7 @@ Because they are often randomly initialized, they lack inherent semantic connect
 
 \glsxtrshort{docid} design is consistently identified as a core challenge affecting these representation issues. Numerical \glspl{docid} offer efficiency but suffer from limited generalization and overfitting to initial training sets, while string-based \glspl{docid} maintain better semantic alignment but are more susceptible to false pruning \cite{zhang2024generativeretrievaltermset, zhang2025replicationexplorationgenerativeretrieval, 10.1145/3589335.3641239}.
 
-\subsection{SEAL Architecture}
+\subsection{\glsxtrshort{SEAL}Architecture}
 
 \glsxtrfull{SEAL} \cite{bevilacqua2022autoregressivesearchenginesgenerating}, addresses \glsxtrshort{docid} design challenges by using existing substrings as its retrieval targets. Such challenges specifically addressed are the unavailability of unique metadata (like titles) for all documents, the insufficient granularity of page- and document-level identifiers, as well as the need to force a structure onto the search space, such as hierarchical cluster trees, which can be difficult to construct for large-scale benchmarks. %todo recheck why are these specifically adressed/improved with ngrams
 \glsxtrshort{SEAL} chunks documents into passages and defines identifiers as any n-gram within those passages. An BART model is trained to generate distinctive, query-relevant n-grams that identify documents containing them. \glsxtrshort{SEAL} constrains generation during decoding so that the model only generates n-grams actually existing in the corpus. For ranking, \glsxtrshort{SEAL} aggregates information from multiple generated n-grams while downweighing overlaps if an n-gram overlaps with a higher-scoring one already selected. This is implemented so that the final score does not overscore based on repetitive or redundant document content.
@@ -71,7 +71,7 @@ Because they are often randomly initialized, they lack inherent semantic connect
 During the generation phase, \glsxtrshort{SEAL} enforces that at each decoding step, the language model can only generate tokens that would extend the current partial n-gram into a sequence that exists somewhere in the corpus. As an example, when \glsxtrshort{SEAL} has generated the partial sequence ``earthquakes can be,'', ``earthquakes can be predicted'' can only be generated if this complete 4-gram exists as a contiguous substring in at least one document \cite{bevilacqua2022autoregressivesearchenginesgenerating}. ``earthquakes can be predicted'' exists in the corpus in the sentence ``discussing why the claim that earthquakes can be predicted is false.''
 
 After n-gram generation, in the retrieval phase, for each n-gram, \glsxtrshort{SEAL} identifies every passage containing that n-gram and assign a relevance score based on the n-gram's uniqueness and frequency in the corpus.
-Passages are then ranked by additively aggregating the scores from all n-grams they contain. The FM-index, which \glsxtrshort{SEAL} uses, provides a range of rows in the Burrows-Wheeler Transform matrix, and each row corresponds to an occurrence of that n-gram in the corpus. SEAL then maps these occurrences back to their respective document/passage id-s.This means that a document scores highly not because any single n-gram uniquely identifies it, but because it contains multiple high-scoring n-grams. This provides robustness, since even if some highly ranked n-grams point to an irrelevant document, other n-grams can still guide retrieval toward relevant documents. %todo recheck the part about FM / BWT for clarity.
+Passages are then ranked by additively aggregating the scores from all n-grams they contain. The FM-index, which \glsxtrshort{SEAL} uses, provides a range of rows in the Burrows-Wheeler Transform matrix, and each row corresponds to an occurrence of that n-gram in the corpus. \glsxtrshort{SEAL}then maps these occurrences back to their respective document/passage id-s.This means that a document scores highly not because any single n-gram uniquely identifies it, but because it contains multiple high-scoring n-grams. This provides robustness, since even if some highly ranked n-grams point to an irrelevant document, other n-grams can still guide retrieval toward relevant documents. %todo recheck the part about FM / BWT for clarity.
 
 This architecture helps explain why \glsxtrshort{SEAL} can overcome vocabulary mismatch issues. While the model cannot generate n-grams that do not exist in the corpus, it can find paraphrases and related terms as long as those appear in corpus documents using BART's parametric knowledge.
 
@@ -130,7 +130,7 @@ To illustrate \glsxtrshort{SEAL}'s n-gram based scoring, lets examine the query 
 
 It is also worth noting that while the additive nature of the scoring mechanism could theoretically bias retrieval toward longer documents in a corpus of varying document lengths, this effect is neutralized by dividing $F(n, R)$ by the total number of tokens in the corpus $R$.
 
-\subsection{MINDER Architecture}
+\subsection{\glsxtrshort{MINDER}Architecture}
 \label{sec:minderarch}
 The \glsxtrfull{MINDER} framework \cite{li2023multiviewidentifiersenhancedgenerative} extends the n-gram based approach of \glsxtrshort{SEAL} by introducing synthetic and multiview identifiers. \glsxtrshort{MINDER} is motivated by the observation that single-view identifiers, such as document titles or extractive n-grams, often lack the contextualized information necessary to satisfy complex queries, especially if those require rephrasing.
 
@@ -153,7 +153,7 @@ where $I_p$ is the set of identifiers generated by the model for passage $p$, an
 
 To manage multiple identifier types, \glsxtrshort{MINDER} identifier-specific prefix tokens (e.g., \texttt{<TS>} for titles, \texttt{<QS>} for queries). During inference, the model is prompted with an identifier prefix and the query, and constrains the generation to valid sequences within the respective view.
 
-\subsection{Evolution of SEAL/MINDER}
+\subsection{Evolution of\glsxtrshort{SEAL}/MINDER}
 
 While this thesis focuses primarily on the foundational \glsxtrshort{SEAL} and \glsxtrshort{MINDER} architectures, it is essential to mention their successors like LTRGR and DGR.
 
@@ -188,12 +188,12 @@ Consider a passage stating ``Tom likes pizza and tomatoes'' and a query ``does T
 Related is the problem of hallucination, in which the model generates invalid (with respect to the pre-defined document index) identifiers. Constrained decoding is often used to eliminate this problem with solutions such as constrianing the docid generation through an FM-index \cite{bevilacqua2022autoregressivesearchenginesgenerating}, trie \cite{decao2021autoregressiveentityretrieval}. Using Bloom Filters \cite{10.1145/362686.362692} could be another method \textbf{TODO THIS ISNT VALIDATED}. There have been several implementations of constrained decoding, such as \glsxtrshort{SEAL} \cite{bevilacqua2022autoregressivesearchenginesgenerating} and \glsxtrshort{MINDER} \cite{li2023multiviewidentifiersenhancedgenerative}.
  
 Several %several?
-GR solutions use intentional hallucination, such as MINDER \cite{li2023multiviewidentifiersenhancedgenerative}, where the generation of additional identifiers, such as pseudoqueries is achieved through intentional, constrained hallucination of docid generation.
+GR solutions use intentional hallucination, such as \glsxtrshort{MINDER}\cite{li2023multiviewidentifiersenhancedgenerative}, where the generation of additional identifiers, such as pseudoqueries is achieved through intentional, constrained hallucination of docid generation.
 
 \paragraph{Forgetfulness}
 \label{par:forgetfulness}
 
-One of the problems in GR is the apparent forgetting of fine-grained features \cite{yuan2024generativedenseretrievalmemory}. While generative models capture coarse-grained semantic clusters effectively \cite{TODO}, they struggle to accurately memorize and decode fine-grained document distinctions \cite{TODO}. According to \citet{yuan2024generativedenseretrievalmemory}, error rates (defined as the \% of tokens predicted at a position that does not match the GT token in a docid) for NCI \cite{wang2023neuralcorpusindexerdocument} increase significantly at later token positions in \glsxtrshort{docid} sequences, rising from approximately 1\% at the first position to over 12\% by the sixth position.
+One of the problems in GR is the apparent forgetting of fine-grained features \cite{yuan2024generativedenseretrievalmemory}. While generative models capture coarse-grained semantic clusters effectively \cite{TODO}, they struggle to accurately memorize and decode fine-grained document distinctions \cite{TODO}. According to \citet{yuan2024generativedenseretrievalmemory}, error rates (defined as the \% of tokens predicted at a position that does not match the \glsxtrshort{GT}token in a docid) for NCI \cite{wang2023neuralcorpusindexerdocument} increase significantly at later token positions in \glsxtrshort{docid} sequences, rising from approximately 1\% at the first position to over 12\% by the sixth position.
 
 \paragraph{Indistinct Identifiers}
 \label{par:distinct-ids}
@@ -281,17 +281,17 @@ Lastly, the lack of interpretability in generation processes presents challenges
 
 \section{Methodology}
 
-Our methodology is threefold. First, we ran \glsxtrshort{SEAL} and \glsxtrshort{MINDER} with their default settings on the \glsxtrfull{nq} \cite{kwiatkowski-etal-2019-natural}, analyzing their outputs. Second, we will run the models on the MSMARCO dataset \cite{bajaj2018msmarcohumangenerated} as well.%todo explain reasoning why
+Our methodology is threefold. First, we ran \glsxtrshort{SEAL} and \glsxtrshort{MINDER} with their default settings on the \glsxtrfull{nq} \cite{kwiatkowski-etal-2019-natural}, analyzing their outputs. Second, we will run the models on the \glsxtrshort{MSMARCO} dataset \cite{bajaj2018msmarcohumangenerated} as well.%todo explain reasoning why
 Third, we will perform ablation studies based on our identifier failure modes from the literature review  in Section \ref{sec:failure-modes-literature} and the failure modes identified during our analysis of the outputs.
 
 We chose NQ as it is an academic standard for retrieval benchmarking. The \glsxtrfull{nq} retrieval corpus consists of a Wikipedia dump split into approximately 21 million passages of 100 tokens each.
 
-The \glsxtrshort{SEAL} and MINDER output dataset contains the results of 6,515 queries from the \glsxtrlong{nq} benchmark. For each query, the following relevant information is available:
+The \glsxtrshort{SEAL} and \glsxtrshort{MINDER}output dataset contains the results of 6,515 queries from the \glsxtrlong{nq} benchmark. For each query, the following relevant information is available:
 
 \begin{itemize}
     \item The original natural language query
-    \item GT answer string(s)
-    \item Annotated GT passages containing the answer
+    \item \glsxtrshort{GT}answer string(s)
+    \item Annotated \glsxtrshort{GT}passages containing the answer
     \item Negative and hard negative passages
     \item The model's top-100 retrieved passages, ranked by passage score, each containing:
     \begin{itemize}
@@ -301,7 +301,7 @@ The \glsxtrshort{SEAL} and MINDER output dataset contains the results of 6,515 q
     \end{itemize}
 \end{itemize}
 
-From the output data available, the n-gram keys are deemed most useful to understand \glsxtrshort{SEAL}'s and MINDER's retrieval decisions. Each key entry contains three parts:
+From the output data available, the n-gram keys are deemed most useful to understand \glsxtrshort{SEAL}'s and\glsxtrshort{MINDER}'s retrieval decisions. Each key entry contains three parts:
 \begin{enumerate}
     \item The n-gram string (e.g., \texttt{`` Reba''}, \texttt{``</s> Linda Davis @@''})
     \item The corpus frequency of how many times this n-gram appears across all documents
@@ -333,28 +333,28 @@ For the analysis, results are calculated side-by-side for both systems analyzed 
 %focus not just on titles, but on metadata itself
 %Current: "Titles contribute 40% of the score. GUESS: this is a representation failure where the model failed to learn the content of the passages and has overfitted to the metadata. So is the model an actual robust retriever or a fancy title matcher, in which case why not just use a standard fuzzy search algorithm...
 
-Both SEAL and MINDER rely passage metadata heavily to retrieve the correct passages. For SEAL, in the top-100 retrieved passages among the 6515 queries analyzed, titles account for 39.85\% of total score. For MINDER, titles make up  29.6\% and pseudoqueries 19.67\% of total score. In cases where the answer string is found exactly both as a ``title n-gram'' and ``nontitle n-gram'', the title n-gram receieves on average 2866\% more score in SEAL and 2499\% in MINDER. Interestingly, this overreliance drops when we only account for successfully retrieved passages, with titles accounting for 29.1\% for SEAL and 20.6\% for MINDER (11,27\% for pseudoqueries). The scoring differential between the answer string being a ``title n-gram'' and ``nontitle n-gram'' also drops to 1876\% for SEAL and 1439\% for MINDER. This can indicate that when the model is ``correct'', it is using more of the body-textThis can be considered a ``feature'' on cases where there is clear metadata in the dataset (e.g. NQ) and cases where retrieving the correct document is more important than retrieving the current passage. However, if our aim is to create a generalized GR model, this should be considered a ``failure''.
+Both \glsxtrshort{SEAL}and \glsxtrshort{MINDER}rely passage metadata heavily to retrieve the correct passages. For\glsxtrshort{SEAL}, in the top-100 retrieved passages among the 6515 queries analyzed, titles account for 39.85\% of total score. For\glsxtrshort{MINDER}, titles make up  29.6\% and pseudoqueries 19.67\% of total score. In cases where the answer string is found exactly both as a ``title n-gram'' and ``nontitle n-gram'', the title n-gram receieves on average 2866\% more score in \glsxtrshort{SEAL}and 2499\% in\glsxtrshort{MINDER}. Interestingly, this overreliance drops when we only account for successfully retrieved passages, with titles accounting for 29.1\% for \glsxtrshort{SEAL}and 20.6\% for \glsxtrshort{MINDER}(11,27\% for pseudoqueries). The scoring differential between the answer string being a ``title n-gram'' and ``nontitle n-gram'' also drops to 1876\% for \glsxtrshort{SEAL}and 1439\% for\glsxtrshort{MINDER}. This can indicate that when the model is ``correct'', it is using more of the body-textThis can be considered a ``feature'' on cases where there is clear metadata in the dataset (e.g. NQ) and cases where retrieving the correct document is more important than retrieving the current passage. However, if our aim is to create a generalized GR model, this should be considered a ``failure''.
 
-Both \citet{bevilacqua2022autoregressivesearchenginesgenerating} and \citet{li2023multiviewidentifiersenhancedgenerative,li2023learningrankgenerativeretrieval,li2024distillationenhancedgenerativeretrieval} note that performance drops when titles are unavailable \cite{bevilacqua2022autoregressivesearchenginesgenerating,li2023multiviewidentifiersenhancedgenerative,li2023learningrankgenerativeretrieval,li2024distillationenhancedgenerativeretrieval}. \citet{bevilacqua2022autoregressivesearchenginesgenerating}, however, does not report SEAL ablation results without titles as identifiers. MINDER performs 10.3\% worse recall@5 and 7.4\% worse recall@20 on NQ without titles and pseudoqueries. On MSMARCO \cite{bajaj2018msmarcohumangenerated}, SEAL had a 30.7\% worse Recall@5 than BM25 on MSMARCO, with MINDER only marignally (3.1\%) better than BM25, likely due to pseudoqueries. Neither SEAL nor MINDER achieved a Recall@5 larger than 30\% on MSMARCO. LTRGR and DGR achieved 40.2\% and 42.9\%, respectively. It is also worth noting that NQ is based on highly structured Wikipedia passages, while MSMarco is less cleanly structured with messier or lacking metadata.
+Both \citet{bevilacqua2022autoregressivesearchenginesgenerating} and \citet{li2023multiviewidentifiersenhancedgenerative,li2023learningrankgenerativeretrieval,li2024distillationenhancedgenerativeretrieval} note that performance drops when titles are unavailable \cite{bevilacqua2022autoregressivesearchenginesgenerating,li2023multiviewidentifiersenhancedgenerative,li2023learningrankgenerativeretrieval,li2024distillationenhancedgenerativeretrieval}. \citet{bevilacqua2022autoregressivesearchenginesgenerating}, however, does not report \glsxtrshort{SEAL}ablation results without titles as identifiers. \glsxtrshort{MINDER}performs 10.3\% worse recall@5 and 7.4\% worse recall@20 on NQ without titles and pseudoqueries. On \glsxtrshort{MSMARCO} \cite{bajaj2018msmarcohumangenerated}, \glsxtrshort{SEAL}had a 30.7\% worse Recall@5 than BM25 on \glsxtrshort{MSMARCO}, with \glsxtrshort{MINDER}only marignally (3.1\%) better than BM25, likely due to pseudoqueries. Neither \glsxtrshort{SEAL}nor \glsxtrshort{MINDER}achieved a Recall@5 larger than 30\% on \glsxtrshort{MSMARCO}. LTRGR and DGR achieved 40.2\% and 42.9\%, respectively. It is also worth noting that NQ is based on highly structured Wikipedia passages, while MSMarco is less cleanly structured with messier or lacking metadata.
 
-Our analysis shows that for SEAL, title score is higher by ~280\% on average for positive ``ground truth'' retrieved passages than negative ones. However, the median is only ~41\% and the $\sigma$ ~1113\%, indicating that there is a subset of queries where the title is massively scored, indicating that the model uses it as quasi the only identifier, while for others the title is much less helpful. For MINDER, accordingly, the values are ~325\%, 57.5\%, ~939\%. An extreme example was found in SEAL, where for the query ``who sang this is how we do it'', correct passages have ~545x more title score than incorrect passages (in passages where a title-as-ngram is present). In these cases, title matching is extremely discriminative, which makes it well suited for datasets with clear metadata, but potentially bad for ones without.
+Our analysis shows that for\glsxtrshort{SEAL}, title score is higher by ~280\% on average for positive ``ground truth'' retrieved passages than negative ones. However, the median is only ~41\% and the $\sigma$ ~1113\%, indicating that there is a subset of queries where the title is massively scored, indicating that the model uses it as quasi the only identifier, while for others the title is much less helpful. For\glsxtrshort{MINDER}, accordingly, the values are ~325\%, 57.5\%, ~939\%. An extreme example was found in\glsxtrshort{SEAL}, where for the query ``who sang this is how we do it'', correct passages have ~545x more title score than incorrect passages (in passages where a title-as-ngram is present). In these cases, title matching is extremely discriminative, which makes it well suited for datasets with clear metadata, but potentially bad for ones without.
 
 \paragraph{Cultural Bias}
 
-English content in public corpora is itself not culturally neutral, as a substantial portion reflects Western (particularly US and Eurocentric) perspectives and framing simply because such sources dominate English public corpora. As BART (which SEAL and MINDER uses) was trained on the English Wikipedia and on BookCorpus \cite{7410368, liu2019robertarobustlyoptimizedbert}, it can be presumed that BART would implicitly default to Western interpretations in ambiguous cases. Other commonly used language models, such as T5 and LLaMa-3 \cite{raffel2023exploringlimitstransferlearning, grattafiori2024llama3herdmodels} were also trained on overwhelmingly English data. Similar bias was also demonstrated for LLMs %which LLMs, autoregressive? or all kind of? also demonstrated for encoder-decoder seq2seq? for bidirectional masked models? T5? bart? bert? is bart even autoregressive? which does each paper analyze?
+English content in public corpora is itself not culturally neutral, as a substantial portion reflects Western (particularly US and Eurocentric) perspectives and framing simply because such sources dominate English public corpora. As BART (which \glsxtrshort{SEAL}and \glsxtrshort{MINDER}uses) was trained on the English Wikipedia and on BookCorpus \cite{7410368, liu2019robertarobustlyoptimizedbert}, it can be presumed that BART would implicitly default to Western interpretations in ambiguous cases. Other commonly used language models, such as T5 and LLaMa-3 \cite{raffel2023exploringlimitstransferlearning, grattafiori2024llama3herdmodels} were also trained on overwhelmingly English data. Similar bias was also demonstrated for LLMs %which LLMs, autoregressive? or all kind of? also demonstrated for encoder-decoder seq2seq? for bidirectional masked models? T5? bart? bert? is bart even autoregressive? which does each paper analyze?
 by multiple papers \cite{naous2024havingbeerprayermeasuring, aowal2023detectingnaturallanguagebiases, 10.1145/3597307}. 
 
 Similarly, the NQ dataset is also based on the English Wikipedia \cite{kwiatkowski-etal-2019-natural}, adding onto the issue. Such a ``Western-centricity'' can be also be shown in other commonly used datasets, such as MSMarco cite{bajaj2018msmarcohumangenerated}, Trivia QA \cite{joshi-etal-2017-triviaqa}and the KILT datasets \cite{petroni2021kiltbenchmarkknowledgeintensive}.
 
-For SEAL, this is best illustrated by the query: ``where did the southern song have their capital''.
+For\glsxtrshort{SEAL}, this is best illustrated by the query: ``where did the southern song have their capital''.
 
 Although the correct answer is Lin'an (the query referring to the Southern Song Dynasty), \glsxtrshort{SEAL} focused entirely on passages about the southern United States, especially about about Tennessee and Virginia. The model likely %likely? cant you be sure?
 found a quasi-perfect ``query keyword match'' for such passages and connected ``southern'' with the southern US, ``song'' with country music, the 'Dixie' song and the 'Music City' sobriquet of Nashville, Tennessee, and, building onto these, ``capital'' with Nashville being the capital of Tennesse and Richmond being the capital of Virginia and the former capital of the confederate South. These substrings, while common, were likely propped up by their implicit connection to the US in the dataset and BART, even though they possess different meanings in a US geography context versus a 12th-century Chinese history context.
 
-There is no ground truth passages retrieved in the \textit{top-100} retrieved passages, which consists entirely of passages about the southern United States. This is also an example of \textit{false pruning}, as SEAL seemingly %seemingly?
+There is no ground truth passages retrieved in the \textit{top-100} retrieved passages, which consists entirely of passages about the southern United States. This is also an example of \textit{false pruning}, as \glsxtrshort{SEAL}seemingly %seemingly?
 discarded the tokens related to the Song Dynasty early on. 
 
-An important observation is that \glsxtrshort{MINDER} successfully retrieved the relevant passages. All queries in the \textit{top-100} retrieved passages were in some way relevant to Ancient China, with the first ground-truth passage appearing at rank-4. Both systems use BART-large as their autoregressive language model and the same dataset to build their FM-index. The observed success is therefore likely due to the use of pseudoqueries. Since BART is capable of generating the correct terms, failure in SEAL happened likely due to failing to disambiguate the context, in which pseudoqueries assisted. For the highest-ranked retrieved \glsxtrshort{gt} passage, MINDER generated pseudoqueries such as \textit{what was the capital of the song dynasty in north china} and \textit{who took over the capital of the song dynasty}.
+An important observation is that \glsxtrshort{MINDER} successfully retrieved the relevant passages. All queries in the \textit{top-100} retrieved passages were in some way relevant to Ancient China, with the first ground-truth passage appearing at rank-4. Both systems use BART-large as their autoregressive language model and the same dataset to build their FM-index. The observed success is therefore likely due to the use of pseudoqueries. Since BART is capable of generating the correct terms, failure in \glsxtrshort{SEAL}happened likely due to failing to disambiguate the context, in which pseudoqueries assisted. For the highest-ranked retrieved \glsxtrshort{GT} passage, \glsxtrshort{MINDER}generated pseudoqueries such as \textit{what was the capital of the song dynasty in north china} and \textit{who took over the capital of the song dynasty}.
 
 %note:_ other interesting queries: is banana a fruit or berry, when was the louisiana purchase
 
@@ -366,7 +366,7 @@ An important observation is that \glsxtrshort{MINDER} successfully retrieved the
 % this is not a failure of the GR system but of the dataset. Although GR is evaluated on such dataset, so implicitly it influences it. Maybe move out to discussion or limitations? or idk?
 
 
-The reliability of GR evaluation depends on the quality of GT annotations in benchmark datasets. When those contain annotation errors, such as relevant passages incorrectly labeled as negative or vice versa, the measured performance metrics no longer accurately reflect a system's true retrieval capabilities. These can lead to misleading conclusions being published that do not generalize to real-world scenarios or accurately represent comparisons.
+The reliability of GR evaluation depends on the quality of \glsxtrshort{GT}annotations in benchmark datasets. When those contain annotation errors, such as relevant passages incorrectly labeled as negative or vice versa, the measured performance metrics no longer accurately reflect a system's true retrieval capabilities. These can lead to misleading conclusions being published that do not generalize to real-world scenarios or accurately represent comparisons.
 
 For QA tasks, multiple passages may contain semantically equivalent answers but only a subset are annotated as ground truth. The authors of MS MARCO, TriviaQA, and NQ each acknowledge this concern \cite{bajaj2018msmarcohumangenerated, joshi-etal-2017-triviaqa,kwiatkowski-etal-2019-natural}.
 
@@ -375,22 +375,22 @@ For QA tasks, multiple passages may contain semantically equivalent answers but 
 \textbf{TODO BELOW EITHER REWRITE OR IDK or maybe add the tables as appendix or idk. this below isnt really relevant to actual failure modes, similarly how most correl analysis isnt relevant either.}
 
 During our analysis, we identified such cases where the annotation can cause misleading evaluation results. Here we present 3 such examples:
-\textbf{Example 1: ``which apostle had a thorn in his side'' (answer: Paul).} The ground-truth passage %the only GT passage?
-is from the Wikipedia article ``Thorn in the flesh,'' which explains that Paul the Apostle used this phrase in 2 Corinthians 12:7--9. \glsxtrshort{SEAL}'s %why report exactly SEAL its outdated
+\textbf{Example 1: ``which apostle had a thorn in his side'' (answer: Paul).} The ground-truth passage %the only \glsxtrshort{GT}passage?
+is from the Wikipedia article ``Thorn in the flesh,'' which explains that Paul the Apostle used this phrase in 2 Corinthians 12:7--9. \glsxtrshort{SEAL}'s %why report exactly \glsxtrshort{SEAL}its outdated
  top result %who cares about top-1 result, why not report top-k?
 was from Galatians 3, which mentions ``Paul the Apostle'' as the author of that epistle but contains nothing about a thorn. Even though \glsxtrshort{SEAL} seemed to be able to identify ``Paul'' as a relevant term, potentially from BART's parametric knowledge, Galatians 3 is the wrong chapter entirely. \glsxtrshort{SEAL} matched on generic terms (``Paul,'' ``apostle'') but never generated n-grams containing ``thorn.'' %never, not even in the top-k?
 
-\textbf{Example 2: ``how many judges currently serve on the supreme court'' (answer: nine).} The ground-truth passage %which GT passage?
- directly states the current composition of the Court. \glsxtrshort{SEAL}'s %why report exactly SEAL its outdated
+\textbf{Example 2: ``how many judges currently serve on the supreme court'' (answer: nine).} The ground-truth passage %which \glsxtrshort{GT}passage?
+ directly states the current composition of the Court. \glsxtrshort{SEAL}'s %why report exactly \glsxtrshort{SEAL}its outdated
   top result is a historical passage stating that in 1869, ``the Circuit Judges Act returned the number of justices to nine, where it has since remained.'' This is borderline, because the reader could infer the answer, but the passage is not specifically about the current number of judges.
 
-\textbf{Example 3: ``who is the youngest judge currently sitting on the u.s. supreme court'' (answer: Neil Gorsuch).} The ground-truth passage discusses Gorsuch's nomination process and him being the youngest sitting justice. \glsxtrshort{SEAL}'s top result %who cares about top-1 result, why not report top-k?. and why SEAL?
+\textbf{Example 3: ``who is the youngest judge currently sitting on the u.s. supreme court'' (answer: Neil Gorsuch).} The ground-truth passage discusses Gorsuch's nomination process and him being the youngest sitting justice. \glsxtrshort{SEAL}'s top result %who cares about top-1 result, why not report top-k?. and why\glsxtrshort{SEAL}?
 directly states: ``Neil Gorsuch is the youngest justice sitting, at 50 years of age.'' This is a success, because \glsxtrshort{SEAL} found a passage that answers the question, even if not annotated.
 
 
 
 
-These examples show that these cases are a mix of such cases. To determine how many fall into each category, in section~\ref{sec:annot}, we apply LLM-as-a-judge to classify whether each retrieved passage genuinely answers the question or not. % why run in on SEAL and not on the whole NQ dataset? or is this good?
+These examples show that these cases are a mix of such cases. To determine how many fall into each category, in section~\ref{sec:annot}, we apply LLM-as-a-judge to classify whether each retrieved passage genuinely answers the question or not. % why run in on \glsxtrshort{SEAL}and not on the whole NQ dataset? or is this good?
 
 \textbf{TODO FROM HERE}
 If most of the 349 cases are genuine retrievals, then \glsxtrshort{SEAL}'s effective top-10 recall is closer to 81.5\% rather than 76.1\%. If most are coincidental matches, then 76.1\% remains the accurate figure. Similar calculations can be done for \glsxtrshort{MINDER}.
@@ -440,7 +440,7 @@ Beam search with constraints is probably significantly slower than dot-product (
 \subparagraph{Subword} %todo wording
 \textbf{UNVALIDATED}
 
-If an important identifier (e.g. a proper noun like Lin'an from the TODO example) is split into many meaningless subwords, the model might struggle to generate it consistently compared to common words. This can happen even through BART uses BPE \cite{TODO}, which allows it to to handle ``out-of-vocabulary'' words by breaking them down into known subunits. %note: does index.py in seal operate on tokenIDs or subwords? arent they the same here?
+If an important identifier (e.g. a proper noun like Lin'an from the TODO example) is split into many meaningless subwords, the model might struggle to generate it consistently compared to common words. This can happen even through BART uses BPE \cite{TODO}, which allows it to to handle ``out-of-vocabulary'' words by breaking them down into known subunits. %note: does index.py in \glsxtrshort{SEAL}operate on tokenIDs or subwords? arent they the same here?
 
 \subparagraph{Coverage} %todo wording
 \textbf{UNVALIDATED}
@@ -592,7 +592,7 @@ As visible from Table~\ref{tab:p-unique-coverage}, the hit rate of \glsxtrshort{
 \label{sec:answer-ngram}
 
 % do the models have access to the answer string beforehand? does the model works best when it memorizes (generates the answer string) rather than generalizes (generates context)? need to reread the paper again..
-% how would the model react to trivia QA? isnt in triviaqa the answer string being in the passage is an inherent indicator for being annotated GT? need to reread paper again...
+% how would the model react to trivia QA? isnt in triviaqa the answer string being in the passage is an inherent indicator for being annotated\glsxtrshort{GT}? need to reread paper again...
 We analyze whether retrieval success correlates with the model's ability to generate the specific answer string as an identifier, or whether it relies on the surrounding context. While generating the answer string provides a valuable anchor for a passage, the primary goal of \glsxtrshort{gr} is document identification, not direct question answering.
 
 Table \ref{tab:answer-presence-impact} illustrates the results of our analysis. We looked at whether among the top-1 and top-10 scored retrieved passages, at least one of them contained the answer string or not and what the Hits@1 value is for these cases. The results are mostly similar between \glsxtrshort{SEAL} and \glsxtrshort{MINDER}, with most top-1 ranked retrieved passages not containing the answer string, yet when they do, the respective query's Hits@1 rate doubles and Hits@10 increases significantly.
@@ -625,7 +625,7 @@ Just like in Section \ref{sec:gen-fail}, we present the analysis results of the 
 \paragraph{Overreliance on a Single Identifier}
 \label{sec:failure-6}
 
-% its less about bad queries relying on one big score. Are SEAL/MINDER are designed to work byaggregating weak signals or is this not an issue? When it relies on a single n-gram, it breaks the design philosophy. or does it? is this even a failure mode?
+% its less about bad queries relying on one big score. Are\glsxtrshort{SEAL}/\glsxtrshort{MINDER}are designed to work byaggregating weak signals or is this not an issue? When it relies on a single n-gram, it breaks the design philosophy. or does it? is this even a failure mode?
 
 Overreliance on a single identifier measures the extent to which the top-1 ranked passage's total score is concentrated in one high-scoring n-gram versus distributed across multiple n-grams. We define this as the ratio of the highest scored n-gram score and the sum of all matched n-gram scores for the passage.
 
@@ -657,7 +657,7 @@ Conversely, if the top-scoring n-gram matches many passages or identifies the wr
 
 
 
-\paragraph{Pseudo-Query Contribution in MINDER}
+\paragraph{Pseudo-Query Contribution in\glsxtrshort{MINDER}}
 \label{sec:pseudo-minder-contrib}
 Here we analyze the contribution of synthetic identifiers in the \glsxtrshort{MINDER} framework. As detailed in Section \ref{sec:minderarch}, \glsxtrshort{MINDER} incorporates pseudo-queries alongside titles and substrings to capture high-level semantic information. Our analysis of 6,515 queries reveals an interesting divergence between the quantity of generated pseudo-queries and their influence on the final ranking.
 
