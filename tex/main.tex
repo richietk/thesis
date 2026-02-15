@@ -174,6 +174,13 @@ Prefix pruning, also referred to as false pruning occurs during autoregressive g
 
 The autoregressive nature of decoding inherently favors shorter n-grams over longer ones, \cite{yuan2024generativedenseretrievalmemory} drowning out highly specific and discriminative n-grams. Additionally, longer n-grams naturally introduce more chances of false pruning. These indicate that the global optimum itself could be a short or irrelevant prefix, making the model unable to accurately pinpoint correct passages by preferring the shortest valid \glsxtrshort{docid} path or the one with the most frequent initial tokens, regardless of their actual relevance to the query \cite{https://arxiv.org/abs/2311.09134}.
 
+\paragraph{Contiguous n-grams}
+\textbf{TODO!!!!}
+As discussed in the previous paragraph \ref{par:false-pruning}, a fundamental structural constraint of autoregressive, beam-search and n-gram-based retrieval is that such n-grams must be strictly contiguous substrings within the corpus. This means the model cannot match n-grams that would semantically connect a query to a passage if the relevant terms are separated by intervening words or are cut off between passages.
+
+Consider a passage stating ``Tom likes pizza and tomatoes'' and a query ``does Tom like tomatoes?'' The relevant n-gram ``likes tomatoes'' does not exist as a contiguous substring in the passage due to the intervening words ``pizza'' and ``and.''  This issue is partially mitigated by the fact that n-grams ``and tomatoes,'' ``pizza and tomatoes,'' ``tomatoes.'' are still generated and scored, however this is not a robust solution. Introducing skip-grams \cite{TODO}, using methods such as permutation-invariant decoding \cite{zhang2024generativeretrievaltermset}, or forcing overlap between passages \cite{TODO} could theoretically be solutions to this problem.
+
+
 \paragraph{Hallucination}
 \label{par:hallucination}
 
@@ -217,51 +224,12 @@ An additional issue identified is the problem that newly added documents are pra
 \paragraph{Interpretability}
 Lastly, the lack of interpretability in generation processes presents challenges for understanding and debugging failures. Unlike sparse retrieval where term matching is transparent \cite{bm25robertson2009}, or dense retrieval where embedding similarity can be analyzed \cite{karpukhin2020densepassageretrievalopendomain}, the internal decision processes of generative retrieval is significantly more opaque \cite{10.1145/3589335.3641239, ross2021evaluatinginterpretabilitygenerativemodels}.
 
-\section{Methodology}
 
-\subsection{Available Data Structures}
+\section{Proposed Failure Taxonomy}
+\label{sec:proposed-failure-taxonomy}
+\textbf{TODO}
 
-We ran \glsxtrshort{SEAL} and \glsxtrshort{MINDER} with their default settings on the \glsxtrfull{nq} dataset created by \href{https://research.google/pubs/natural-questions-a-benchmark-for-question-answering-research/}{Google}. We chose this as the dataset is the academic standard for retrieval benchmarking. The \glsxtrfull{nq} retrieval corpus consists of a Wikipedia dump split into approximately 21 million passages of 100 tokens each \cite{karpukhin2020densepassageretrievalopendomain}. The systems analyzed retrieve from all 21 million chunks independently. If multiple chunks from the same article match the query, they can all appear in the results. 
-
-The \glsxtrshort{SEAL} output dataset contains 6,515 queries from the \glsxtrlong{nq} benchmark. For each query, the following relevant information is available:
-
-\begin{itemize}
-    \item \textbf{question}: The original natural language query
-    \item \textbf{answers}: Ground-truth answer string(s)
-    \item \textbf{positive\_ctxs}: Ground-truth relevant passages containing the answer
-    \item \textbf{ctxs}: \glsxtrshort{SEAL}'s top-100 retrieved passages, ranked by passage score, each containing:
-    \begin{itemize}
-        \item Passage title and text
-        \item Aggregate document score
-        \item The set of matched n-gram keys and their respective scores
-    \end{itemize}
-\end{itemize}
-
-From the output data available, the n-gram keys are most useful to understand \glsxtrshort{SEAL}'s retrieval decisions. Each key entry contains three parts:
-\begin{enumerate}
-    \item The n-gram string (e.g., \texttt{`` Reba''}, \texttt{``</s> Linda Davis @@''})
-    \item The corpus frequency of how many times this n-gram appears across all documents
-    \item The n-gram score computed via the scoring function
-\end{enumerate}
-
-The \glsxtrshort{MINDER} output is structurally identical to that of \glsxtrshort{SEAL}'s, including being ran on the same 6,515 queries. The difference arises from the pseudoqueries, which are appended to the \textit{text}, as well as the fact that multiview identifiers can be contained in n-grams.
-
-The output dataset (of both systems) have an average per-query positive context count of 8.46, with the minimum being 1 and maximum being 101. This is important to analyze to accurately identify evaluation metrics. To illustrate the distribution, please consult the histogram below.
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.7\textwidth]{assets/positive_ctxs_histogram.png}
-\end{figure}
-
-\subsection{Evaluation}
-
-We decided to focus on the following metrics: R-precision as the overall retrieval quality of both \glsxtrshort{SEAL} and \glsxtrshort{MINDER} and hits@1 (being identical to precision@1) to quantify whether the model successfully retrieved a positive context in its top results for a query. We also use hits@10, since retrieval is rarely only about the first result only. We chose $k=10$ somewhat arbitrarily, as it provides a balance between being too strict by only measuring the top results and being too lax by allowing lower-scored retrieved passages to be included in the analysis. Although they might be used occasionally, we avoid using Precision@k and Recall@k with $k>1$ to avoid misrepresentation of queries where the amount of ground truths is less than $k$.
-
-For the analysis, results are calculated side-by-side for both systems analyzed when appropriate. To analyze distribution, we bin the results into deciles and report them. Additionally, when appropriate, we report the Spearman $rho$ values to analyze monotonic correlation between variables.
-
-\subsection{Failure Taxonomy}
-
-Below we categorize identified theoretical failure modes whether they are measurable considering our available data.
-
+\textbf{OUTDATED!!!}
 \begin{table}[htbp]
     \centering
     \caption{Classification of potential retrieval failure modes for \glsxtrshort{SEAL} and \glsxtrshort{MINDER}.}
@@ -289,70 +257,53 @@ Below we categorize identified theoretical failure modes whether they are measur
     \end{tabular}
 \end{table}
 
-The measureable categories will be analyzed below. Tor the other identified failure modes, the main reason for non-measurability is the fact that we only possess output data of \glsxtrshort{SEAL} and \glsxtrshort{MINDER} on the \glsxtrshort{nq} dataset, without having access to training data or internal logs.
+\section{Methodology}
 
-\paragraph{Answer cut-off between passages }
-A fundamental structural constraint of n-gram-based retrieval is that n-grams must be strictly contiguous substrings within the corpus. Both models ensure that any generated n-grams exists as a continuous sequence in at least one document (aside from \glsxtrshort{MINDER}'s pseudo-queries). This means the model cannot match n-grams that would semantically connect a query to a passage if the relevant terms are separated by intervening words or are cut off between passages.
+Our methodology is threefold. First, we ran \glsxtrshort{SEAL} and \glsxtrshort{MINDER} with their default settings on the \glsxtrfull{nq} \cite{kwiatkowski-etal-2019-natural}, analyzing their outputs. Second, we will run the models on the MSMARCO dataset \cite{bajaj2018msmarcohumangenerated} as well.%todo explain reasoning why
+Third, we will perform ablation studies based on our identifier failure modes from the literature review  in Section \ref{sec:failure-modes-literature} and the failure modes identified during our analysis of the outputs.
 
-Consider a passage stating ``Tom likes pizza and tomatoes'' and a query ``does Tom like tomatoes?'' The semantically relevant n-gram ``likes tomatoes'' does not exist as a contiguous substring in the passage due to the intervening words ``pizza'' and ``and.''  This issue is partially mitigated by the fact that n-grams ``and tomatoes,'' ``pizza and tomatoes,'' ``tomatoes.'' are still generated and scored, however this is not a robust solution. Including skip-grams in addition to ngrams or forcing overlap between passages could theoretically be solutions to this problem. These are, however, out of scope for this thesis.
+We chose NQ as it is an academic standard for retrieval benchmarking. The \glsxtrfull{nq} retrieval corpus consists of a Wikipedia dump split into approximately 21 million passages of 100 tokens each.
+
+The \glsxtrshort{SEAL} and MINDER output dataset contains the results of 6,515 queries from the \glsxtrlong{nq} benchmark. For each query, the following relevant information is available:
+
+\begin{itemize}
+    \item The original natural language query
+    \item GT answer string(s)
+    \item Annotated GT passages containing the answer
+    \item Negative and hard negative passages
+    \item The model's top-100 retrieved passages, ranked by passage score, each containing:
+    \begin{itemize}
+        \item Passage title and text
+        \item Aggregate document score
+        \item The set of matched identifiers and their respective scores
+    \end{itemize}
+\end{itemize}
+
+From the output data available, the n-gram keys are deemed most useful to understand \glsxtrshort{SEAL}'s and MINDER's retrieval decisions. Each key entry contains three parts:
+\begin{enumerate}
+    \item The n-gram string (e.g., \texttt{`` Reba''}, \texttt{``</s> Linda Davis @@''})
+    \item The corpus frequency of how many times this n-gram appears across all documents
+    \item The n-gram score computed via the scoring function
+\end{enumerate}
+
+The \glsxtrshort{MINDER} output is structurally identical to that of \glsxtrshort{SEAL}'s, including being ran on the same 6,515 queries. The main difference arises from the pseudoqueries, which are appended to the \textit{text}.
+
+The output dataset (of both systems) have an average per-query annotated correct passage count of 8.46, with the minimum being 1 and maximum being 101. This is important to analyze to accurately identify evaluation metrics. To illustrate the distribution, please consult the histogram below.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{assets/positive_ctxs_histogram.png}
+\end{figure}
+
+\paragraph{Evaluation Metrics}
+
+We use R-precision as the overall retrieval quality of both \glsxtrshort{SEAL} and \glsxtrshort{MINDER} and hits@1 (being identical to precision@1) to quantify whether the model successfully retrieved a positive context in its top results for a query. We also use hits@10, since retrieval is rarely only about the first result only. We chose $k=10$ somewhat arbitrarily, as it provides a balance between being too strict by only measuring the top results and being too lax by allowing lower-scored retrieved passages to be included in the analysis. We avoid using Precision@k and Recall@k with $k>1$ to avoid misrepresentation of queries where the amount of ground truths is less than $k$.
+
+For the analysis, results are calculated side-by-side for both systems analyzed when appropriate. To analyze distribution, we bin the results into deciles and report them. Additionally, when appropriate, we report the Spearman $rho$ values to analyze monotonic correlation between variables.
+
 
 \section{Failure Analysis}
 
 %stop saying "we observed a correlation". it should be sth like "the system exhibits X failure mode, as evidenced by correlation Y" although idk if correls are even important anymore.
-
-\subsection{Preliminary Analysis}
-\label{sec:failure-pattern-analysis}
-%TODO FIND A BETTER NAME TODO
-
-% is this even relevant? why not just delete it? who cares about the PP PN NP NN acronyms when I dont tie it to any kinda failure mechanism reveal? its just noisy correlation analysis, not a failure mode.
-
-We analyze the distribution of generated n-gram keys across retrieved documents. We categorize each query based on Precision@2: PP (both correct), PN (rank-1 correct, rank-2 incorrect), NP (rank-1 incorrect, rank-2 correct), and NN (both incorrect). Table~\ref{tab:category-distribution} presents the distribution of queries across retrieval outcome categories. In our definition, positive means the retrieved passage corresponds to a ground truth passage, therefore ``correct'', while negative accordingly means ``incorrect''.
-
-\begin{table}[htbp]
-    \centering
-    \caption{Distribution of queries across retrieval outcome categories ($N=6,515$).}
-    \label{tab:category-distribution}
-    \begin{tabular}{l|rr|rr}
-        \toprule
-        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
-        \textbf{Category} & \textbf{Count} & \textbf{Percentage} & \textbf{Count} & \textbf{Percentage} \\
-        \midrule
-        PP & 1,287 & 19.8\% & 1,345 & 20.6\% \\
-        PN & 1,427 & 21.9\% & 1,685 & 25.9\% \\
-        NP & 702   & 10.8\% & 729   & 11.2\% \\
-        NN & 3,099 & 47.6\% & 2,756 & 42.3\% \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-
-For both architectures analyzed, nearly half of all queries result in NN cases. Combined with the NP cases, this indicates that for \glsxtrshort{SEAL} 58.4\% of queries, for \glsxtrshort{MINDER} 53.5\% fail to retrieve a relevant passage at rank~1. Conversely, 41.7\% and 46.5\% of queries achieve successful Precision@1 retrieval (PP~+~PN), respectively.
-
-We also categorize keys into three sets: keys appearing exclusively in positive (ground-truth) passages, keys appearing exclusively in negative passages, and keys shared by both. Table~\ref{tab:key-distribution} presents the aggregate statistics. $\mu$ \% Keys Unique to $P$ defines the average percentage of keys that are unique to positive passages only across the top-k retrieved queries, $\mu$ \% Keys Unique to $N$ defined accordingly. $\mu$ \% Keys Shared ($P \cap N$) denotes the average percentage of keys that are shared between both negative and positive passages across the top-k retrieved queries. $\mu$ Score accordingly refers to the average n-gram score across queries for each categories.
-
-\begin{table}[htbp]
-    \centering
-    \caption{Aggregate n-gram key statistics across all queries ($N=6,515, K=10$).}
-    \label{tab:key-distribution}
-    \begin{tabular}{lrr}
-        \toprule
-        \textbf{Metric} & \textbf{\glsxtrshort{SEAL}} & \textbf{\glsxtrshort{MINDER}} \\
-        \midrule
-        $\mu$ \% Keys Unique to $P$          & 11.6\% & 12.3\% \\
-        $\mu$ \% Keys Unique to $N$          & 78.2\% & 75.3\% \\
-        $\mu$ \% Keys Shared ($P \cap N$)    & 10.2\% & 12.5\% \\
-        \midrule
-        $\mu$ Score (Unique $P$)             & 5.67 ($\pm$6.69)   & 6.12 ($\pm$7.01)  \\
-        $\mu$ Score (Unique $N$)             & 6.66 ($\pm$2.90)   & 6.94 ($\pm$2.89)  \\
-        $\mu$ Score (Shared)                 & 17.28 ($\pm$12.20)  & 17.34 ($\pm$11.49) \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-Although the results between the two systems are fairly similar, with \glsxtrshort{MINDER} performing marginally better, it is noticable that both \glsxtrshort{SEAL} and \glsxtrshort{MINDER} generates substantially more keys matching negative passages than positive passages. Second, keys unique to negative passages receive marginally higher average scores than keys unique to positive passages, with keys shared having he highest average score. This pattern indicates that both systems assign higher scores to n-grams that are not discriminative enough, to either way.
-
-The high variance in scores for unique positive keys compared to unique negative keys suggests that the models' ability to identify relevant n-grams is highly inconsistent. While some ``Unique P'' keys receive very high scores, many others likeyly receive negligible scores, dragging down the mean. Furthermore, the high variance in the 'Shared' category indicates a lack of discriminative power and their influence on the final ranking is unpredictable.
-
 
 
 \paragraph{Metadata Dependency}

@@ -197,3 +197,57 @@ The results are illustrated in the following table and line chart:
 \end{figure}
 
 We can see that when stratified by maximum title repetition, i.e. the maximum number of passages from the same Wikipedia article per query, \glsxtrshort{MINDER} marginally outperforms \glsxtrshort{SEAL}, especially on queries where the system is relatively sure of the answer, as evidenced by a specific title appearing in several of the top-10 results. We can see that in cases where the max repetition is very low, i.e. the model couldn't confidently pinpoint a single document and is likely guessing, retrieval success suffers. Based on this analysis, there are significantly more cases with high title repetition than low title repetition, indicating that the models are fairly certain about the correct document (or, alternatively, are confidently incorrect about one).
+
+
+\subsection{Preliminary Analysis}
+\label{sec:failure-pattern-analysis}
+%TODO FIND A BETTER NAME TODO
+
+% is this even relevant? why not just delete it? who cares about the PP PN NP NN acronyms when I dont tie it to any kinda failure mechanism reveal? its just noisy correlation analysis, not a failure mode.
+
+We analyze the distribution of generated n-gram keys across retrieved documents. We categorize each query based on Precision@2: PP (both correct), PN (rank-1 correct, rank-2 incorrect), NP (rank-1 incorrect, rank-2 correct), and NN (both incorrect). Table~\ref{tab:category-distribution} presents the distribution of queries across retrieval outcome categories. In our definition, positive means the retrieved passage corresponds to a ground truth passage, therefore ``correct'', while negative accordingly means ``incorrect''.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Distribution of queries across retrieval outcome categories ($N=6,515$).}
+    \label{tab:category-distribution}
+    \begin{tabular}{l|rr|rr}
+        \toprule
+        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
+        \textbf{Category} & \textbf{Count} & \textbf{Percentage} & \textbf{Count} & \textbf{Percentage} \\
+        \midrule
+        PP & 1,287 & 19.8\% & 1,345 & 20.6\% \\
+        PN & 1,427 & 21.9\% & 1,685 & 25.9\% \\
+        NP & 702   & 10.8\% & 729   & 11.2\% \\
+        NN & 3,099 & 47.6\% & 2,756 & 42.3\% \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+
+For both architectures analyzed, nearly half of all queries result in NN cases. Combined with the NP cases, this indicates that for \glsxtrshort{SEAL} 58.4\% of queries, for \glsxtrshort{MINDER} 53.5\% fail to retrieve a relevant passage at rank~1. Conversely, 41.7\% and 46.5\% of queries achieve successful Precision@1 retrieval (PP~+~PN), respectively.
+
+We also categorize keys into three sets: keys appearing exclusively in positive (ground-truth) passages, keys appearing exclusively in negative passages, and keys shared by both. Table~\ref{tab:key-distribution} presents the aggregate statistics. $\mu$ \% Keys Unique to $P$ defines the average percentage of keys that are unique to positive passages only across the top-k retrieved queries, $\mu$ \% Keys Unique to $N$ defined accordingly. $\mu$ \% Keys Shared ($P \cap N$) denotes the average percentage of keys that are shared between both negative and positive passages across the top-k retrieved queries. $\mu$ Score accordingly refers to the average n-gram score across queries for each categories.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Aggregate n-gram key statistics across all queries ($N=6,515, K=10$).}
+    \label{tab:key-distribution}
+    \begin{tabular}{lrr}
+        \toprule
+        \textbf{Metric} & \textbf{\glsxtrshort{SEAL}} & \textbf{\glsxtrshort{MINDER}} \\
+        \midrule
+        $\mu$ \% Keys Unique to $P$          & 11.6\% & 12.3\% \\
+        $\mu$ \% Keys Unique to $N$          & 78.2\% & 75.3\% \\
+        $\mu$ \% Keys Shared ($P \cap N$)    & 10.2\% & 12.5\% \\
+        \midrule
+        $\mu$ Score (Unique $P$)             & 5.67 ($\pm$6.69)   & 6.12 ($\pm$7.01)  \\
+        $\mu$ Score (Unique $N$)             & 6.66 ($\pm$2.90)   & 6.94 ($\pm$2.89)  \\
+        $\mu$ Score (Shared)                 & 17.28 ($\pm$12.20)  & 17.34 ($\pm$11.49) \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Although the results between the two systems are fairly similar, with \glsxtrshort{MINDER} performing marginally better, it is noticable that both \glsxtrshort{SEAL} and \glsxtrshort{MINDER} generates substantially more keys matching negative passages than positive passages. Second, keys unique to negative passages receive marginally higher average scores than keys unique to positive passages, with keys shared having he highest average score. This pattern indicates that both systems assign higher scores to n-grams that are not discriminative enough, to either way.
+
+The high variance in scores for unique positive keys compared to unique negative keys suggests that the models' ability to identify relevant n-grams is highly inconsistent. While some ``Unique P'' keys receive very high scores, many others likeyly receive negligible scores, dragging down the mean. Furthermore, the high variance in the 'Shared' category indicates a lack of discriminative power and their influence on the final ranking is unpredictable.
