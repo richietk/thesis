@@ -25,3 +25,5 @@ wip_dirs/
 
 scripts/__pycache__/
 scripts/utils/__pycache__/
+
+tex/main2.tex
