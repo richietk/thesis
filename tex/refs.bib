@@ -277,6 +277,24 @@ month =Dec}
  url={https://arxiv.org/abs/2202.06991}, 
 }
 
+@inproceedings{10.1145/3726302.3730076,
+author = {Reusch, Anja and Belinkov, Yonatan},
+title = {Reverse-Engineering the Retrieval Process in GenIR Models},
+year = {2025},
+isbn = {9798400715921},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3726302.3730076},
+doi = {10.1145/3726302.3730076},
+abstract = {Generative Information Retrieval (GenIR) is a novel paradigm in which a transformer encoder-decoder model predicts document rankings based on a query in an end-to-end fashion. These GenIR models have received significant attention due to their simple retrieval architecture while maintaining high retrieval effectiveness. However, in contrast to established retrieval architectures like cross-encoders or bi-encoders, their internal computations remain largely unknown. In this work, we investigate this retrieval mechanism and uncover the roles played by different model components (self-attention, cross-attention, MLPs) and their interaction to generate the document identifier. First, we show that the pre-trained encoder, which was not fine-tuned for retrieval, is sufficient for the retrieval process. Then, we find that the pass through the decoder can be divided into three stages: (I) the priming stage in which no component contributes query-specific information (II) the bridging stage where cross-attention transfers query information from the encoder to the decoder, and (III) the interaction stage where MLPs process this transferred information to predict the document identifier in the last layer. Our results indicate that document-specific information is only stored in a few components in the final stage of the retrieval process. We hope that our findings will motivate the development of more effective GenIR models and facilitate their improvements.},
+booktitle = {Proceedings of the 48th International ACM SIGIR Conference on Research and Development in Information Retrieval},
+pages = {668–677},
+numpages = {10},
+keywords = {generative information retrieval, interpretability, neural information retrieval},
+location = {Padua, Italy},
+series = {SIGIR '25}
+}
+
 @misc{mehta2023dsiupdatingtransformermemory,
  title={DSI++: Updating Transformer Memory with New Documents}, 
  author={Sanket Vaibhav Mehta and Jai Gupta and Yi Tay and Mostafa Dehghani and Vinh Q. Tran and Jinfeng Rao and Marc Najork and Emma Strubell and Donald Metzler},
@@ -362,6 +380,16 @@ series = {WWW '24}
  archivePrefix={arXiv},
  primaryClass={cs.IR},
  url={https://arxiv.org/abs/2403.12499}, 
+}
+
+@misc{tang2023semanticenhanceddifferentiablesearchindex,
+      title={Semantic-Enhanced Differentiable Search Index Inspired by Learning Strategies}, 
+      author={Yubao Tang and Ruqing Zhang and Jiafeng Guo and Jiangui Chen and Zuowei Zhu and Shuaiqiang Wang and Dawei Yin and Xueqi Cheng},
+      year={2023},
+      eprint={2305.15115},
+      archivePrefix={arXiv},
+      primaryClass={cs.IR},
+      url={https://arxiv.org/abs/2305.15115}, 
 }
 
 @misc{yang2023autosearchindexerendtoend,
@@ -526,6 +554,18 @@ doi = {10.1561/1500000019}
  url={https://arxiv.org/abs/2407.21783}, 
 }
 
+@misc{nogueira2019documentexpansionqueryprediction,
+      title={Document Expansion by Query Prediction}, 
+      author={Rodrigo Nogueira and Wei Yang and Jimmy Lin and Kyunghyun Cho},
+      year={2019},
+      eprint={1904.08375},
+      archivePrefix={arXiv},
+      primaryClass={cs.IR},
+      url={https://arxiv.org/abs/1904.08375}, 
+}
+
+@article{Cheng_Dou_Zhu_Li_2025, title={Descriptive and Discriminative Document Identifiers for Generative Retrieval}, volume={39}, url={https://ojs.aaai.org/index.php/AAAI/article/view/33253}, DOI={10.1609/aaai.v39i11.33253}, abstractNote={Generative document retrieval is a novel retrieval framework, which represents documents as identifiers (DocID) and retrieves documents by generating DocIDs. It has the advantage of end-to-end optimization over traditional retrieval methods and has attracted much research interest. Nonetheless, the development of efficient and precise DocIDs for document representation remains a pertinent issue within the field. Existing methods for designing DocIDs tend to consider only the relevance of DocIDs to the corresponding documents, while neglecting the ability of the DocIDs to distinguish the corresponding documents from similar ones, which is crucial for the retrieval task. In this paper, we design learnable descriptive and discriminative document Identifiers (D2-DocID) for Generative Retrieval and propose the paired retrieval model D2Gen. The D2-DocID is semantically similar to the corresponding documents (descriptive) and is able to distinguish similar documents (discriminative) in the corpus, thus enhancing retrieval performance. We use a contrastive learning assisted generative retrieval task to enable the model to understand the document and then complete the generative retrieval. We then design a DocID selection method to select DocIDs based on the retrieval model’s understanding of the documents. Our experimental results on the MS MARCO and NQ320k dataset illustrate the effectiveness of the approach.}, number={11}, journal={Proceedings of the AAAI Conference on Artificial Intelligence}, author={Cheng, Jiehan and Dou, Zhicheng and Zhu, Yutao and Li, Xiaoxi}, year={2025}, month={Apr.}, pages={11518-11526} }
+
 @misc{naous2024havingbeerprayermeasuring,
  title={Having Beer after Prayer? Measuring Cultural Bias in Large Language Models}, 
  author={Tarek Naous and Michael J. Ryan and Alan Ritter and Wei Xu},
@@ -576,6 +616,26 @@ keywords = {language models, Bias in NLP}
       url={https://arxiv.org/abs/2104.06967}, 
 }
 
+@misc{valluri2024scalingvocabularynonautoregressivemodels,
+      title={Scaling the Vocabulary of Non-autoregressive Models for Efficient Generative Retrieval}, 
+      author={Ravisri Valluri and Akash Kumar Mohankumar and Kushal Dave and Amit Singh and Jian Jiao and Manik Varma and Gaurav Sinha},
+      year={2024},
+      eprint={2406.06739},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2406.06739}, 
+}
+
+@misc{zhao2026diffugrgenerativedocumentretrieval,
+      title={DiffuGR: Generative Document Retrieval with Diffusion Language Models}, 
+      author={Xinpeng Zhao and Zhaochun Ren and Yukun Zhao and Zhenyang Li and Mengqi Zhang and Jun Feng and Ran Chen and Ying Zhou and Zhumin Chen and Shuaiqiang Wang and Dawei Yin and Xin Xin},
+      year={2026},
+      eprint={2511.08150},
+      archivePrefix={arXiv},
+      primaryClass={cs.IR},
+      url={https://arxiv.org/abs/2511.08150}, 
+}
+
 @inproceedings{joshi-etal-2017-triviaqa,
     title = "{T}rivia{QA}: A Large Scale Distantly Supervised Challenge Dataset for Reading Comprehension",
     author = "Joshi, Mandar and Choi, Eunsol and Weld, Daniel and Zettlemoyer, Luke",
@@ -591,6 +651,16 @@ keywords = {language models, Bias in NLP}
     abstract = "We present TriviaQA, a challenging reading comprehension dataset containing over 650K question-answer-evidence triples. TriviaQA includes 95K question-answer pairs authored by trivia enthusiasts and independently gathered evidence documents, six per question on average, that provide high quality distant supervision for answering the questions. We show that, in comparison to other recently introduced large-scale datasets, TriviaQA (1) has relatively complex, compositional questions, (2) has considerable syntactic and lexical variability between questions and corresponding answer-evidence sentences, and (3) requires more cross sentence reasoning to find answers. We also present two baseline algorithms: a feature-based classifier and a state-of-the-art neural network, that performs well on SQuAD reading comprehension. Neither approach comes close to human performance (23{\%} and 40{\%} vs. 80{\%}), suggesting that TriviaQA is a challenging testbed that is worth significant future study."
 }
 
+@misc{wang2025mindrefmimickinghumanmemory,
+      title={MindRef: Mimicking Human Memory for Hierarchical Reference Retrieval with Fine-Grained Location Awareness}, 
+      author={Ye Wang and Xinrun Xu and Zhiming Ding},
+      year={2025},
+      eprint={2402.17010},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2402.17010}, 
+}
+
 @misc{petroni2021kiltbenchmarkknowledgeintensive,
  title={KILT: a Benchmark for Knowledge Intensive Language Tasks}, 
  author={Fabio Petroni and Aleksandra Piktus and Angela Fan and Patrick Lewis and Majid Yazdani and Nicola De Cao and James Thorne and Yacine Jernite and Vladimir Karpukhin and Jean Maillard and Vassilis Plachouras and Tim Rocktäschel and Sebastian Riedel},
@@ -599,4 +669,32 @@ keywords = {language models, Bias in NLP}
  archivePrefix={arXiv},
  primaryClass={cs.CL},
  url={https://arxiv.org/abs/2009.02252}, 
+}
+
+
+@inproceedings{zhang-etal-2025-multi-level,
+    title = "Multi-level Relevance Document Identifier Learning for Generative Retrieval",
+    author = "Zhang, Fuwei  and
+      Liu, Xiaoyu  and
+      Jia, Xinyu  and
+      Zhang, Yingfei  and
+      Zhang, Shuai  and
+      Li, Xiang  and
+      Zhuang, Fuzhen  and
+      Lin, Wei  and
+      Zhang, Zhao",
+    editor = "Che, Wanxiang  and
+      Nabende, Joyce  and
+      Shutova, Ekaterina  and
+      Pilehvar, Mohammad Taher",
+    booktitle = "Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+    month = jul,
+    year = "2025",
+    address = "Vienna, Austria",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2025.acl-long.497/",
+    doi = "10.18653/v1/2025.acl-long.497",
+    pages = "10066--10080",
+    ISBN = "979-8-89176-251-0",
+    abstract = "Generative Retrieval (GR) introduces a new information retrieval paradigm that directly generates unique document identifiers (DocIDs). The key challenge of GR lies in creating effective yet discrete DocIDs that preserve semantic relevance for similar documents while differentiating dissimilar ones. However, existing methods generate DocIDs solely based on the textual content of documents, which may result in DocIDs with weak semantic connections for similar documents due to variations in expression. Therefore, we propose using queries as a bridge to connect documents with varying relevance levels for learning improved DocIDs. In this paper, we propose **M**ulti-l**E**vel **R**elevance document identifier learning for **G**enerative r**E**trieval (MERGE), a novel approach that utilizes multi-level document relevance to learn high-quality DocIDs. MERGE incorporates three modules: a multi-relevance query-document alignment module to effectively align document representations with related queries, an outer-level contrastive learning module to capture binary-level relevance, and an inner-level multi-level relevance learning module to distinguish documents with different relevance levels. Our approach encodes rich hierarchical semantic information and maintains uniqueness across documents. Experimental results on real-world multilingual e-commerce search datasets demonstrate that MERGE significantly outperforms existing methods, underscoring its effectiveness. The source code is available at {\ensuremath{<}}https://github.com/zhangfw123/MERGE{\ensuremath{>}}."
 }
