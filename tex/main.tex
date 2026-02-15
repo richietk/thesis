@@ -348,7 +348,7 @@ Both Bevilaqua et al (2022) and Li et al. (2023a, 2023b, 2024) note that perform
 
 Our analysis shows that for SEAL, title score is higher by ~280\% on average for positive ``ground truth'' retrieved passages than negative ones. However, the median is only ~41\% and the $\sigma$ ~1113\%, indicating that there is a subset of queries where the title is massively scored, indicating that the model uses it as quasi the only identifier, while for others the title is much less helpful. For MINDER, accordingly, the values are ~325\%, 57.5\%, ~939\%. An extreme example was found in SEAL, where for the query ``who sang this is how we do it'', correct passages have ~545x more title score than incorrect passages (in passages where a title-as-ngram is present). In these cases, title matching is extremely discriminative, which makes it well suited for datasets with clear metadata, but potentially bad for ones without.
 
-\subsection{Cultural Bias}
+\subseparagraphction{Cultural Bias}
 
 English content in public corpora is itself not culturally neutral, as a substantial portion reflects Western (particularly US and Eurocentric) perspectives and framing simply because such sources dominate English public corpora. As BART (which SEAL and MINDER uses) was trained on the English Wikipedia and on BookCorpus \cite{7410368, liu2019robertarobustlyoptimizedbert}, it can be presumed that BART would implicitly default to Western interpretations in ambiguous cases. Other commonly used language models, such as T5 and LLaMa-3 \cite{raffel2023exploringlimitstransferlearning, grattafiori2024llama3herdmodels} were also trained on overwhelmingly English data. Similar bias was also demonstrated for LLMs %which LLMs, autoregressive? or all kind of? also demonstrated for encoder-decoder seq2seq? for bidirectional masked models? T5? bart? bert? is bart even autoregressive? which does each paper analyze?
 by multiple papers \cite{naous2024havingbeerprayermeasuring, aowal2023detectingnaturallanguagebiases, 10.1145/3597307}. 
@@ -369,7 +369,7 @@ An important observation is that \glsxtrshort{MINDER} successfully retrieved the
 
 
 
-\subsection{Annotation Issues}
+\paragraph{Annotation Issues}
 \label{sec:annotation}
 
 % this is not a failure of the GR system but of the dataset. Although GR is evaluated on such dataset, so implicitly it influences it. Maybe move out to discussion or limitations? or idk?
@@ -412,6 +412,79 @@ The judge classifies each case into one of three categories:
     \item \textbf{NO}: The answer string appears coincidentally and the passage does not answer the question.
     \item \textbf{PARTIAL}: The passage provides relevant information from which the answer could be inferred, but does not state it directly.
 \end{itemize}
+
+\paragraph{Overfitting - Underfitting}
+\textbf{UNVALIDATED}
+If the model is trained through too few epochs, it can underfit and retrieval can be noisy. If it it trained on too many, the model memorizes the training set too well and loses the ability to generalize to new queries. This is especially problematic if the model is expected to ``zero-shot'' retrieve % TODO WORKING
+or when the model did not see the documents beforehand %arent these the same thing?
+%todo: rethink how batch sizes, max-updates and epochs are to each other and how to calculate amount of epochs for this specific.
+
+%can overfitting happen also on queries like if the model only learned one type of query style then it won't know what to do if the user phrases a query in a different or a new way? or different types of queries?
+
+% does performance matter on the specific prompts and prefixes used during training and during generation?
+
+\paragraph{Model capacity}
+\textbf{UNVALIDATED}
+\label{sec:model-capacity}
+
+Smaller models might not have capacity to memorize enough docids.
+
+\paragraph{Length Bias} %todo is my analysis already done relevant?
+\textbf{UNVALIDATED}
+\label{sec:length-bias}
+The model might prefer short, common ngrams vs specific, long identifiers.
+
+\paragraph{Latency}
+\textbf{UNVALIDATED}
+\label{sec:latency}
+Beam search with constraints is probably significantly slower than dot-product (or similar) searches %SOURCE AND WHAT IS BEING DONE AGAINST THIS ISSUE ?
+
+
+
+
+\paragraph{Vocabulary - Tokenization}
+\textbf{UNVALIDATED}
+\label{sec:vocab} %todo wording
+
+\subparagraph{Subword} %todo wording
+\textbf{UNVALIDATED}
+
+If an important identifier (e.g. a proper noun like Lin'an from the TODO example) is split into many meaningless subwords, the model might struggle to generate it consistently compared to common words. This can happen even through BART uses BPE \cite{TODO}, which allows it to to handle ``out-of-vocabulary'' words by breaking them down into known subunits. %note: does index.py in seal operate on tokenIDs or subwords? arent they the same here?
+
+\subparagraph{Coverage} %todo wording
+\textbf{UNVALIDATED}
+If BART doesn't have good representations for domain-specific jargon, e.g. for rare medical terms, retrieval can fail. 
+
+
+\paragraph{Zero-Shot Retrieval}
+\textbf{UNVALIDATED}
+\label{sec:zero-shot}
+Supervised GR models usually perform significantly worse on datasets they weren't explicitly trained on \textbf{liu2024robustnessgenerativeinformationretrieval, zhang2025replicationexplorationgenerativeretrieval}.
+Since they usually lack robust matching capabilities like that of BM25 or Contriever \cite{TODO} in zero-shot settings because they tend to overfit the training query distribution %source? or did I make that up?
+
+\paragraph{Unseen Documents}
+\textbf{UNVALIDATED}
+\label{sec:unseen-docs}
+
+GR by default %what does by default mean
+cannot retrieve documents added post-training %cannot? Are there methods or systems that make it able?
+. While the probability is not infinite, as documents added ex-post still get indexed by the FM-index, they are not represented in the training distribution %source
+
+Othertimes, a full retraining is required to index new information. %source
+
+\paragraph{Sampling Failures}
+\textbf{UNVALIDATED}
+\label{sec:sampling-fail}
+If the model is trained on irrelevant substring, it confuses the model's query-document mapping %source
+%depending on how the sampling is done, either random or via a heuristic to prefer ngrams that share words with query, if the sampler picks an irrelevant substring, the model can technically be trained to map a wrong string to the query.
+% however using more epochs can make it still work statistically if in most cases (?) it find a relevant sample 
+% SOURCE?!!
+% also it might be relevant that BART/T5 does have semantic knowledge from parametric knowledge and knows what each word mean usually SOURCE
+
+%are valid identifiers treated as false negatives if they are not sampled targets or no?
+% is there one sampled target per epoch (or whatever metric) or multiple? why not the other way?
+
+% what happens if the sampled ngram is common phrase (e.g. "the history of" "it was crucial for the")
 
 \subsection{Generative Failures}
 \label{sec:gen-fail}
