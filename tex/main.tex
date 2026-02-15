@@ -61,7 +61,10 @@ Because they are often randomly initialized, they lack inherent semantic connect
 
 \glsxtrshort{docid} design is consistently identified as a core challenge affecting these representation issues. Numerical \glspl{docid} offer efficiency but suffer from limited generalization and overfitting to initial training sets, while string-based \glspl{docid} maintain better semantic alignment but are more susceptible to false pruning \cite{zhang2024generativeretrievaltermset, zhang2025replicationexplorationgenerativeretrieval, 10.1145/3589335.3641239}.
 
-\subsection{\glsxtrshort{SEAL}Architecture}
+\subsection{Non-Autoregressive Generation}
+
+\textbf{TODO} %e.g. https://arxiv.org/pdf/2511.08150, https://arxiv.org/pdf/2202.06991
+\subsection{SEAL Architecture}
 
 \glsxtrfull{SEAL} \cite{bevilacqua2022autoregressivesearchenginesgenerating}, addresses \glsxtrshort{docid} design challenges by using existing substrings as its retrieval targets. Such challenges specifically addressed are the unavailability of unique metadata (like titles) for all documents, the insufficient granularity of page- and document-level identifiers, as well as the need to force a structure onto the search space, such as hierarchical cluster trees, which can be difficult to construct for large-scale benchmarks. %todo recheck why are these specifically adressed/improved with ngrams
 \glsxtrshort{SEAL} chunks documents into passages and defines identifiers as any n-gram within those passages. An BART model is trained to generate distinctive, query-relevant n-grams that identify documents containing them. \glsxtrshort{SEAL} constrains generation during decoding so that the model only generates n-grams actually existing in the corpus. For ranking, \glsxtrshort{SEAL} aggregates information from multiple generated n-grams while downweighing overlaps if an n-gram overlaps with a higher-scoring one already selected. This is implemented so that the final score does not overscore based on repetitive or redundant document content.
@@ -130,7 +133,7 @@ To illustrate \glsxtrshort{SEAL}'s n-gram based scoring, lets examine the query 
 
 It is also worth noting that while the additive nature of the scoring mechanism could theoretically bias retrieval toward longer documents in a corpus of varying document lengths, this effect is neutralized by dividing $F(n, R)$ by the total number of tokens in the corpus $R$.
 
-\subsection{\glsxtrshort{MINDER}Architecture}
+\subsection{MINDER Architecture}
 \label{sec:minderarch}
 The \glsxtrfull{MINDER} framework \cite{li2023multiviewidentifiersenhancedgenerative} extends the n-gram based approach of \glsxtrshort{SEAL} by introducing synthetic and multiview identifiers. \glsxtrshort{MINDER} is motivated by the observation that single-view identifiers, such as document titles or extractive n-grams, often lack the contextualized information necessary to satisfy complex queries, especially if those require rephrasing.
 
