@@ -187,7 +187,7 @@ month =Dec}
    publisher={Association for Computing Machinery (ACM)},
    author={Metzler, Donald and Tay, Yi and Bahri, Dara and Najork, Marc},
    year={2021},
-   month=jun, pages={1–27} }
+   month=jun, pages={1-27} }
 
 @article{Ji_2023,
    title={Survey of Hallucination in Natural Language Generation},
@@ -346,7 +346,7 @@ month =Dec}
    title={CorpusBrain: Pre-train a Generative Retrieval Model for Knowledge-Intensive Language Tasks},
    url={http://dx.doi.org/10.1145/3511808.3557271},
    DOI={10.1145/3511808.3557271},
-   booktitle={Proceedings of the 31st ACM International Conference on Information &amp; Knowledge Management},
+   booktitle={Proceedings of the 31st ACM International Conference on Information \& Knowledge Management},
    publisher={ACM},
    author={Chen, Jiangui and Zhang, Ruqing and Guo, Jiafeng and Liu, Yiqun and Fan, Yixing and Cheng, Xueqi},
    year={2022},
@@ -450,6 +450,41 @@ month = oct,
 articleno = {5},
 numpages = {35},
 keywords = {Generative retrieval, Continual learning, Knowledge-intensive language tasks}
+}
+
+@inproceedings{petroni-etal-2021-kilt,
+    title = "{KILT}: a Benchmark for Knowledge Intensive Language Tasks",
+    author = {Petroni, Fabio  and
+      Piktus, Aleksandra  and
+      Fan, Angela  and
+      Lewis, Patrick  and
+      Yazdani, Majid  and
+      De Cao, Nicola  and
+      Thorne, James  and
+      Jernite, Yacine  and
+      Karpukhin, Vladimir  and
+      Maillard, Jean  and
+      Plachouras, Vassilis  and
+      Rockt{\"a}schel, Tim  and
+      Riedel, Sebastian},
+    editor = "Toutanova, Kristina  and
+      Rumshisky, Anna  and
+      Zettlemoyer, Luke  and
+      Hakkani-Tur, Dilek  and
+      Beltagy, Iz  and
+      Bethard, Steven  and
+      Cotterell, Ryan  and
+      Chakraborty, Tanmoy  and
+      Zhou, Yichao",
+    booktitle = "Proceedings of the 2021 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies",
+    month = jun,
+    year = "2021",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2021.naacl-main.200/",
+    doi = "10.18653/v1/2021.naacl-main.200",
+    pages = "2523--2544",
+    abstract = "Challenging problems such as open-domain question answering, fact checking, slot filling and entity linking require access to large, external knowledge sources. While some models do well on individual tasks, developing general models is difficult as each task might require computationally expensive indexing of custom knowledge sources, in addition to dedicated infrastructure. To catalyze research on models that condition on specific information in large textual resources, we present a benchmark for knowledge-intensive language tasks (KILT). All tasks in KILT are grounded in the same snapshot of Wikipedia, reducing engineering turnaround through the re-use of components, as well as accelerating research into task-agnostic memory architectures. We test both task-specific and general baselines, evaluating downstream performance in addition to the ability of the models to provide provenance. We find that a shared dense vector index coupled with a seq2seq model is a strong baseline, outperforming more tailor-made approaches for fact checking, open-domain question answering and dialogue, and yielding competitive results on entity linking and slot filling, by generating disambiguated text. KILT data and code are available at \url{https://github.com/facebookresearch/KILT}."
 }
 
 @ARTICLE{Chen2010-ps-residquant,

@@ -54,7 +54,7 @@ In this section we introduce the concept of \gf{GR} more in depth.
 In \gs{GR}, a model is trained to map queries to relevant \gp{docid}. In many cases, seq2seq models like BART \cite{lewis-etal-2020-bart} and T5 \cite{t5-raffel2023exploringlimitstransferlearning} are used, however recently decoder-only models like LLaMa \cite{gpt-Radford2018ImprovingLU} have also been explored \cite{TODO}.
 
 A fundamental design decision in \gs{GR} is that of \gp{docid}. A \gs{docid} serves as a unique ``index'' for each document or passage, which the model typically must autoregressively generate. Usually, each \gs{docid} links to one document, making it bijective \cite{li2025matchinggenerationsurveygenerative} %todo find a specific citation, todo always? todo exemptions?
-These can be categorized in several ways \cite{li2025matchinggenerationsurveygenerative}. Numeric-based \gp{docid} use (series of) numbers to represent documents. Some implementations include unique random integers \cite{tay2022transformermemorydifferentiablesearch}, treating integers as tokenizable text strings \cite{tay2022transformermemorydifferentiablesearch}, hierarchical cluster paths \cite{sun2023learningtokenizegenerativeretrieval}, RQ\cite{Chen2010-ps-residquant}-based \gs{docid} sequences \cite{ripor_zeng2023scalableeffectivegenerativeinformation}}. While atomic IDs require the model to memorize random associations, semantic IDs group similar documents together under shared prefix tokens, improving retrieval quality \cite{pradeep2023doesgenerativeretrievalscale}. Using \gp{LM} to generate \gp{docid} has also been explored \cite{sun2023learningtokenizegenerativeretrieval, ripor_zeng2023scalableeffectivegenerativeinformation}
+These can be categorized in several ways \cite{li2025matchinggenerationsurveygenerative}. Numeric-based \gp{docid} use (series of) numbers to represent documents. Some implementations include unique random integers \cite{tay2022transformermemorydifferentiablesearch}, treating integers as tokenizable text strings \cite{tay2022transformermemorydifferentiablesearch}, hierarchical cluster paths \cite{sun2023learningtokenizegenerativeretrieval}, RQ\cite{Chen2010-ps-residquant}-based \gs{docid} sequences \cite{ripor_zeng2023scalableeffectivegenerativeinformation}. While atomic IDs require the model to memorize random associations, semantic IDs group similar documents together under shared prefix tokens, improving retrieval quality \cite{pradeep2023doesgenerativeretrievalscale}. Using \gp{LM} to generate \gp{docid} has also been explored \cite{sun2023learningtokenizegenerativeretrieval, ripor_zeng2023scalableeffectivegenerativeinformation}
 
 Text-based identifiers use natural language \gp{docid} which allow the model to use its pre-trained linguistic knowledge rather than learning a new symbolic system from scratch. Among these, the most commonly explored types are document titles \cite{decao2021autoregressiveentityretrieval, corpusbrain-Chen_2022, gere-Chen_2022, zhou2022ultronultimateretrievercorpus}, n-grams \cite{bevilacqua2022autoregressivesearchenginesgenerating,li2023multiviewidentifiersenhancedgenerative,li2023learningrankgenerativeretrieval,li2024distillationenhancedgenerativeretrieval}, URLs \cite{ziems-etal-2023-large, zhou2022ultronultimateretrievercorpus}, synthetic pseudo-queries \cite{li2023multiviewidentifiersenhancedgenerative,li2023learningrankgenerativeretrieval,li2024distillationenhancedgenerativeretrieval, wang2023neuralcorpusindexerdocument, zhuang2023bridginggapindexingretrieval}, and term sets \cite{zhang2024generativeretrievaltermset,zeng2024planningaheadgenerativeretrieval}
 
@@ -251,7 +251,7 @@ adds approximately 6.8 billion parameters to the output layer alone, making this
 \paragraph{Dynamic Corpora / Continual Learning}
 \label{dynamic-corpora}
 
-Continuously updating the corpora has been a central challenge in \gs{GR}. Several models have been proposed for solving such issues, such as using frozen pre-trained \gp{LM} \cite{kishore2024incdsiincrementallyupdatabledocument, 0.1145/3763233} %cite better explanation,
+Continuously updating the corpora has been a central challenge in \gs{GR}. Several models have been proposed for solving such issues, such as using frozen pre-trained \gp{LM} \cite{kishore2024incdsiincrementallyupdatabledocument, 10.1145/3763233} %cite better explanation,
 and updating only specific \gs{PQ} clusters in \gs{PQ}-based models \cite{10.1145/3583780.3614821}
 
 We identified the following challenges regarding dynamic corpora/continual learning:
@@ -291,10 +291,19 @@ While the failure modes of \gs{RAG} systems are out-of-scope for this thesis, we
 
 \subsection{Failure Mode Categorization by Downstream Task}
 
-\gs{GR} has mostly been applied and tested \gs{KILT} \cite{petroni-etal-2021-kilt} tasks, such as fact verification, open-domain QA, conversational QA, entity linking, or recommender systems \cite{TODO}.
+As explained by \citet{li2025matchinggenerationsurveygenerative}, \gs{GR} has mostly been applied and tested \gs{KILT} \cite{petroni-etal-2021-kilt} tasks, such as fact verification, open-domain QA, conversational QA, entity linking, multi-hop retrieval, recommender systems, and code retrieval \cite{TODO}.
 
 Accordingly, we can categorize failure modes based on the \gs{NLP} task they are intended for. \textbf{TODO}
-
+%todo I didnt read through these fully yet
+% https://arxiv.org/pdf/2404.14851
+% kilt stuff: GERE, UGR, DearDR, Re3val ? mentioned by Li
+% multihop: https://arxiv.org/abs/2204.13596
+% code: https://arxiv.org/abs/2210.00328
+% https://dl.acm.org/doi/10.1016/J.IPM.2023.103475
+% recommenders explained by Li
+%How to make the model perform well across various KILT/NLP tasks?
+%How to enable the model to perform well with multimodal data/tasks?
+%How to enable models to perform as recommenders?
 
 \section{Proposed Failure Taxonomy}
 \label{sec:proposed-failure-taxonomy}
