@@ -289,6 +289,13 @@ Summarizing with \gp{LLM} provides failure modes such as hallucination \cite{Hua
 While the failure modes of \gs{RAG} systems are out-of-scope for this thesis, we briefly summarize the most critical failure modes here:
 \textbf{TODO}
 
+\subsection{Failure Mode Categorization by Downstream Task}
+
+\gs{GR} has mostly been applied and tested \gs{KILT} \cite{petroni-etal-2021-kilt} tasks, such as fact verification, open-domain QA, conversational QA, entity linking, or recommender systems \cite{TODO}.
+
+Accordingly, we can categorize failure modes based on the \gs{NLP} task they are intended for. \textbf{TODO}
+
+
 \section{Proposed Failure Taxonomy}
 \label{sec:proposed-failure-taxonomy}
 \textbf{TODO NOT READY}
@@ -417,7 +424,7 @@ Although the correct answer is Lin'an (the query referring to the Southern Song 
 found a quasi-perfect ``query keyword match'' for such passages and connected ``southern'' with the southern US, ``song'' with country music, the 'Dixie' song and the 'Music City' sobriquet of Nashville, Tennessee, and, building onto these, ``capital'' with Nashville being the capital of Tennesse and Richmond being the capital of Virginia and the former capital of the confederate South. These substrings, while common, were likely propped up by their implicit connection to the US in the dataset and BART, even though they possess different meanings in a US geography context versus a 12th-century Chinese history context.
 
 There is no ground truth passages retrieved in the \textit{top-100} retrieved passages, which consists entirely of passages about the southern United States. This is also an example of \textit{false pruning}, as \gs{SEAL}seemingly %seemingly?
-discarded the tokens related to the Song Dynasty early on. 
+discarded the tokens related to the Song Dynasty early on. This example can also be considered a problem in entity linking \cite{TODO} % really? 
 
 An important observation is that \gs{MINDER} successfully retrieved the relevant passages. All queries in the \textit{top-100} retrieved passages were in some way relevant to Ancient China, with the first ground-truth passage appearing at rank-4. Both systems use BART-large as their autoregressive language model and the same dataset to build their FM-index. The observed success is therefore likely due to the use of pseudoqueries. Since BART is capable of generating the correct terms, failure in \gs{SEAL} happened likely due to failing to disambiguate the context, in which pseudoqueries assisted. For the highest-ranked retrieved \gs{GT} passage, \gs{MINDER} generated pseudoqueries such as \textit{what was the capital of the song dynasty in north china} and \textit{who took over the capital of the song dynasty}.
 
