@@ -60,13 +60,8 @@ Text-based identifiers use natural language \gp{docid} which allow the model to 
 
 %todo can numeric based IDs be refined?
 
-Title-based \gp{docid} have an inherent advantage in corpora with cleanly annotated unique titles such as NQ \cite{kwiatkowski-etal-2019-natural}, but suffer in those without, such as the web-search based MSMARCO \cite{bajaj2018msmarcohumangenerated}.
-
-Substring or n-gram identifiers allow any span of text (or group of such spans) within a document to act as its identifier, which allows \textbf{finish sentence}
-
-Pseudoqueries have been shown to prevent forgetting \cite{clever_10.1145/3583780.3614821} and improving query generalization performance \cite{pradeep2023doesgenerativeretrievalscale}. %todo recheck! also mention the culture thing? or is that in results? also pseudoq also improve distriminativeness or no?
-
-Term sets are sometimes fully permutation invariant \cite{zhang2024generativeretrievaltermset}, but not always \cite{zeng2024planningaheadgenerativeretrieval} \textbf{finish sentence}
+Title-based \gp{docid} have an inherent advantage in corpora with cleanly annotated unique titles such as NQ \cite{kwiatkowski-etal-2019-natural}, but suffer in those without, such as the web-search based MSMARCO \cite{bajaj2018msmarcohumangenerated}. Substring or n-gram identifiers allow any span of text (or group of such spans) within a document to act as its identifier, which allows \textbf{finish sentence}. Pseudoqueries have been shown to prevent forgetting \cite{clever_10.1145/3583780.3614821} and improving query generalization performance \cite{pradeep2023doesgenerativeretrievalscale}. %todo recheck! also mention the culture thing? or is that in results? also pseudoq also improve distriminativeness or no?
+Term sets have the benefit of being  permutation invariant \cite{zhang2024generativeretrievaltermset}. Please note that this is not always the case \cite{zeng2024planningaheadgenerativeretrieval}.
 
 \gc{docid} are usually static, but in some implementations they can be refined during training, as evidenced by \citet{lee2023glengenerativeretrievallexical,sun2023learningtokenizegenerativeretrieval}.
 
