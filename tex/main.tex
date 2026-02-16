@@ -340,9 +340,18 @@ The output dataset (of both systems) have an average per-query annotated correct
 
 \paragraph{Evaluation Metrics}
 
-We use R-precision as the overall retrieval quality of both \gs{SEAL} and \gs{MINDER} and hits@1 (being identical to precision@1) to quantify whether the model successfully retrieved a positive context in its top results for a query. We also use hits@10, since retrieval is rarely only about the first result only. We chose $k=10$ somewhat arbitrarily, as it provides a balance between being too strict by only measuring the top results and being too lax by allowing lower-scored retrieved passages to be included in the analysis. We avoid using Precision@k and Recall@k with $k>1$ to avoid misrepresentation of queries where the amount of ground truths is less than $k$.
+Taking into account the suggestions by \citet{li2025matchinggenerationsurveygenerative}, we use the following metrics to determine model quality:
+\begin{itemize}
+\item R-Precision
+\item Recall@k
+\item Hits@k
+\item Mean Reciprocal Rank (MRR)
+\item Normalized Discounted Cumulative Gain (nDCG)
+\end{itemize}
 
-For the analysis, results are calculated side-by-side for both systems analyzed when appropriate. To analyze distribution, we bin the results into deciles and report them. Additionally, when appropriate, we report the Spearman $rho$ values to analyze monotonic correlation between variables.
+For most of our evaluations, we use $k=1$ and $k=10$. We chose $k=10$ somewhat arbitrarily, as it provides a balance between being too strict by only measuring the top results and being too lax by allowing lower-scored retrieved passages to be included in the analysis. In case the amount of ground truths in a query is less than $k$, we will intentionally chooose our evaluation metrics in such a way to avoid misrepresenting the results. 
+
+To analyze distribution, we bin the results into deciles and report them. Additionally, when appropriate, we report the Spearman $rho$ values to analyze monotonic correlation between variables.
 
 
 \section{Failure Analysis}
