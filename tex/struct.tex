@@ -47,9 +47,13 @@
 \usepackage{booktabs}
 
 \usepackage[automake,acronym]{glossaries-extra}
+\newcommand{\gs}[1]{\glsxtrshort{#1}}   % \gs{} → \glsxtrshort{}
+\newcommand{\gl}[1]{\glsxtrlong{#1}}    % \gl{} → \glsxtrlong{}
+\newcommand{\gf}[1]{\glsxtrfull{#1}}    % \gf{} → \glsxtrfull{}
+\newcommand{\gp}[1]{\glsxtrfull{#1}}    % \gp{} → \glsxtrfull{}
 \makeglossaries
-\newacronym{gr}{GR}{Generative Retrieval}
-\newacronym{ir}{IR}{Information Retrieval}
+\newacronym{GR}{GR}{Generative Retrieval}
+\newacronym{IR}{IR}{Information Retrieval}
 \newacronym{SEAL}{SEAL}{Search Engines with Autoregressive LMs (Bevilacqua et al. 2022)}
 \newacronym{MINDER}{MINDER}{Multiview Identifiers Enhanced Generative Retrieval (Li et al. 2024)}
 \newacronym{nq}{NQ}{Natural Questions}
@@ -62,9 +66,12 @@
 \newacronym{DGR}{DGR}{Distillation Enhanced Generative Retrieval (Li et al. 2024)}
 \newacronym{BART}{BART}{Bidirectional and Auto-Regressive Transformers (Lewis et al. 2019)}
 \newacronym{BPE}{BPE}{Byte Pair Encoding}
+\newacronym{DR}{DR}{Dense Retrieval}
 \newacronym{DPR}{DPR}{Dense Passage Retrieval}
 \newacronym{BWT}{BWT}{Burrows-Wheeler Transform}
 \newacronym{PLM}{PLM}{Pre-trained Language Model}
+\newacronym{LM}{LM}{Language Model}
+\newacronym{LLM}{LLM}{Large Language Model}
 
 \makeatletter
 \renewcommand\paragraph{\@startsection{paragraph}{4}{\z@}%

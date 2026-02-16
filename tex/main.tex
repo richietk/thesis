@@ -3,14 +3,20 @@
 
 \section{Introduction}
 
-\glsxtrfull{gr} represents an emerging framework in \glsxtrfull{ir} that aims to consolidate retrieval processes into end-to-end autoregressive models, uses a language model instead of indices to encode the entire document corpus into the parameters of a single transformer. While these systems offer promising advantages over traditional approaches, they also exhibit distinct failure modes, behavioral biases, and structural limitations. Unlike traditional approaches that rely on separate vector index structures for document embeddings and multi-stage pipelines, generative retrieval systems directly generate document identifiers through autoregressive language models, consolidating the retrieval process into a single end-to-end model \cite{kuo2024surveygenerativeinformationretrieval, li2025matchinggenerationsurveygenerative, zhang2024generativeretrievaltermset}. This offers several compelling advantages, such as eliminating the need for dense vector indexes and their associated \glsxtrfull{ANN} search structures, reducing memory footprint and enabling the model to learn document representations jointly with the retrieval objective \cite{sun2023learningtokenizegenerativeretrieval, tang2024listwisegenerativeretrievalmodels}.
+\gf{IR}, as defined by \href{https://en.wikipedia.org/wiki/Information_retrieval}{Wikipedia} is ``the task of identifying and retrieving information system resources that are relevant to an information need.'' Traditionally, \gf{IR} has long been structured around the ``index-retrieve-then-rank'' pipeline \cite{10.1145/3589335.3641239, Metzler_2021}, with the most popular (and best performing) methods using sparse retrieval, such as BM25 \cite{bm25robertson2009} and SPLADE \cite{splade10.1145/3404835.3463098}. These rely on lexical representations but suffer when terms do not overlap exactly \cite{Choi_2022,     biswas2024efficientinterpretableinformationretrieval, gao2021coilrevisitexactlexical}. A newer method called \gf{DR}, popularized by frameworks such as DPR \cite{karpukhin2020densepassageretrievalopendomain} utilize the bidirectional-encoder architectures (typically from BERT \cite{devlin-etal-2019-bert}) to address this issue by encoding queries and documents into semantic vector representations. However, \gs{DR} systems still depend on separate vector index structures \cite{xiong2020approximatenearestneighbornegative, li2023constructingtreebasedindexefficient}, and queries and documents are encoded independently with limited semantic interaction \cite{ni2021largedualencodersgeneralizable}. %todo is this a bad thing?
 
-Despite these promising characteristics, generative retrieval systems exhibit distinct failure modes that differ fundamentally from those observed in traditional retrieval architectures. While dense retrieval failures typically manifest as low similarity scores in vector space, generative retrieval failures can include hallucination of non-existent document identifiers, incorrect pruning during autoregressive generation, poor performance on dynamically expanding corpora, and challenges with scalability \cite{Metzler_2021, Ji_2023, zeng2024planningaheadgenerativeretrieval, pradeep2023doesgenerativeretrievalscale}. It is also worth noting that some \glsxtrshort{gr} implementations employ auxiliary data structures for constrained generation, making them not fully end-to-end differentiable.\textbf{recheck}
+\gf{GR} represents an emerging framework in \gf{IR} which aims to directly generate document identifiers through autoregressive language models such as BART \cite{lewis-etal-2020-bart} and T5 \cite{t5-raffel2023exploringlimitstransferlearning}, consolidating the retrieval process into a single end-to-end model \cite{zhang2024generativeretrievaltermset, li2025matchinggenerationsurveygenerative, kuo2024surveygenerativeinformationretrieval}. %todo recheck the latter part
+using the \gs{LM} to encode the entire document corpus into the parameters of a single transformer. %todo cite
+This architecture offers several advantages: it eliminates the need for separate dense vector indexes, reduces storage needs \cite{bevilacqua2022autoregressivesearchenginesgenerating} %todo check
+reduces memory footprint \cite{zeng2024planningaheadgenerativeretrieval}, enables the model to learn document representations jointly with the retrieval objective \cite{sun2023learningtokenizegenerativeretrieval, tang2024listwisegenerativeretrievalmodels} %todo recheck
+, and enables the optimization of document representations and retrieval objectives \cite{TODO} %todo too vague?
+\cite{bevilacqua2022autoregressivesearchenginesgenerating, zeng2024planningaheadgenerativeretrieval, tang2024listwisegenerativeretrievalmodels}.  %todo citations for specfific claims, not end of sentence todo!
+Despite these promising characteristics, generative retrieval systems exhibit distinct failure modes that differ fundamentally from those observed in traditional retrieval architectures. While \gs{IR} failures typically manifest as low similarity scores in vector space, generative retrieval failures can include hallucination of non-existent document identifiers, incorrect pruning during autoregressive generation, poor performance on dynamically expanding corpora, and challenges with scalability \cite{Metzler_2021, Ji_2023, zeng2024planningaheadgenerativeretrieval, pradeep2023doesgenerativeretrievalscale}, among others. %TODO cite each citation to specific failure mentioned
+It is also worth noting that some \gs{GR} implementations employ auxiliary data structures for constrained generation, making them not fully end-to-end differentiable.\textbf{recheck}
 
-Existing literature on \glsxtrshort{gr} documents various challenges and failure cases. However, these failures are typically discussed in isolation with individual paper proposing new methods or architectures. There is no systematic taxonomy that classifies the types of failures that occur in generative retrieval systems, their relative frequencies in practice, or their underlying causes. %TODO am I even analyzing frequency?
-
-This thesis addresses this gap by developing a taxonomy of failures, biases, and limitations for \glsxtrshort{gr} systems by synthesizing documented failure cases from the literature and conducting analysis of retrieval outputs from the \glsxtrshort{SEAL} and \glsxtrshort{MINDER} models \cite{bevilacqua2022autoregressivesearchenginesgenerating, li2023multiviewidentifiersenhancedgenerative} on the \glsxtrfull{nq} dataset. The \glsxtrshort{nq} dataset \cite{kwiatkowski-etal-2019-natural} is a benchmark of Google search queries paired with full Wikipedia pages, annotated with the exact section and phrases of the page containing the answer.
-
+Existing literature on \gs{GR} documents various challenges and failure cases. However, these failures are typically discussed in isolation with individual paper proposing new methods or architectures. There is no systematic taxonomy %todo really? https://arxiv.org/pdf/2404.14851 might be close
+that classifies the types of failures that occur in generative retrieval systems, their relative frequencies in practice, or their underlying causes. %TODO am I even analyzing frequency?
+This thesis addresses this gap by developing a taxonomy of failures, biases, and limitations for \gs{GR} systems by synthesizing documented failure cases from the literature and conducting analysis of retrieval outputs from the frameworks \gs{SEAL} \cite{bevilacqua2022autoregressivesearchenginesgenerating} and \gs{MINDER} models \cite{li2023multiviewidentifiersenhancedgenerative} on the \gf{nq} dataset. The \gs{nq} dataset \cite{kwiatkowski-etal-2019-natural} is a benchmark of Google search queries paired with full Wikipedia pages, annotated with the exact section and phrases of the page containing the answer.
 
 \subsection{Research Question}
 
@@ -18,10 +24,11 @@ This thesis addresses two interconnected research questions:
 
 \textbf{RQ1:} What is a systematic classification of the failures, behavioral biases, and structural limitations observed in generative retrieval systems?
 
-\textbf{RQ2:} What are the most frequent failure modes observed in \glsxtrshort{SEAL}'s and \glsxtrshort{MINDER}'s n-gram-based retrieval, and to which mechanisms in the retrieval process can these failures be attributed?
+\textbf{RQ2:} What are the most frequent failure modes observed in \gs{SEAL}'s and \gs{MINDER}'s n-gram-based retrieval, and to which mechanisms in the retrieval process can these failures be attributed?
 
 \subsection{Contributions}
 
+\textbf{TODO REWORK}
 This thesis makes the following contributions:
 
 \begin{enumerate}
@@ -29,7 +36,7 @@ This thesis makes the following contributions:
 
     \item A mapping from abstract failure modes to observable indicators measurable from inference outputs.
 
-    \item Quantitative characterization of failure patterns via the \glsxtrshort{SEAL} and \glsxtrshort{MINDER} framework, including correlation analysis between failure indicators and retrieval success.
+    \item Quantitative characterization of failure patterns via the \gs{SEAL} and \gs{MINDER} framework, including correlation analysis between failure indicators and retrieval success.
 
 
 \end{enumerate}
@@ -40,44 +47,42 @@ The code used for this thesis is available on \href{https://github.com/richietk/
 
 \section{Background}
 
-In this section we introduce the concept of \glsxtrfull{gr} and discuss the important details of the \glsxtrshort{SEAL} and \glsxtrshort{MINDER} architecture.
+In this section we introduce the concept of \gf{GR} and discuss the important details of the \gs{SEAL} and \gs{MINDER} architecture.
 
 \subsection{Information Retrieval}
 
-Traditional \glsxtrfull{ir} has long been structured around the ``index-retrieve-then-rank'' pipeline \cite{10.1145/3589335.3641239, Metzler_2021}. Sparse retrieval methods, such as BM25, rely on lexical representations but suffer when terms do not overlap exactly \cite{Choi_2022, biswas2024efficientinterpretableinformationretrieval, gao2021coilrevisitexactlexical}. Dense retrieval (DR) methods using dual-encoder architectures (e.g., DPR \cite{karpukhin2020densepassageretrievalopendomain}) address this by encoding queries and documents into semantic vector representations. However, DR systems still depend on separate vector index structures and Approximate Nearest Neighbor (ANN) indexes \cite{xiong2020approximatenearestneighbornegative, li2023constructingtreebasedindexefficient}, and queries and documents are encoded independently with limited semantic interaction \cite{ni2021largedualencodersgeneralizable}. %todo is that a "bad thing"?
 
-(\glsxtrshort{gr}) diverges from traditional architectures by aiming to directly generate document identifiers through autoregressive language models, consolidating the retrieval process into a single end-to-end model \cite{zhang2024generativeretrievaltermset, li2025matchinggenerationsurveygenerative, kuo2024surveygenerativeinformationretrieval}. While this aspirational goal is not always fully achieved in practice, as many systems introduce additional components, the unified architecture still offers several advantages when realized: it eliminates the need for separate dense vector indexes, reduces memory footprint significantly, and enables the optimization of document representations and retrieval objectives %todo too vague?
-\cite{bevilacqua2022autoregressivesearchenginesgenerating, zeng2024planningaheadgenerativeretrieval, tang2024listwisegenerativeretrievalmodels}. Systems like \glsxtrshort{SEAL} achieves 7x less storage than DPR while showing comparable accuracy@k and exact match metrics on the \glsxtrfull{nq} 320k dataset \cite{bevilacqua2022autoregressivesearchenginesgenerating}. Another \glsxtrshort{gr} system, \glsxtrshort{PAG} \cite{zeng2024planningaheadgenerativeretrieval} required approximately 7x less memory to index the entire corpus compared to single-vector dense retrieval models and comparable memory needs to BM25. It achieved comparable or better MRR@10 results on the MS-MARCO Dev set compared to sparse and dense retrieval models. Notably, PAG achieved a 70.1\% improvement over BM25 and an 11.2\% improvement over TAS-B \cite{hofstätter2021efficientlyteachingeffectivedense}. While some \glsxtrshort{gr} implementations employ auxiliary data structures for constrained generation (such as \glsxtrshort{SEAL}'s use of the FM-Index), these differ fundamentally from the separate encoding and indexing stages required by traditional systems. Additionally, the pre-trained language models used in \glsxtrshort{gr} can perform effectively in zero- and few-shot scenarios when limited labeled data is available \cite{Metzler_2021}.
+Systems like \gs{SEAL} achieves 7x less storage than DPR while showing comparable accuracy@k and exact match metrics on the \gf{nq} 320k dataset \cite{bevilacqua2022autoregressivesearchenginesgenerating}. Another \gs{GR} system, \gs{PAG} \cite{zeng2024planningaheadgenerativeretrieval} required approximately 7x less memory to index the entire corpus compared to single-vector dense retrieval models and comparable memory needs to BM25. It achieved comparable or better MRR@10 results on the MS-MARCO Dev set compared to sparse and dense retrieval models. Notably, PAG achieved a 70.1\% improvement over BM25 and an 11.2\% improvement over TAS-B \cite{hofstätter2021efficientlyteachingeffectivedense}. While some \gs{GR} implementations employ auxiliary data structures for constrained generation (such as \gs{SEAL}'s use of the FM-Index), these differ fundamentally from the separate encoding and indexing stages required by traditional systems. Additionally, the pre-trained language models used in \gs{GR} can perform effectively in zero- and few-shot scenarios when limited labeled data is available \cite{Metzler_2021}. %todo recheck rewrite if needed
 
 \subsection{DocID Design}
 
-\Glsxtrfull{docid} design is important for retrieval effectiveness, as it replaces traditional external indices with the models internal parametric memory. A \glsxtrshort{docid} serves as a unique ``index'' that the model must autoregressively generate to point toward a specific document or passage. Initial foundational works categorized these identifiers into three main types: unstructured atomic identifiers (such as unique random integers), naively structured string identifiers (such as titles), and semantically structured, numeric identifiers (such hierarchical cluster paths). While atomic IDs require the model to memorize random associations, semantic IDs group similar documents together under shared prefix tokens, improving retrieval quality \cite{pradeep2023doesgenerativeretrievalscale}.
+\gf{docid} design is important for retrieval effectiveness, as it replaces traditional external indices with the models internal parametric memory. A \gs{docid} serves as a unique ``index'' that the model must autoregressively generate to point toward a specific document or passage. Initial foundational works categorized these identifiers into three main types: unstructured atomic identifiers (such as unique random integers), naively structured string identifiers (such as titles), and semantically structured, numeric identifiers (such hierarchical cluster paths). While atomic IDs require the model to memorize random associations, semantic IDs group similar documents together under shared prefix tokens, improving retrieval quality \cite{pradeep2023doesgenerativeretrievalscale}.
 
-String identifiers use natural language such as document titles, n-grams, URLs, or synthetic pseudo-queries, which allow the model to use its pre-trained linguistic knowledge rather than learning a new symbolic system from scratch. Substring or n-gram identifiers allow any span of text within a document to act as its identifier. In \glsxtrshort{SEAL} and \glsxtrshort{MINDER}, the documents aren't assigned a single identifier per document, unlike in other frameworks such as DSI \cite{tay2022transformermemorydifferentiablesearch} or GENRE \cite{sun2023learningtokenizegenerativeretrieval}. A single document can have multiple possible identifiers, as evidenced in \glsxtrshort{SEAL}, which treats all n-grams within the passage as valid identifiers. Additionally, \glsxtrshort{MINDER} also generates pseudo-queries for each document, %note: for each document or passage?
-which it can occasionally use as ``n-grams''. While string-based IDs are more interpretable and generalizable to dynamic corpora where document collections expand, they often suffer from ``false pruning'', where the sequence-based generation discards a relevant document early in the beam search if the model fails to predict the correct prefix token. We will focus on string-based \glspl{docid} in this thesis.
+String identifiers use natural language such as document titles, n-grams, URLs, or synthetic pseudo-queries, which allow the model to use its pre-trained linguistic knowledge rather than learning a new symbolic system from scratch. Substring or n-gram identifiers allow any span of text within a document to act as its identifier. In \gs{SEAL} and \gs{MINDER}, the documents aren't assigned a single identifier per document, unlike in other frameworks such as DSI \cite{tay2022transformermemorydifferentiablesearch} or GENRE \cite{sun2023learningtokenizegenerativeretrieval}. A single document can have multiple possible identifiers, as evidenced in \gs{SEAL}, which treats all n-grams within the passage as valid identifiers. Additionally, \gs{MINDER} also generates pseudo-queries for each document, %note: for each document or passage?
+which it can occasionally use as ``n-grams''. While string-based IDs are more interpretable and generalizable to dynamic corpora where document collections expand, they often suffer from ``false pruning'', where the sequence-based generation discards a relevant document early in the beam search if the model fails to predict the correct prefix token. We will focus on string-based \glsplural{docid} in this thesis.
 
-Other \glspl{docid} types include semantically structured identifiers are designed to capture the relationships between documents using hierarchical categorization methods, such as by recursively applying k-means clustering to document embeddings, creating a tree where each root-to-leaf path serves as a DocID. Because they share prefixes with similar documents, they facilitate semantic matching, but their sequential nature makes them, just like string-based \glspl{docid}, susceptible to false pruning. Unstructured atomic identifiers treat each document as a single, unique token added directly to the model's vocabulary. Unlike sequential designs, retrieval involves only a single decoding step, where the model sorts the logits of all \glsxtrshort{docid} tokens to produce a ranked list. While this makes them immune to false pruning and very FLOP efficient during inference, they require a large increase in model parameters as the corpus scales \cite{pradeep2023doesgenerativeretrievalscale}. %This is because atomic \glspl{docid} predict the document in a single softmax, the output layer must contain one set of weights per document, causing the parameter count to grow with the collection size \cite{nguyen2023generativeretrievaldenseretrieval, kuo2024surveygenerativeinformationretrieval}.
+Other \glsplural{docid} types include semantically structured identifiers are designed to capture the relationships between documents using hierarchical categorization methods, such as by recursively applying k-means clustering to document embeddings, creating a tree where each root-to-leaf path serves as a DocID. Because they share prefixes with similar documents, they facilitate semantic matching, but their sequential nature makes them, just like string-based \glsplural{docid}, susceptible to false pruning. Unstructured atomic identifiers treat each document as a single, unique token added directly to the model's vocabulary. Unlike sequential designs, retrieval involves only a single decoding step, where the model sorts the logits of all \gs{docid} tokens to produce a ranked list. While this makes them immune to false pruning and very FLOP efficient during inference, they require a large increase in model parameters as the corpus scales \cite{pradeep2023doesgenerativeretrievalscale}. %This is because atomic \glsplural{docid} predict the document in a single softmax, the output layer must contain one set of weights per document, causing the parameter count to grow with the collection size \cite{nguyen2023generativeretrievaldenseretrieval, kuo2024surveygenerativeinformationretrieval}.
 Because they are often randomly initialized, they lack inherent semantic connections to the text, forcing the model to rely entirely on memorizing the association between document content and its identifier during the training phase.
 
-\glsxtrshort{docid} design is consistently identified as a core challenge affecting these representation issues. Numerical \glspl{docid} offer efficiency but suffer from limited generalization and overfitting to initial training sets, while string-based \glspl{docid} maintain better semantic alignment but are more susceptible to false pruning \cite{zhang2024generativeretrievaltermset, zhang2025replicationexplorationgenerativeretrieval, 10.1145/3589335.3641239}.
+\gs{docid} design is consistently identified as a core challenge affecting these representation issues. Numerical \glsplural{docid} offer efficiency but suffer from limited generalization and overfitting to initial training sets, while string-based \glsplural{docid} maintain better semantic alignment but are more susceptible to false pruning \cite{zhang2024generativeretrievaltermset, zhang2025replicationexplorationgenerativeretrieval, 10.1145/3589335.3641239}.
 
 \subsection{SEAL Architecture}
 
-\glsxtrfull{SEAL} \cite{bevilacqua2022autoregressivesearchenginesgenerating}, addresses \glsxtrshort{docid} design challenges by using existing substrings as its retrieval targets. Such challenges specifically addressed are the unavailability of unique metadata (like titles) for all documents, the insufficient granularity of page- and document-level identifiers, as well as the need to force a structure onto the search space, such as hierarchical cluster trees, which can be difficult to construct for large-scale benchmarks. %todo recheck why are these specifically adressed/improved with ngrams
-\glsxtrshort{SEAL} chunks documents into passages and defines identifiers as any n-gram within those passages. An BART model is trained to generate distinctive, query-relevant n-grams that identify documents containing them. \glsxtrshort{SEAL} constrains generation during decoding so that the model only generates n-grams actually existing in the corpus. For ranking, \glsxtrshort{SEAL} aggregates information from multiple generated n-grams while downweighing overlaps if an n-gram overlaps with a higher-scoring one already selected. This is implemented so that the final score does not overscore based on repetitive or redundant document content.
+\gf{SEAL} \cite{bevilacqua2022autoregressivesearchenginesgenerating}, addresses \gs{docid} design challenges by using existing substrings as its retrieval targets. Such challenges specifically addressed are the unavailability of unique metadata (like titles) for all documents, the insufficient granularity of page- and document-level identifiers, as well as the need to force a structure onto the search space, such as hierarchical cluster trees, which can be difficult to construct for large-scale benchmarks. %todo recheck why are these specifically adressed/improved with ngrams
+\gs{SEAL} chunks documents into passages and defines identifiers as any n-gram within those passages. An BART model is trained to generate distinctive, query-relevant n-grams that identify documents containing them. \gs{SEAL} constrains generation during decoding so that the model only generates n-grams actually existing in the corpus. For ranking, \gs{SEAL} aggregates information from multiple generated n-grams while downweighing overlaps if an n-gram overlaps with a higher-scoring one already selected. This is implemented so that the final score does not overscore based on repetitive or redundant document content.
 
 \paragraph{Retrieval Mechanism}
 
-During the generation phase, \glsxtrshort{SEAL} enforces that at each decoding step, the language model can only generate tokens that would extend the current partial n-gram into a sequence that exists somewhere in the corpus. As an example, when \glsxtrshort{SEAL} has generated the partial sequence ``earthquakes can be,'', ``earthquakes can be predicted'' can only be generated if this complete 4-gram exists as a contiguous substring in at least one document \cite{bevilacqua2022autoregressivesearchenginesgenerating}. ``earthquakes can be predicted'' exists in the corpus in the sentence ``discussing why the claim that earthquakes can be predicted is false.''
+During the generation phase, \gs{SEAL} enforces that at each decoding step, the language model can only generate tokens that would extend the current partial n-gram into a sequence that exists somewhere in the corpus. As an example, when \gs{SEAL} has generated the partial sequence ``earthquakes can be,'', ``earthquakes can be predicted'' can only be generated if this complete 4-gram exists as a contiguous substring in at least one document \cite{bevilacqua2022autoregressivesearchenginesgenerating}. ``earthquakes can be predicted'' exists in the corpus in the sentence ``discussing why the claim that earthquakes can be predicted is false.''
 
-After n-gram generation, in the retrieval phase, for each n-gram, \glsxtrshort{SEAL} identifies every passage containing that n-gram and assign a relevance score based on the n-gram's uniqueness and frequency in the corpus.
-Passages are then ranked by additively aggregating the scores from all n-grams they contain. The FM-index, which \glsxtrshort{SEAL} uses, provides a range of rows in the Burrows-Wheeler Transform matrix, and each row corresponds to an occurrence of that n-gram in the corpus. \glsxtrshort{SEAL}then maps these occurrences back to their respective document/passage id-s.This means that a document scores highly not because any single n-gram uniquely identifies it, but because it contains multiple high-scoring n-grams. This provides robustness, since even if some highly ranked n-grams point to an irrelevant document, other n-grams can still guide retrieval toward relevant documents. %todo recheck the part about FM / BWT for clarity.
+After n-gram generation, in the retrieval phase, for each n-gram, \gs{SEAL} identifies every passage containing that n-gram and assign a relevance score based on the n-gram's uniqueness and frequency in the corpus.
+Passages are then ranked by additively aggregating the scores from all n-grams they contain. The FM-index, which \gs{SEAL} uses, provides a range of rows in the Burrows-Wheeler Transform matrix, and each row corresponds to an occurrence of that n-gram in the corpus. \gs{SEAL}then maps these occurrences back to their respective document/passage id-s.This means that a document scores highly not because any single n-gram uniquely identifies it, but because it contains multiple high-scoring n-grams. This provides robustness, since even if some highly ranked n-grams point to an irrelevant document, other n-grams can still guide retrieval toward relevant documents. %todo recheck the part about FM / BWT for clarity.
 
-This architecture helps explain why \glsxtrshort{SEAL} can overcome vocabulary mismatch issues. While the model cannot generate n-grams that do not exist in the corpus, it can find paraphrases and related terms as long as those appear in corpus documents using BART's parametric knowledge.
+This architecture helps explain why \gs{SEAL} can overcome vocabulary mismatch issues. While the model cannot generate n-grams that do not exist in the corpus, it can find paraphrases and related terms as long as those appear in corpus documents using BART's parametric knowledge.
 
 \paragraph{Scoring Mechanism}
 \label{par:scormech}
-\glsxtrshort{SEAL}'s failure modes are directly influenced by its scoring function. \glsxtrshort{SEAL} computes n-gram scores by combining the language model's conditional probability of an n-gram given a query with corpus frequency to favor distinctive n-grams.
+\gs{SEAL}'s failure modes are directly influenced by its scoring function. \gs{SEAL} computes n-gram scores by combining the language model's conditional probability of an n-gram given a query with corpus frequency to favor distinctive n-grams.
 
 The unconditional n-gram probability is computed from corpus statistics:
 \begin{equation}
@@ -106,9 +111,9 @@ An n-gram is included in $K^{(d)}$ only if it has at least one occurrence
 in $d$ that does not positionally overlap with a higher-scoring n-gram's 
 occurrence. The parameter $\alpha$ is a hyperparameter. The coverage weight $\text{cover}(n, K^{(d)})$ downweights individual n-grams whose tokens overlap with tokens of higher-scoring n-grams in the same document, preventing passages from receiving inflated scores when they contain many lexically similar n-grams.\cite{bevilacqua2022autoregressivesearchenginesgenerating}. %todo clear enough or should I expand?
 
-Here it is worth noting that \glsxtrshort{SEAL}, generates fixed token-length ngrams (by default $k=10$, except for titles). However, they save all partially-decoded sequences from the beam-search \cite{bevilacqua2022autoregressivesearchenginesgenerating}. Because the system records this history, the final score of a passage is always the sum of strings of different lengths. As expected, n-gram length is strongly correlated with frequency ($\rho=-0.835, p<0.001$). Consequentially, 
+Here it is worth noting that \gs{SEAL}, generates fixed token-length ngrams (by default $k=10$, except for titles). However, they save all partially-decoded sequences from the beam-search \cite{bevilacqua2022autoregressivesearchenginesgenerating}. Because the system records this history, the final score of a passage is always the sum of strings of different lengths. As expected, n-gram length is strongly correlated with frequency ($\rho=-0.835, p<0.001$). Consequentially, 
 
-To illustrate \glsxtrshort{SEAL}'s n-gram based scoring, lets examine the query ``who sings does he love me with reba''. The top-ranked passage (titled ``Linda Davis'') matched the following keys (excerpt):
+To illustrate \gs{SEAL}'s n-gram based scoring, lets examine the query ``who sings does he love me with reba''. The top-ranked passage (titled ``Linda Davis'') matched the following keys (excerpt):
 
 \begin{table}[htbp]
     \centering
@@ -132,18 +137,18 @@ It is also worth noting that while the additive nature of the scoring mechanism 
 
 \subsection{MINDER Architecture}
 \label{sec:minderarch}
-The \glsxtrfull{MINDER} framework \cite{li2023multiviewidentifiersenhancedgenerative} extends the n-gram based approach of \glsxtrshort{SEAL} by introducing synthetic and multiview identifiers. \glsxtrshort{MINDER} is motivated by the observation that single-view identifiers, such as document titles or extractive n-grams, often lack the contextualized information necessary to satisfy complex queries, especially if those require rephrasing.
+The \gf{MINDER} framework \cite{li2023multiviewidentifiersenhancedgenerative} extends the n-gram based approach of \gs{SEAL} by introducing synthetic and multiview identifiers. \gs{MINDER} is motivated by the observation that single-view identifiers, such as document titles or extractive n-grams, often lack the contextualized information necessary to satisfy complex queries, especially if those require rephrasing.
 
-To address this, \glsxtrshort{MINDER} assigns three distinct ``views'' of identifiers to each passage:
+To address this, \gs{MINDER} assigns three distinct ``views'' of identifiers to each passage:
 \begin{enumerate}
      \item Title of the document
-     \item N-grams, similar to \glsxtrshort{SEAL}
+     \item N-grams, similar to \gs{SEAL}
      \item Pseudo-queries, i.e. synthetic identifiers generated via a query-generation model that reflect potential queries
 \end{enumerate}
 
-The inclusion of pseudo-queries is intended to bridge the gap between user queries and document content. While \glsxtrshort{SEAL} is limited to the exact word orderings present in the corpus, \glsxtrshort{MINDER}'s thus allows the model to match queries against rephrased or summarized versions of the document via pseudo-queries.
+The inclusion of pseudo-queries is intended to bridge the gap between user queries and document content. While \gs{SEAL} is limited to the exact word orderings present in the corpus, \gs{MINDER}'s thus allows the model to match queries against rephrased or summarized versions of the document via pseudo-queries.
 
-\glsxtrshort{MINDER} relies on the conditional probability $P(i\allowbreak|q)$ of the identifier $i$ given query $q$, computed by the autoregressive language model. Because pseudo-queries are typically much longer than n-grams, their raw log-probabilities are naturally lower due to the multiplicative nature of autoregressive decoding. To ensure that pseudo-queries can compete with shorter identifiers, \glsxtrshort{MINDER} introduces a biased score to offset this length penalty. The final relevance score for a passage $p$ is an aggregation of the scores from all predicted identifiers that appear in that passage across all three views:
+\gs{MINDER} relies on the conditional probability $P(i\allowbreak|q)$ of the identifier $i$ given query $q$, computed by the autoregressive language model. Because pseudo-queries are typically much longer than n-grams, their raw log-probabilities are naturally lower due to the multiplicative nature of autoregressive decoding. To ensure that pseudo-queries can compete with shorter identifiers, \gs{MINDER} introduces a biased score to offset this length penalty. The final relevance score for a passage $p$ is an aggregation of the scores from all predicted identifiers that appear in that passage across all three views:
 \begin{equation}
    S(q, p) = \sum_{i \in I_p} s(i, q)
    \label{eq:minder-aggregation}
@@ -151,28 +156,28 @@ The inclusion of pseudo-queries is intended to bridge the gap between user queri
 
 where $I_p$ is the set of identifiers generated by the model for passage $p$, and $s(i, q)$ is the language model score for identifier $i$.
 
-To manage multiple identifier types, \glsxtrshort{MINDER} identifier-specific prefix tokens (e.g., \texttt{<TS>} for titles, \texttt{<QS>} for queries). During inference, the model is prompted with an identifier prefix and the query, and constrains the generation to valid sequences within the respective view.
+To manage multiple identifier types, \gs{MINDER} identifier-specific prefix tokens (e.g., \texttt{<TS>} for titles, \texttt{<QS>} for queries). During inference, the model is prompted with an identifier prefix and the query, and constrains the generation to valid sequences within the respective view.
 
 \subsection{Evolution of SEAL/MINDER}
 
-While this thesis focuses primarily on the foundational \glsxtrshort{SEAL} and \glsxtrshort{MINDER} architectures, it is essential to mention their successors like LTRGR and DGR.
+While this thesis focuses primarily on the foundational \gs{SEAL} and \gs{MINDER} architectures, it is essential to mention their successors like LTRGR and DGR.
 
-All four systems share a common a BART-based autoregressive language model paired with an FM-Index for constrained decoding. \glsxtrshort{MINDER} builds upon \glsxtrshort{SEAL} by adding ``multiview identifiers'', such as pseudoqueries. \glsxtrshort{LTRGR} introduced a second training phase using a supervised Rank Loss, to minimize the score of negative passages relative to positive ones. \glsxtrshort{DGR} uses a cross-encoder model as a to imrpove the ranking list.
+All four systems share a common a BART-based autoregressive language model paired with an FM-Index for constrained decoding. \gs{MINDER} builds upon \gs{SEAL} by adding ``multiview identifiers'', such as pseudoqueries. \gs{LTRGR} introduced a second training phase using a supervised Rank Loss, to minimize the score of negative passages relative to positive ones. \gs{DGR} uses a cross-encoder model as a to imrpove the ranking list.
 
-This thesis intentionally focuses its failure analysis on the core of such systems, as \glsxtrshort{LTRGR} and \glsxtrshort{DGR} function as ``optimization layers'' built upon the \glsxtrshort{MINDER}. Therefore, many of the fundamental behavioral biases are inherited from the underlying generative mechanics. In case that does not hold, we will specifically mention the other systems. %TODO!!!!
+This thesis intentionally focuses its failure analysis on the core of such systems, as \gs{LTRGR} and \gs{DGR} function as ``optimization layers'' built upon the \gs{MINDER}. Therefore, many of the fundamental behavioral biases are inherited from the underlying generative mechanics. In case that does not hold, we will specifically mention the other systems. %TODO!!!!
 
 
 \section{Literature Review of Failure Modes} 
 \label{sec:failure-modes-literature}
 
-Despite the advantages, \glsxtrshort{gr} systems exhibit several distinct failure modes, behavioral biases, and structural limitations that motivate this thesis.
+Despite the advantages, \gs{GR} systems exhibit several distinct failure modes, behavioral biases, and structural limitations that motivate this thesis. As explained by \citet{li2025matchinggenerationsurveygenerative}, \gs{GR} processes can be roughly segmented into two components, document retrieval and response generation. In this thesis, we will focus on the failure modes of the former, with briefly discussing the failure modes of the latter.
 
 \paragraph{False Pruning}
 \label{par:false-pruning}
 
-Prefix pruning, also referred to as false pruning occurs during autoregressive generation of \glspl{docid} when the beam search prematurely discards the prefix of a relevant docid because its cumulative probability at a specific step is lower than that of competing candidates \cite{zhang2024generativeretrievaltermset, zeng2024planningaheadgenerativeretrieval, sun2023learningtokenizegenerativeretrieval, zeng2023scalableeffectivegenerativeinformation}. This occurs as beam search tends to get stuck in the local optima \cite{stahlberg2019nmtsearcherrorsmodel}, as it perceives only preceding tokens and lacks visibility into subsequent ones, and thus, once a prefix is pruned, the system cannot recover the correct document regardless of subsequent token probabilities. There have been efforts to combat this, such as implementing backtracking \cite{Zhou2005BeamStackSI} and replacing beam-search with a set-based sampling \cite{zhang2024generativeretrievaltermset}. Non-autoregressive generation does not exhibit this issue \cite{valluri2024scalingvocabularynonautoregressivemodels, zhao2026diffugrgenerativedocumentretrieval}. Empirical analysis by \citet{zeng2024planningaheadgenerativeretrieval} indicate that even with large beam sizes, constrained beam search often fails to match brute-force decoding performance, suggesting that relevant \glspl{docid} are frequently eliminated during search.
+Prefix pruning, also referred to as false pruning occurs during autoregressive generation of \glsplural{docid} when the beam search prematurely discards the prefix of a relevant docid because its cumulative probability at a specific step is lower than that of competing candidates \cite{zhang2024generativeretrievaltermset, zeng2024planningaheadgenerativeretrieval, sun2023learningtokenizegenerativeretrieval, zeng2023scalableeffectivegenerativeinformation}. This occurs as beam search tends to get stuck in the local optima \cite{stahlberg2019nmtsearcherrorsmodel}, as it perceives only preceding tokens and lacks visibility into subsequent ones, and thus, once a prefix is pruned, the system cannot recover the correct document regardless of subsequent token probabilities. There have been efforts to combat this, such as implementing backtracking \cite{Zhou2005BeamStackSI} and replacing beam-search with a set-based sampling \cite{zhang2024generativeretrievaltermset}. Non-autoregressive generation does not exhibit this issue \cite{valluri2024scalingvocabularynonautoregressivemodels, zhao2026diffugrgenerativedocumentretrieval}. Empirical analysis by \citet{zeng2024planningaheadgenerativeretrieval} indicate that even with large beam sizes, constrained beam search often fails to match brute-force decoding performance, suggesting that relevant \glsplural{docid} are frequently eliminated during search.
 
-The autoregressive nature of decoding inherently favors shorter n-grams over longer ones, \cite{yuan2024generativedenseretrievalmemory} drowning out highly specific and discriminative n-grams. Additionally, longer n-grams naturally introduce more chances of false pruning. These indicate that the global optimum itself could be a short or irrelevant prefix, making the model unable to accurately pinpoint correct passages by preferring the shortest valid \glsxtrshort{docid} path or the one with the most frequent initial tokens, regardless of their actual relevance to the query \cite{zeng2023scalableeffectivegenerativeinformation}.
+The autoregressive nature of decoding inherently favors shorter n-grams over longer ones, \cite{yuan2024generativedenseretrievalmemory} drowning out highly specific and discriminative n-grams. Additionally, longer n-grams naturally introduce more chances of false pruning. These indicate that the global optimum itself could be a short or irrelevant prefix, making the model unable to accurately pinpoint correct passages by preferring the shortest valid \gs{docid} path or the one with the most frequent initial tokens, regardless of their actual relevance to the query \cite{zeng2023scalableeffectivegenerativeinformation}.
 
 \paragraph{Contiguous n-grams}
 \textbf{TODO!!!!}
@@ -185,44 +190,44 @@ Consider a passage stating ``Tom likes pizza and tomatoes'' and a query ``does T
 \label{par:hallucination}
 
 
-Related is the problem of hallucination, in which the model generates invalid (with respect to the pre-defined document index) identifiers. Constrained decoding is often used to eliminate this problem with solutions such as constraining the docid generation through an FM-index \cite{bevilacqua2022autoregressivesearchenginesgenerating} or a trie \cite{decao2021autoregressiveentityretrieval}. Using Bloom filters \cite{10.1145/362686.362692} could be another method \textbf{TODO THIS ISNT VALIDATED}. There have been several implementations of constrained decoding, such as \glsxtrshort{SEAL} \cite{bevilacqua2022autoregressivesearchenginesgenerating} and \glsxtrshort{MINDER} \cite{li2023multiviewidentifiersenhancedgenerative}.
+Related is the problem of hallucination, in which the model generates invalid (with respect to the pre-defined document index) identifiers. Constrained decoding is often used to eliminate this problem with solutions such as constraining the docid generation through an FM-index \cite{bevilacqua2022autoregressivesearchenginesgenerating} or a trie \cite{decao2021autoregressiveentityretrieval}. Using Bloom filters \cite{10.1145/362686.362692} could be another method \textbf{TODO THIS ISNT VALIDATED}. There have been several implementations of constrained decoding, such as \gs{SEAL} \cite{bevilacqua2022autoregressivesearchenginesgenerating} and \gs{MINDER} \cite{li2023multiviewidentifiersenhancedgenerative}.
  
 Several %several?
-GR solutions use intentional hallucination, such as \glsxtrshort{MINDER}\cite{li2023multiviewidentifiersenhancedgenerative}, where the generation of additional identifiers, such as pseudoqueries is achieved through intentional, constrained hallucination of docid generation.
+GR solutions use intentional hallucination, such as \gs{MINDER}\cite{li2023multiviewidentifiersenhancedgenerative}, where the generation of additional identifiers, such as pseudoqueries is achieved through intentional, constrained hallucination of docid generation.
 
 \paragraph{Forgetfulness}
 \label{par:forgetfulness}
 
-One of the problems in GR is the apparent forgetting of fine-grained features \cite{yuan2024generativedenseretrievalmemory}. While generative models capture coarse-grained semantic clusters effectively, they struggle to accurately memorize and decode fine-grained document distinctions \cite{wang2025mindrefmimickinghumanmemory}. According to \citet{yuan2024generativedenseretrievalmemory}, error rates (defined as the \% of tokens predicted at a position that does not match the \glsxtrshort{GT}token in a docid) for NCI \cite{wang2023neuralcorpusindexerdocument} increase significantly at later token positions in \glsxtrshort{docid} sequences, rising from approximately 1\% at the first position to over 12\% by the sixth position.
+One of the problems in GR is the apparent forgetting of fine-grained features \cite{yuan2024generativedenseretrievalmemory}. While generative models capture coarse-grained semantic clusters effectively, they struggle to accurately memorize and decode fine-grained document distinctions \cite{wang2025mindrefmimickinghumanmemory}. According to \citet{yuan2024generativedenseretrievalmemory}, error rates (defined as the \% of tokens predicted at a position that does not match the \gs{GT}token in a docid) for NCI \cite{wang2023neuralcorpusindexerdocument} increase significantly at later token positions in \gs{docid} sequences, rising from approximately 1\% at the first position to over 12\% by the sixth position.
 
 \paragraph{Indistinct Identifiers}
 \label{par:distinct-ids}
 
-\glsxtrshort{gr} systems also suffer from cases where the mapping from document content to identifiers is not sufficiently distinct \cite{zhang-etal-2025-multi-level}. When using synthetic queries \cite{tang2023semanticenhanceddifferentiablesearchindex} % https://arxiv.org/pdf/1904.08375 could be relevant but it just appends the pseudoqueries, not uses as docids
+\gs{GR} systems also suffer from cases where the mapping from document content to identifiers is not sufficiently distinct \cite{zhang-etal-2025-multi-level}. When using synthetic queries \cite{tang2023semanticenhanceddifferentiablesearchindex} % https://arxiv.org/pdf/1904.08375 could be relevant but it just appends the pseudoqueries, not uses as docids
 or semantic clustering \cite{tay2022transformermemorydifferentiablesearch} as identifiers, multiple documents may share quasi-identical or highly similar representations, causing the model to conflate distinct documents \cite{Cheng_Dou_Zhu_Li_2025, sun2023learningtokenizegenerativeretrieval, li2025matchinggenerationsurveygenerative}.
 
 \paragraph{Scalability}
 \label{par:scalability}
 
-Scalability limitations become evident as corpus size increases, as \glsxtrshort{gr} models exhibit limitations in terms of capacity \cite{nguyen2023generativeretrievaldenseretrieval, zeng2023scalableeffectivegenerativeinformation}. The ``parameter budget'' of the transformer can become insufficient to encode nuances of a massive corpus. Empirical studies published by \citet{pradeep2023doesgenerativeretrievalscale} show sharp performance decline on T5 \cite{raffel2023exploringlimitstransferlearning} as corpora scale from 100,000 to 8.8 million passages. For example, the T5-XL model achieves only around 30\% of the MRR@10 score on the full MS MARCO corpus compared to the base corpus.
+Scalability limitations become evident as corpus size increases, as \gs{GR} models exhibit limitations in terms of capacity \cite{nguyen2023generativeretrievaldenseretrieval, zeng2023scalableeffectivegenerativeinformation}. The ``parameter budget'' of the transformer can become insufficient to encode nuances of a massive corpus. Empirical studies published by \citet{pradeep2023doesgenerativeretrievalscale} show sharp performance decline on T5 \cite{t5-raffel2023exploringlimitstransferlearning} as corpora scale from 100,000 to 8.8 million passages. For example, the T5-XL model achieves only around 30\% of the MRR@10 score on the full MS MARCO corpus compared to the base corpus.
 
 Associated with scalability is the issue that oftentimes increasing model size does not yield proportional improvements. According to the aforementioned study \cite{pradeep2023doesgenerativeretrievalscale}, scaling T5 from XL (3B parameters) to XXL (11B parameters) degraded retrieval performance when using naive numeric identifiers on the full MS MARCO dataset, despite identical training configurations.
 
 Additionally, unstructured atomic identifiers, while considered non-mainstream %https://arxiv.org/pdf/2404.00684
 assign each document a single unique integer identifier \cite{tay2022transformermemorydifferentiablesearch}, requiring the model's output vocabulary to equal the corpus size. Since the output projection layer has dimensions of hidden size × vocabulary size \cite{10.1145/3726302.3730076, tay2022transformermemorydifferentiablesearch}, %is this relevant
-it makes this approach prohibitively expensive for large corpora. As an example, 8.8 million documents (the amount of passages in MsMarcoFull \cite{bajaj2018msmarcohumangenerated}) with a hidden size of 768 (the hidden dimension of the T5-base model \cite{raffel2023exploringlimitstransferlearning})
+it makes this approach prohibitively expensive for large corpora. As an example, 8.8 million documents (the amount of passages in MsMarcoFull \cite{bajaj2018msmarcohumangenerated}) with a hidden size of 768 (the hidden dimension of the T5-base model \cite{t5-raffel2023exploringlimitstransferlearning})
 adds approximately 6.8 billion parameters to the output layer alone, making this approach prohibitively expensive for large corpora. In contrast, sequential identifiers reuse a fixed vocabulary across multiple decoding steps, keeping parameter count constant regardless of corpus size \cite{kuo2024surveygenerativeinformationretrieval, pradeep2023doesgenerativeretrievalscale}. \textbf{recheck this!}
 
 \paragraph{Dynamic Corpus}
-In environments where corpora change, \glsxtrshort{gr} models exhibit two opposing failure modes \cite{Chen_2023, zhang2025replicationexplorationgenerativeretrieval, yuan2024generativedenseretrievalmemory, mehta2023dsiupdatingtransformermemory}. %are these the right citations?
+In environments where corpora change, \gs{GR} models exhibit two opposing failure modes \cite{Chen_2023, zhang2025replicationexplorationgenerativeretrieval, yuan2024generativedenseretrievalmemory, mehta2023dsiupdatingtransformermemory}. %are these the right citations?
 Forgetting occurs when updating a model with new documents degrades its ability to retrieve previously indexed documents. Experiments demonstrate that sequential indexing of new batches can cause indexing accuracy for the initial corpus to drop by more than 25 points, necessitating retraining and increasing costs \cite{mehta2023dsiupdatingtransformermemory}. The opposing failure is an excessive bias against recency, where models fail to retrieve newly added content, favoring documents from the original training corpus \cite{zhang2025replicationexplorationgenerativeretrieval}.
 
-\glsxtrshort{gr} models also exhibit forgetting during initial training as well. Analysis of training dynamics shows models frequently ``forget'' and ``re-learn'' document-to-identifier mappings, with approximately 88\% of documents undergoing at least one forgetting event during training \cite{mehta2023dsiupdatingtransformermemory}.
+\gs{GR} models also exhibit forgetting during initial training as well. Analysis of training dynamics shows models frequently ``forget'' and ``re-learn'' document-to-identifier mappings, with approximately 88\% of documents undergoing at least one forgetting event during training \cite{mehta2023dsiupdatingtransformermemory}.
 
 An additional issue identified is the problem that newly added documents are practically inaccessible until model weights are updated and the model retrained, unlike dense retrieval systems which can index new embeddings instantly without retraining the encoder \cite{kuo2024surveygenerativeinformationretrieval}.
 
 \paragraph{Interpretability}
-Lastly, the lack of interpretability in generation processes presents challenges for understanding and debugging failures. Unlike sparse retrieval where term matching is transparent \cite{bm25robertson2009}, or dense retrieval where embedding similarity can be analyzed \cite{karpukhin2020densepassageretrievalopendomain}, the internal decision processes of generative retrieval is significantly more opaque \cite{10.1145/3589335.3641239, ross2021evaluatinginterpretabilitygenerativemodels}.
+Lastly, the lack of interpretability in generation processes presents challenges for understanding and debugging failures. Unlike sparse retrieval where term matching is transparent \cite{bm25robertson2009, splade10.1145/3404835.3463098}, or dense retrieval where embedding similarity can be analyzed \cite{karpukhin2020densepassageretrievalopendomain}, the internal decision processes of generative retrieval is significantly more opaque \cite{10.1145/3589335.3641239, ross2021evaluatinginterpretabilitygenerativemodels}.
 
 
 \section{Proposed Failure Taxonomy}
@@ -255,7 +260,7 @@ Lastly, the lack of interpretability in generation processes presents challenges
 \textbf{OUTDATED!!!}
 \begin{table}[htbp]
     \centering
-    \caption{Classification of potential retrieval failure modes for \glsxtrshort{SEAL} and \glsxtrshort{MINDER}.}
+    \caption{Classification of potential retrieval failure modes for \gs{SEAL} and \gs{MINDER}.}
     \label{tab:failure-summary}
     \begin{tabular}{lp{6cm}l}
         \toprule
@@ -268,7 +273,7 @@ Lastly, the lack of interpretability in generation processes presents challenges
         & Answer not in $n$-gram & Both \\
         & Single $n$-gram dominating & Both \\
         & Title repetition in top-$k$ & Both \\
-        & No pseudo-queries as n-gram & \glsxtrshort{MINDER} \\
+        & No pseudo-queries as n-gram & \gs{MINDER} \\
         \midrule
         \textbf{Non-measurable} & False pruning & Both \\
         & Answer cut-off btwn. passages & Both \\
@@ -282,17 +287,17 @@ Lastly, the lack of interpretability in generation processes presents challenges
 
 \section{Methodology}
 
-Our methodology is threefold. First, we ran \glsxtrshort{SEAL} and \glsxtrshort{MINDER} with their default settings on the \glsxtrfull{nq} \cite{kwiatkowski-etal-2019-natural}, analyzing their outputs. Second, we will run the models on the \glsxtrshort{MSMARCO} dataset \cite{bajaj2018msmarcohumangenerated} as well.%todo explain reasoning why
+Our methodology is threefold. First, we ran \gs{SEAL} and \gs{MINDER} with their default settings on the \gf{nq} \cite{kwiatkowski-etal-2019-natural}, analyzing their outputs. Second, we will run the models on the \gs{MSMARCO} dataset \cite{bajaj2018msmarcohumangenerated} as well.%todo explain reasoning why
 Third, we will perform ablation studies based on our identifier failure modes from the literature review  in Section \ref{sec:failure-modes-literature} and the failure modes identified during our analysis of the outputs.
 
-We chose \glsxtrfull{nq} as it is an academic standard for retrieval benchmarking. The \glsxtrshort{nq} retrieval corpus consists of a Wikipedia dump split into approximately 21 million passages of 100 tokens each.
+We chose \gf{nq} as it is an academic standard for retrieval benchmarking. The \gs{nq} retrieval corpus consists of a Wikipedia dump split into approximately 21 million passages of 100 tokens each.
 
-The \glsxtrshort{SEAL} and \glsxtrshort{MINDER} output dataset contains the results of 6,515 queries from the \glsxtrlong{nq} benchmark. For each query, the following relevant information is available:
+The \gs{SEAL} and \gs{MINDER} output dataset contains the results of 6,515 queries from the \gl{nq} benchmark. For each query, the following relevant information is available:
 
 \begin{itemize}
     \item The original natural language query
-    \item \glsxtrshort{GT} answer string(s)
-    \item Annotated \glsxtrshort{GT}passages containing the answer
+    \item \gs{GT} answer string(s)
+    \item Annotated \gs{GT}passages containing the answer
     \item Negative and hard negative passages
     \item The model's top-100 retrieved passages, ranked by passage score, each containing:
     \begin{itemize}
@@ -302,14 +307,14 @@ The \glsxtrshort{SEAL} and \glsxtrshort{MINDER} output dataset contains the resu
     \end{itemize}
 \end{itemize}
 
-From the output data available, the n-gram keys are deemed most useful to understand \glsxtrshort{SEAL}'s and\glsxtrshort{MINDER}'s retrieval decisions. Each key entry contains three parts:
+From the output data available, the n-gram keys are deemed most useful to understand \gs{SEAL}'s and\gs{MINDER}'s retrieval decisions. Each key entry contains three parts:
 \begin{enumerate}
     \item The n-gram string (e.g., \texttt{`` Reba''}, \texttt{``</s> Linda Davis @@''})
     \item The corpus frequency of how many times this n-gram appears across all documents
     \item The n-gram score computed via the scoring function
 \end{enumerate}
 
-The \glsxtrshort{MINDER} output is structurally identical to that of \glsxtrshort{SEAL}'s, including being ran on the same 6,515 queries. The main difference arises from the pseudoqueries, which are appended to the \textit{text}.
+The \gs{MINDER} output is structurally identical to that of \gs{SEAL}'s, including being ran on the same 6,515 queries. The main difference arises from the pseudoqueries, which are appended to the \textit{text}.
 
 The output dataset (of both systems) have an average per-query annotated correct passage count of 8.46, with the minimum being 1 and maximum being 101. This is important to analyze to accurately identify evaluation metrics. To illustrate the distribution, please consult the histogram below.
 \begin{figure}[H]
@@ -319,7 +324,7 @@ The output dataset (of both systems) have an average per-query annotated correct
 
 \paragraph{Evaluation Metrics}
 
-We use R-precision as the overall retrieval quality of both \glsxtrshort{SEAL} and \glsxtrshort{MINDER} and hits@1 (being identical to precision@1) to quantify whether the model successfully retrieved a positive context in its top results for a query. We also use hits@10, since retrieval is rarely only about the first result only. We chose $k=10$ somewhat arbitrarily, as it provides a balance between being too strict by only measuring the top results and being too lax by allowing lower-scored retrieved passages to be included in the analysis. We avoid using Precision@k and Recall@k with $k>1$ to avoid misrepresentation of queries where the amount of ground truths is less than $k$.
+We use R-precision as the overall retrieval quality of both \gs{SEAL} and \gs{MINDER} and hits@1 (being identical to precision@1) to quantify whether the model successfully retrieved a positive context in its top results for a query. We also use hits@10, since retrieval is rarely only about the first result only. We chose $k=10$ somewhat arbitrarily, as it provides a balance between being too strict by only measuring the top results and being too lax by allowing lower-scored retrieved passages to be included in the analysis. We avoid using Precision@k and Recall@k with $k>1$ to avoid misrepresentation of queries where the amount of ground truths is less than $k$.
 
 For the analysis, results are calculated side-by-side for both systems analyzed when appropriate. To analyze distribution, we bin the results into deciles and report them. Additionally, when appropriate, we report the Spearman $rho$ values to analyze monotonic correlation between variables.
 
@@ -334,28 +339,28 @@ For the analysis, results are calculated side-by-side for both systems analyzed 
 %focus not just on titles, but on metadata itself
 %Current: "Titles contribute 40% of the score. GUESS: this is a representation failure where the model failed to learn the content of the passages and has overfitted to the metadata. So is the model an actual robust retriever or a fancy title matcher, in which case why not just use a standard fuzzy search algorithm...
 
-Both \glsxtrshort{SEAL} and \glsxtrshort{MINDER} rely passage metadata heavily to retrieve the correct passages. For \glsxtrshort{SEAL}, in the top-100 retrieved passages among the 6515 queries analyzed, titles account for 39.85\% of total score. For \glsxtrshort{MINDER}, titles make up  29.6\% and pseudoqueries 19.67\% of total score. In cases where the answer string is found exactly both as a ``title n-gram'' and ``nontitle n-gram'', the title n-gram receieves on average 2866\% more score in \glsxtrshort{SEAL} and 2499\% in\glsxtrshort{MINDER}. Interestingly, this overreliance drops when we only account for successfully retrieved passages, with titles accounting for 29.1\% for \glsxtrshort{SEAL} and 20.6\% for \glsxtrshort{MINDER}(11,27\% for pseudoqueries). The scoring differential between the answer string being a ``title n-gram'' and ``nontitle n-gram'' also drops to 1876\% for \glsxtrshort{SEAL} and 1439\% For \glsxtrshort{MINDER}. This can indicate that when the model is ``correct'', it is using more of the body-textThis can be considered a ``feature'' on cases where there is clear metadata in the dataset (e.g. NQ) and cases where retrieving the correct document is more important than retrieving the current passage. However, if our aim is to create a generalized GR model, this should be considered a ``failure''.
+Both \gs{SEAL} and \gs{MINDER} rely passage metadata heavily to retrieve the correct passages. For \gs{SEAL}, in the top-100 retrieved passages among the 6515 queries analyzed, titles account for 39.85\% of total score. For \gs{MINDER}, titles make up  29.6\% and pseudoqueries 19.67\% of total score. In cases where the answer string is found exactly both as a ``title n-gram'' and ``nontitle n-gram'', the title n-gram receieves on average 2866\% more score in \gs{SEAL} and 2499\% in\gs{MINDER}. Interestingly, this overreliance drops when we only account for successfully retrieved passages, with titles accounting for 29.1\% for \gs{SEAL} and 20.6\% for \gs{MINDER}(11,27\% for pseudoqueries). The scoring differential between the answer string being a ``title n-gram'' and ``nontitle n-gram'' also drops to 1876\% for \gs{SEAL} and 1439\% For \gs{MINDER}. This can indicate that when the model is ``correct'', it is using more of the body-textThis can be considered a ``feature'' on cases where there is clear metadata in the dataset (e.g. NQ) and cases where retrieving the correct document is more important than retrieving the current passage. However, if our aim is to create a generalized GR model, this should be considered a ``failure''.
 
-Both \citet{bevilacqua2022autoregressivesearchenginesgenerating} and \citet{li2023multiviewidentifiersenhancedgenerative,li2023learningrankgenerativeretrieval,li2024distillationenhancedgenerativeretrieval} note that performance drops when titles are unavailable \cite{bevilacqua2022autoregressivesearchenginesgenerating,li2023multiviewidentifiersenhancedgenerative,li2023learningrankgenerativeretrieval,li2024distillationenhancedgenerativeretrieval}. \citet{bevilacqua2022autoregressivesearchenginesgenerating}, however, does not report \glsxtrshort{SEAL} ablation results without titles as identifiers. \glsxtrshort{MINDER}performs 10.3\% worse recall@5 and 7.4\% worse recall@20 on NQ without titles and pseudoqueries. On \glsxtrshort{MSMARCO} \cite{bajaj2018msmarcohumangenerated}, \glsxtrshort{SEAL} had a 30.7\% worse Recall@5 than BM25 on \glsxtrshort{MSMARCO}, with \glsxtrshort{MINDER} only marignally (3.1\%) better than BM25, likely due to pseudoqueries. Neither \glsxtrshort{SEAL}nor \glsxtrshort{MINDER} achieved a Recall@5 larger than 30\% on \glsxtrshort{MSMARCO}. LTRGR and DGR achieved 40.2\% and 42.9\%, respectively. It is also worth noting that NQ is based on highly structured Wikipedia passages, while MSMarco is less cleanly structured with messier or lacking metadata.
+Both \citet{bevilacqua2022autoregressivesearchenginesgenerating} and \citet{li2023multiviewidentifiersenhancedgenerative,li2023learningrankgenerativeretrieval,li2024distillationenhancedgenerativeretrieval} note that performance drops when titles are unavailable \cite{bevilacqua2022autoregressivesearchenginesgenerating,li2023multiviewidentifiersenhancedgenerative,li2023learningrankgenerativeretrieval,li2024distillationenhancedgenerativeretrieval}. \citet{bevilacqua2022autoregressivesearchenginesgenerating}, however, does not report \gs{SEAL} ablation results without titles as identifiers. \gs{MINDER}performs 10.3\% worse recall@5 and 7.4\% worse recall@20 on NQ without titles and pseudoqueries. On \gs{MSMARCO} \cite{bajaj2018msmarcohumangenerated}, \gs{SEAL} had a 30.7\% worse Recall@5 than BM25 on \gs{MSMARCO}, with \gs{MINDER} only marignally (3.1\%) better than BM25, likely due to pseudoqueries. Neither \gs{SEAL}nor \gs{MINDER} achieved a Recall@5 larger than 30\% on \gs{MSMARCO}. LTRGR and DGR achieved 40.2\% and 42.9\%, respectively. It is also worth noting that NQ is based on highly structured Wikipedia passages, while MSMarco is less cleanly structured with messier or lacking metadata.
 
-Our analysis shows that For \glsxtrshort{SEAL}, title score is higher by ~280\% on average for positive ``ground truth'' retrieved passages than negative ones. However, the median is only ~41\% and the $\sigma$ ~1113\%, indicating that there is a subset of queries where the title is massively scored, indicating that the model uses it as quasi the only identifier, while for others the title is much less helpful. For \glsxtrshort{MINDER}, accordingly, the values are ~325\%, 57.5\%, ~939\%. An extreme example was found in\glsxtrshort{SEAL}, where for the query ``who sang this is how we do it'', correct passages have ~545x more title score than incorrect passages (in passages where a title-as-ngram is present). In these cases, title matching is extremely discriminative, which makes it well suited for datasets with clear metadata, but potentially bad for ones without.
+Our analysis shows that For \gs{SEAL}, title score is higher by ~280\% on average for positive ``ground truth'' retrieved passages than negative ones. However, the median is only ~41\% and the $\sigma$ ~1113\%, indicating that there is a subset of queries where the title is massively scored, indicating that the model uses it as quasi the only identifier, while for others the title is much less helpful. For \gs{MINDER}, accordingly, the values are ~325\%, 57.5\%, ~939\%. An extreme example was found in\gs{SEAL}, where for the query ``who sang this is how we do it'', correct passages have ~545x more title score than incorrect passages (in passages where a title-as-ngram is present). In these cases, title matching is extremely discriminative, which makes it well suited for datasets with clear metadata, but potentially bad for ones without.
 
 \paragraph{Cultural Bias}
 
-English content in public corpora is itself not culturally neutral, as a substantial portion reflects Western (particularly US and Eurocentric) perspectives and framing simply because such sources dominate English public corpora. As BART (which \glsxtrshort{SEAL} and \glsxtrshort{MINDER} uses) was trained on the English Wikipedia and on BookCorpus \cite{7410368, liu2019robertarobustlyoptimizedbert}, it can be presumed that BART would implicitly default to Western interpretations in ambiguous cases. Other commonly used language models, such as T5 and LLaMa-3 \cite{raffel2023exploringlimitstransferlearning, grattafiori2024llama3herdmodels} were also trained on overwhelmingly English data. Similar bias was also demonstrated for LLMs %which LLMs, autoregressive? or all kind of? also demonstrated for encoder-decoder seq2seq? for bidirectional masked models? T5? bart? bert? is bart even autoregressive? which does each paper analyze?
+English content in public corpora is itself not culturally neutral, as a substantial portion reflects Western (particularly US and Eurocentric) perspectives and framing simply because such sources dominate English public corpora. As BART (which \gs{SEAL} and \gs{MINDER} uses) was trained on the English Wikipedia and on BookCorpus \cite{7410368, liu2019robertarobustlyoptimizedbert}, it can be presumed that BART would implicitly default to Western interpretations in ambiguous cases. Other commonly used language models, such as T5 and LLaMa-3 \cite{t5-raffel2023exploringlimitstransferlearning, grattafiori2024llama3herdmodels} were also trained on overwhelmingly English data. Similar bias was also demonstrated for LLMs %which LLMs, autoregressive? or all kind of? also demonstrated for encoder-decoder seq2seq? for bidirectional masked models? T5? bart? bert? is bart even autoregressive? which does each paper analyze?
 by multiple papers \cite{naous2024havingbeerprayermeasuring, aowal2023detectingnaturallanguagebiases, 10.1145/3597307}. 
 
 Similarly, the NQ dataset is also based on the English Wikipedia \cite{kwiatkowski-etal-2019-natural}, adding onto the issue. Such a ``Western-centricity'' can be also be shown in other commonly used datasets, such as MSMarco cite{bajaj2018msmarcohumangenerated}, Trivia QA \cite{joshi-etal-2017-triviaqa} and the KILT datasets \cite{petroni2021kiltbenchmarkknowledgeintensive}.
 
-For \glsxtrshort{SEAL}, this is best illustrated by the query: ``where did the southern song have their capital''.
+For \gs{SEAL}, this is best illustrated by the query: ``where did the southern song have their capital''.
 
-Although the correct answer is Lin'an (the query referring to the Southern Song Dynasty), \glsxtrshort{SEAL} focused entirely on passages about the southern United States, especially about about Tennessee and Virginia. The model likely %likely? cant you be sure?
+Although the correct answer is Lin'an (the query referring to the Southern Song Dynasty), \gs{SEAL} focused entirely on passages about the southern United States, especially about about Tennessee and Virginia. The model likely %likely? cant you be sure?
 found a quasi-perfect ``query keyword match'' for such passages and connected ``southern'' with the southern US, ``song'' with country music, the 'Dixie' song and the 'Music City' sobriquet of Nashville, Tennessee, and, building onto these, ``capital'' with Nashville being the capital of Tennesse and Richmond being the capital of Virginia and the former capital of the confederate South. These substrings, while common, were likely propped up by their implicit connection to the US in the dataset and BART, even though they possess different meanings in a US geography context versus a 12th-century Chinese history context.
 
-There is no ground truth passages retrieved in the \textit{top-100} retrieved passages, which consists entirely of passages about the southern United States. This is also an example of \textit{false pruning}, as \glsxtrshort{SEAL}seemingly %seemingly?
+There is no ground truth passages retrieved in the \textit{top-100} retrieved passages, which consists entirely of passages about the southern United States. This is also an example of \textit{false pruning}, as \gs{SEAL}seemingly %seemingly?
 discarded the tokens related to the Song Dynasty early on. 
 
-An important observation is that \glsxtrshort{MINDER} successfully retrieved the relevant passages. All queries in the \textit{top-100} retrieved passages were in some way relevant to Ancient China, with the first ground-truth passage appearing at rank-4. Both systems use BART-large as their autoregressive language model and the same dataset to build their FM-index. The observed success is therefore likely due to the use of pseudoqueries. Since BART is capable of generating the correct terms, failure in \glsxtrshort{SEAL} happened likely due to failing to disambiguate the context, in which pseudoqueries assisted. For the highest-ranked retrieved \glsxtrshort{GT} passage, \glsxtrshort{MINDER} generated pseudoqueries such as \textit{what was the capital of the song dynasty in north china} and \textit{who took over the capital of the song dynasty}.
+An important observation is that \gs{MINDER} successfully retrieved the relevant passages. All queries in the \textit{top-100} retrieved passages were in some way relevant to Ancient China, with the first ground-truth passage appearing at rank-4. Both systems use BART-large as their autoregressive language model and the same dataset to build their FM-index. The observed success is therefore likely due to the use of pseudoqueries. Since BART is capable of generating the correct terms, failure in \gs{SEAL} happened likely due to failing to disambiguate the context, in which pseudoqueries assisted. For the highest-ranked retrieved \gs{GT} passage, \gs{MINDER} generated pseudoqueries such as \textit{what was the capital of the song dynasty in north china} and \textit{who took over the capital of the song dynasty}.
 
 %note:_ other interesting queries: is banana a fruit or berry, when was the louisiana purchase
 
@@ -367,7 +372,7 @@ An important observation is that \glsxtrshort{MINDER} successfully retrieved the
 % this is not a failure of the GR system but of the dataset. Although GR is evaluated on such dataset, so implicitly it influences it. Maybe move out to discussion or limitations? or idk?
 
 
-The reliability of GR evaluation depends on the quality of \glsxtrshort{GT} annotations in benchmark datasets. When those contain annotation errors, such as relevant passages incorrectly labeled as negative or vice versa, the measured performance metrics no longer accurately reflect a system's true retrieval capabilities. These can lead to misleading conclusions being published that do not generalize to real-world scenarios or accurately represent comparisons.
+The reliability of GR evaluation depends on the quality of \gs{GT} annotations in benchmark datasets. When those contain annotation errors, such as relevant passages incorrectly labeled as negative or vice versa, the measured performance metrics no longer accurately reflect a system's true retrieval capabilities. These can lead to misleading conclusions being published that do not generalize to real-world scenarios or accurately represent comparisons.
 
 For QA tasks, multiple passages may contain semantically equivalent answers but only a subset are annotated as ground truth. The authors of MS MARCO, TriviaQA, and NQ each acknowledge this concern \cite{bajaj2018msmarcohumangenerated, joshi-etal-2017-triviaqa,kwiatkowski-etal-2019-natural}.
 
@@ -376,25 +381,25 @@ For QA tasks, multiple passages may contain semantically equivalent answers but 
 \textbf{TODO BELOW EITHER REWRITE OR IDK or maybe add the tables as appendix or idk. this below isnt really relevant to actual failure modes, similarly how most correl analysis isnt relevant either.}
 
 During our analysis, we identified such cases where the annotation can cause misleading evaluation results. Here we present 3 such examples:
-\textbf{Example 1: ``which apostle had a thorn in his side'' (answer: Paul).} The ground-truth passage %the only \glsxtrshort{GT}passage?
-is from the Wikipedia article ``Thorn in the flesh,'' which explains that Paul the Apostle used this phrase in 2 Corinthians 12:7--9. \glsxtrshort{SEAL}'s %why report exactly \glsxtrshort{SEAL} its outdated
+\textbf{Example 1: ``which apostle had a thorn in his side'' (answer: Paul).} The ground-truth passage %the only \gs{GT}passage?
+is from the Wikipedia article ``Thorn in the flesh,'' which explains that Paul the Apostle used this phrase in 2 Corinthians 12:7--9. \gs{SEAL}'s %why report exactly \gs{SEAL} its outdated
  top result %who cares about top-1 result, why not report top-k?
-was from Galatians 3, which mentions ``Paul the Apostle'' as the author of that epistle but contains nothing about a thorn. Even though \glsxtrshort{SEAL} seemed to be able to identify ``Paul'' as a relevant term, potentially from BART's parametric knowledge, Galatians 3 is the wrong chapter entirely. \glsxtrshort{SEAL} matched on generic terms (``Paul,'' ``apostle'') but never generated n-grams containing ``thorn.'' %never, not even in the top-k?
+was from Galatians 3, which mentions ``Paul the Apostle'' as the author of that epistle but contains nothing about a thorn. Even though \gs{SEAL} seemed to be able to identify ``Paul'' as a relevant term, potentially from BART's parametric knowledge, Galatians 3 is the wrong chapter entirely. \gs{SEAL} matched on generic terms (``Paul,'' ``apostle'') but never generated n-grams containing ``thorn.'' %never, not even in the top-k?
 
-\textbf{Example 2: ``how many judges currently serve on the supreme court'' (answer: nine).} The ground-truth passage %which \glsxtrshort{GT}passage?
- directly states the current composition of the Court. \glsxtrshort{SEAL}'s %why report exactly \glsxtrshort{SEAL} its outdated
+\textbf{Example 2: ``how many judges currently serve on the supreme court'' (answer: nine).} The ground-truth passage %which \gs{GT}passage?
+ directly states the current composition of the Court. \gs{SEAL}'s %why report exactly \gs{SEAL} its outdated
   top result is a historical passage stating that in 1869, ``the Circuit Judges Act returned the number of justices to nine, where it has since remained.'' This is borderline, because the reader could infer the answer, but the passage is not specifically about the current number of judges.
 
-\textbf{Example 3: ``who is the youngest judge currently sitting on the u.s. supreme court'' (answer: Neil Gorsuch).} The ground-truth passage discusses Gorsuch's nomination process and him being the youngest sitting justice. \glsxtrshort{SEAL}'s top result %who cares about top-1 result, why not report top-k?. and why\glsxtrshort{SEAL}?
-directly states: ``Neil Gorsuch is the youngest justice sitting, at 50 years of age.'' This is a success, because \glsxtrshort{SEAL} found a passage that answers the question, even if not annotated.
+\textbf{Example 3: ``who is the youngest judge currently sitting on the u.s. supreme court'' (answer: Neil Gorsuch).} The ground-truth passage discusses Gorsuch's nomination process and him being the youngest sitting justice. \gs{SEAL}'s top result %who cares about top-1 result, why not report top-k?. and why\gs{SEAL}?
+directly states: ``Neil Gorsuch is the youngest justice sitting, at 50 years of age.'' This is a success, because \gs{SEAL} found a passage that answers the question, even if not annotated.
 
 
 
 
-These examples show that these cases are a mix of such cases. To determine how many fall into each category, in section~\ref{sec:annot}, we apply LLM-as-a-judge to classify whether each retrieved passage genuinely answers the question or not. % why run in on \glsxtrshort{SEAL} and not on the whole NQ dataset? or is this good?
+These examples show that these cases are a mix of such cases. To determine how many fall into each category, in section~\ref{sec:annot}, we apply LLM-as-a-judge to classify whether each retrieved passage genuinely answers the question or not. % why run in on \gs{SEAL} and not on the whole NQ dataset? or is this good?
 
 \textbf{TODO FROM HERE}
-If most of the 349 cases are genuine retrievals, then \glsxtrshort{SEAL}'s effective top-10 recall is closer to 81.5\% rather than 76.1\%. If most are coincidental matches, then 76.1\% remains the accurate figure. Similar calculations can be done for \glsxtrshort{MINDER}.
+If most of the 349 cases are genuine retrievals, then \gs{SEAL}'s effective top-10 recall is closer to 81.5\% rather than 76.1\%. If most are coincidental matches, then 76.1\% remains the accurate figure. Similar calculations can be done for \gs{MINDER}.
 
 For each case, we present a large language model (\texttt{claude-sonnet-4-5\-20250929}) with the original question, the expected answer, and the retrieved passage text, asking it to determine whether the passage genuinely answers the question or whether the answer string's presence is coincidental. The model was chosen based on expected reasoning capabilities and cost of operation.
 
@@ -441,7 +446,7 @@ Beam search with constraints is probably significantly slower than dot-product (
 \subparagraph{Subword} %todo wording
 \textbf{UNVALIDATED}
 
-If an important identifier (e.g. a proper noun like Lin'an from the TODO example) is split into many meaningless subwords, the model might struggle to generate it consistently compared to common words. This can happen even through BART uses BPE \cite{TODO}, which allows it to to handle ``out-of-vocabulary'' words by breaking them down into known subunits. %note: does index.py in \glsxtrshort{SEAL} operate on tokenIDs or subwords? arent they the same here?
+If an important identifier (e.g. a proper noun like Lin'an from the TODO example) is split into many meaningless subwords, the model might struggle to generate it consistently compared to common words. This can happen even through BART uses BPE \cite{TODO}, which allows it to to handle ``out-of-vocabulary'' words by breaking them down into known subunits. %note: does index.py in \gs{SEAL} operate on tokenIDs or subwords? arent they the same here?
 
 \subparagraph{Coverage} %todo wording
 \textbf{UNVALIDATED}
@@ -489,7 +494,7 @@ Using the identified failure modes in Table \ref{tab:failure-summary}, we presen
 
 N-gram corpus frequency reflects how distinctive a generated n-gram is. Rare n-grams provide stronger evidence for specific documents, while common n-grams match many topically-related passages. We analyze the average corpus frequency of the top-scored n-grams to determine whether the frequency (and thus score) of n-grams contribute to retrieval outcomes.
 
-Across 6,515 queries, the average mean corpus frequency of the top-5 scored n-grams for the top-1 retrieved passage is 28753 for \glsxtrshort{SEAL} and 21310 for \glsxtrshort{MINDER}, while the same value using all-ngrams for such passage is 382,136 and 497,399, respectively. $k=5$ was arbitrarily selected as a representation of the n-grams with the strongest influence on the overall score of each passage.
+Across 6,515 queries, the average mean corpus frequency of the top-5 scored n-grams for the top-1 retrieved passage is 28753 for \gs{SEAL} and 21310 for \gs{MINDER}, while the same value using all-ngrams for such passage is 382,136 and 497,399, respectively. $k=5$ was arbitrarily selected as a representation of the n-grams with the strongest influence on the overall score of each passage.
 
 Table \ref{tab:nonspec-decile-freq} summarizes the results. The decimals of the frequencies have been truncated for readability. 
 
@@ -500,7 +505,7 @@ Table \ref{tab:nonspec-decile-freq} summarizes the results. The decimals of the 
     \label{tab:nonspec-decile-freq}
     \begin{tabular}{l|rr|rr}
         \toprule
-        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
+        & \multicolumn{2}{c|}{\textbf{\gs{SEAL}}} & \multicolumn{2}{c}{\textbf{\gs{MINDER}}} \\
         \textbf{Decile} & \textbf{Freq. Range} & \textbf{H@1 / H@10} & \textbf{Freq. Range} & \textbf{H@1 / H@10} \\
         \midrule
         D1  & 2.0--91          & 71.0\% / 92.8\% & 1--16          & 76.5\% / 93.9\% \\
@@ -512,9 +517,9 @@ Table \ref{tab:nonspec-decile-freq} summarizes the results. The decimals of the 
     \end{tabular}
 \end{table}
 
-We can see that in D1, where the top-1 passage's top-5 scored n-grams average frequency is low, both hits@1 and hits@10 is surprisingly high for both systems, with \glsxtrshort{MINDER} performing marginally better, while in D10, where the same average frequency is considerably high (implying generic n-grams), the retrieval performance drops significantly for both systems. The Spearman’s $\rho$ between such frequency and hits@1 is $-0.238$ and $-0.290$ respectively, both being $p < 0.001$, indicating that average n-gram frequency is inversely correlated with retrieval success.
+We can see that in D1, where the top-1 passage's top-5 scored n-grams average frequency is low, both hits@1 and hits@10 is surprisingly high for both systems, with \gs{MINDER} performing marginally better, while in D10, where the same average frequency is considerably high (implying generic n-grams), the retrieval performance drops significantly for both systems. The Spearman’s $\rho$ between such frequency and hits@1 is $-0.238$ and $-0.290$ respectively, both being $p < 0.001$, indicating that average n-gram frequency is inversely correlated with retrieval success.
 
-Notably, using average frequency across all n-grams (instead of top-5) shows no significant correlation with performance (\glsxtrshort{SEAL}: $\rho=0.029,\space p=0.02$; \glsxtrshort{MINDER}: $\rho=-0.008,\space p=0.51$), suggesting that the presence of highly-ranked generic terms, rather than overall genericity, drives performance degradation. This happens because such high-frequency n-grams match many topically-related passages, diluting discriminative power among passages. While \glsxtrshort{SEAL}'s scoring function theoretically downweights common n-grams through the $P(n)$ term in Equation~\ref{eq:ngram-score}, this analysis reveals that high-frequency n-grams can still dominate the top-ranked positions. \glsxtrshort{MINDER} does not penalize high frequency n-grams. Instead, it artifically boosts the score of pseudoqueries \cite{li2023multiviewidentifiersenhancedgenerative}.
+Notably, using average frequency across all n-grams (instead of top-5) shows no significant correlation with performance (\gs{SEAL}: $\rho=0.029,\space p=0.02$; \gs{MINDER}: $\rho=-0.008,\space p=0.51$), suggesting that the presence of highly-ranked generic terms, rather than overall genericity, drives performance degradation. This happens because such high-frequency n-grams match many topically-related passages, diluting discriminative power among passages. While \gs{SEAL}'s scoring function theoretically downweights common n-grams through the $P(n)$ term in Equation~\ref{eq:ngram-score}, this analysis reveals that high-frequency n-grams can still dominate the top-ranked positions. \gs{MINDER} does not penalize high frequency n-grams. Instead, it artifically boosts the score of pseudoqueries \cite{li2023multiviewidentifiersenhancedgenerative}.
 
 \paragraph{Preference for Unigrams}
 \label{sec:unigrams}
@@ -524,7 +529,7 @@ Notably, using average frequency across all n-grams (instead of top-5) shows no 
 
 Here we examine whether the analyzed systems disproportionately generate short n-grams (unigrams and bigrams) rather than longer, more distinctive multi-word sequences. Longer n-grams generally provide stronger discriminative power, as multi-word phrases are far less likely to appear across multiple passages than individual words.
 
-We quantify this generation bias by measuring the fraction of generated n-grams that consist of a single token in the top-1 retrieved passage. Across 6,515 queries, the mean unigram proportion is $0.869 \pm 0.066$ (median 0.878) for \glsxtrshort{SEAL} and $0.853 \pm 0.071$ (median 0.863) for \glsxtrshort{MINDER}. The average n-gram length is $1.28 \pm 0.18$ words (median 1.24) for \glsxtrshort{SEAL}, and $1.48 \pm 0.39$ (median 1.35) for \glsxtrshort{MINDER}. This indicates that, on average, more than four-fifths of generated n-grams are unigrams for both systems. \glsxtrshort{MINDER} shows slightly higher variance in length ($\sigma=0.39$ vs. $0.18$).
+We quantify this generation bias by measuring the fraction of generated n-grams that consist of a single token in the top-1 retrieved passage. Across 6,515 queries, the mean unigram proportion is $0.869 \pm 0.066$ (median 0.878) for \gs{SEAL} and $0.853 \pm 0.071$ (median 0.863) for \gs{MINDER}. The average n-gram length is $1.28 \pm 0.18$ words (median 1.24) for \gs{SEAL}, and $1.48 \pm 0.39$ (median 1.35) for \gs{MINDER}. This indicates that, on average, more than four-fifths of generated n-grams are unigrams for both systems. \gs{MINDER} shows slightly higher variance in length ($\sigma=0.39$ vs. $0.18$).
 
 We categorize queries into deciles based on the unigram proportion. Queries in D1 (lowest unigram proportion) achieve considerably higher hit rates than those in D10, as evidenced by Table \ref{tab:unigram-dec}.
 
@@ -535,7 +540,7 @@ We categorize queries into deciles based on the unigram proportion. Queries in D
     \label{tab:unigram-dec}
     \begin{tabular}{l|rr|rr}
         \toprule
-        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
+        & \multicolumn{2}{c|}{\textbf{\gs{SEAL}}} & \multicolumn{2}{c}{\textbf{\gs{MINDER}}} \\
         \textbf{Decile} & \textbf{Div. Range} & \textbf{H@1 / H@10} & \textbf{Div. Range} & \textbf{H@1 / H@10} \\
         \midrule
         D1  & 0.51--0.78 & 67.7\% / 91.2\% & 0.48--0.76 & 73.4\% / 92.8\% \\
@@ -548,11 +553,11 @@ We categorize queries into deciles based on the unigram proportion. Queries in D
     \end{tabular}
 \end{table}
 
-The results are interesting for \glsxtrshort{MINDER} specifically, as \glsxtrshort{MINDER} is able to use its generated pseudoqueries (which tend to be longer) as n-grams. This correlates with the results presented below at Section \ref{sec:pseudo-minder-contrib}, indicating that pseudoqueries appearing in n-grams provides the retrieval model with a higher hitrate. \glsxtrshort{MINDER} also shows a higher hit rate at lower unigram proportion deciles.
+The results are interesting for \gs{MINDER} specifically, as \gs{MINDER} is able to use its generated pseudoqueries (which tend to be longer) as n-grams. This correlates with the results presented below at Section \ref{sec:pseudo-minder-contrib}, indicating that pseudoqueries appearing in n-grams provides the retrieval model with a higher hitrate. \gs{MINDER} also shows a higher hit rate at lower unigram proportion deciles.
 
-The Spearman $\rho$ between unigram proportion and hits@k for \glsxtrshort{SEAL} is $\rho - 0.278$ for $k=1$ and  $\rho - 0.220$ for $k=10$, while for \glsxtrshort{MINDER} is $\rho - 0.330$ for $k=1$ and  $\rho - 0.260$ for $k=10$. Each value is statistically significant at $p<0.001$.
+The Spearman $\rho$ between unigram proportion and hits@k for \gs{SEAL} is $\rho - 0.278$ for $k=1$ and  $\rho - 0.220$ for $k=10$, while for \gs{MINDER} is $\rho - 0.330$ for $k=1$ and  $\rho - 0.260$ for $k=10$. Each value is statistically significant at $p<0.001$.
 
-To understand the results more illustratively, we summarized the table in the following chart, clearly showing \glsxtrshort{MINDER}'s marginally higher success rate at low unigram proportions. The hit rates converge at higher unigram proportions.
+To understand the results more illustratively, we summarized the table in the following chart, clearly showing \gs{MINDER}'s marginally higher success rate at low unigram proportions. The hit rates converge at higher unigram proportions.
 
 \begin{figure}[H]
     \centering
@@ -565,7 +570,7 @@ To understand the results more illustratively, we summarized the table in the fo
 
 Here we measure the lexical alignment between query terms and the n-grams. We use \texttt{GPT2TokenizerFast} for this. High overlap indicates that the model successfully generated n-grams containing query-relevant terms, while low overlap suggests a mismatch where generated n-grams, though potentially topically related, do not directly address the query's specific terms. We quantify this using the fraction of query tokens that appear in any generated n-gram in the highest-scored retrieved passage, denoted by $C(Q, G_n)$, where $Q$ denotes the query tokens and $G_n$ denotes the tokens of the generated n-grams.
 
-Our analysis across 6,515 queries shows that the token-level lexical overlap varies substantially across the top-1 retrieved passages. As visible in Table~\ref{tab:p-unique-coverage}, there is a positive correlation between lexican overlap and retrieval success. For \glsxtrshort{SEAL}, $\rho = 0.323$ for  $k=1$ and $\rho = 0.190 $ for  $k=10$. For \glsxtrshort{MINDER}, the Spearman correlations are $\rho = 0.380$ and $\rho = 0.202$, respectively. All values are statistically significant at $p<0.001$. 
+Our analysis across 6,515 queries shows that the token-level lexical overlap varies substantially across the top-1 retrieved passages. As visible in Table~\ref{tab:p-unique-coverage}, there is a positive correlation between lexican overlap and retrieval success. For \gs{SEAL}, $\rho = 0.323$ for  $k=1$ and $\rho = 0.190 $ for  $k=10$. For \gs{MINDER}, the Spearman correlations are $\rho = 0.380$ and $\rho = 0.202$, respectively. All values are statistically significant at $p<0.001$. 
 
 \begin{table}[H]
     \centering
@@ -573,7 +578,7 @@ Our analysis across 6,515 queries shows that the token-level lexical overlap var
     \label{tab:p-unique-coverage}
     \begin{tabular}{l|rr|rr}
         \toprule
-        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
+        & \multicolumn{2}{c|}{\textbf{\gs{SEAL}}} & \multicolumn{2}{c}{\textbf{\gs{MINDER}}} \\
         \textbf{Decile} & \textbf{$C(Q, G_n)$} & \textbf{H@1 / H@10} & \textbf{$C(Q, G_n)$} & \textbf{H@1 / H@10} \\
         \midrule
         D1  & 0.00--0.27 & 12.4\% / 55.1\% & 0.00--0.36 & 14.4\% / 61.5\% \\
@@ -586,17 +591,17 @@ Our analysis across 6,515 queries shows that the token-level lexical overlap var
     \end{tabular}
 \end{table}
 
-As visible from Table~\ref{tab:p-unique-coverage}, the hit rate of \glsxtrshort{SEAL} and \glsxtrshort{MINDER} are relatively similar, and are positively correlated with $C(Q, G_n)$. Similar to other failure modes, low query coverage typically arises when the model generates semantically related but lexically distinct n-grams (e.g., for a query containing ``automobile,'' the model could generate n-grams with ``car'') or when the model generates generic topical n-grams that lack the specific query terms needed to isolate the answer (e.g., a query about ``Victorian architecture in London'' generates only ``architecture'' and ``London'').
+As visible from Table~\ref{tab:p-unique-coverage}, the hit rate of \gs{SEAL} and \gs{MINDER} are relatively similar, and are positively correlated with $C(Q, G_n)$. Similar to other failure modes, low query coverage typically arises when the model generates semantically related but lexically distinct n-grams (e.g., for a query containing ``automobile,'' the model could generate n-grams with ``car'') or when the model generates generic topical n-grams that lack the specific query terms needed to isolate the answer (e.g., a query about ``Victorian architecture in London'' generates only ``architecture'' and ``London'').
 
 
 \paragraph{Answer as N-gram}
 \label{sec:answer-ngram}
 
 % do the models have access to the answer string beforehand? does the model works best when it memorizes (generates the answer string) rather than generalizes (generates context)? need to reread the paper again..
-% how would the model react to trivia QA? isnt in triviaqa the answer string being in the passage is an inherent indicator for being annotated\glsxtrshort{GT}? need to reread paper again...
-We analyze whether retrieval success correlates with the model's ability to generate the specific answer string as an identifier, or whether it relies on the surrounding context. While generating the answer string provides a valuable anchor for a passage, the primary goal of \glsxtrshort{gr} is document identification, not direct question answering.
+% how would the model react to trivia QA? isnt in triviaqa the answer string being in the passage is an inherent indicator for being annotated\gs{GT}? need to reread paper again...
+We analyze whether retrieval success correlates with the model's ability to generate the specific answer string as an identifier, or whether it relies on the surrounding context. While generating the answer string provides a valuable anchor for a passage, the primary goal of \gs{GR} is document identification, not direct question answering.
 
-Table \ref{tab:answer-presence-impact} illustrates the results of our analysis. We looked at whether among the top-1 and top-10 scored retrieved passages, at least one of them contained the answer string or not and what the Hits@1 value is for these cases. The results are mostly similar between \glsxtrshort{SEAL} and \glsxtrshort{MINDER}, with most top-1 ranked retrieved passages not containing the answer string, yet when they do, the respective query's Hits@1 rate doubles and Hits@10 increases significantly.
+Table \ref{tab:answer-presence-impact} illustrates the results of our analysis. We looked at whether among the top-1 and top-10 scored retrieved passages, at least one of them contained the answer string or not and what the Hits@1 value is for these cases. The results are mostly similar between \gs{SEAL} and \gs{MINDER}, with most top-1 ranked retrieved passages not containing the answer string, yet when they do, the respective query's Hits@1 rate doubles and Hits@10 increases significantly.
 
 \begin{table}[htbp]
     \centering
@@ -604,7 +609,7 @@ Table \ref{tab:answer-presence-impact} illustrates the results of our analysis. 
     \label{tab:answer-presence-impact}
     \begin{tabular}{l|rr|rr}
         \toprule
-        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
+        & \multicolumn{2}{c|}{\textbf{\gs{SEAL}}} & \multicolumn{2}{c}{\textbf{\gs{MINDER}}} \\
         \textbf{Metric} & \textbf{Pres.} & \textbf{Abs.} & \textbf{Pres.} & \textbf{Abs.} \\
         \midrule
         Queries ($N$) & 1,096  & 5,419  & 1,457  & 5,058  \\
@@ -614,7 +619,7 @@ Table \ref{tab:answer-presence-impact} illustrates the results of our analysis. 
     \end{tabular}
 \end{table}
 
-We can see that in cases where the answer string is identified among the n-grams, the success rate jumps significantly for both systems. This indicates that direct identification is a strong predictor of retrieval success. Both \glsxtrshort{SEAL} and \glsxtrshort{MINDER} are able to retrieve (at least) one correct passage in around ~35\% of cases at the first place and ~73\% of cases among the top-10 retrieved, suggesting that the model is able to identify the semantic environment in which an answer is likely to be in relatively convincingly. That said, the performance gap between the two cases indicates that when the model fails to generate the specific answer as an identifier, the remaining contextual cues are oftentimes too generic to distinguish the correct passage from topically similar alternatives.
+We can see that in cases where the answer string is identified among the n-grams, the success rate jumps significantly for both systems. This indicates that direct identification is a strong predictor of retrieval success. Both \gs{SEAL} and \gs{MINDER} are able to retrieve (at least) one correct passage in around ~35\% of cases at the first place and ~73\% of cases among the top-10 retrieved, suggesting that the model is able to identify the semantic environment in which an answer is likely to be in relatively convincingly. That said, the performance gap between the two cases indicates that when the model fails to generate the specific answer as an identifier, the remaining contextual cues are oftentimes too generic to distinguish the correct passage from topically similar alternatives.
 
 
 \subsection{Scoring Failures}
@@ -626,11 +631,11 @@ Just like in Section \ref{sec:gen-fail}, we present the analysis results of the 
 \paragraph{Overreliance on a Single Identifier}
 \label{sec:failure-6}
 
-% its less about bad queries relying on one big score. Are\glsxtrshort{SEAL}/\glsxtrshort{MINDER} are designed to work byaggregating weak signals or is this not an issue? When it relies on a single n-gram, it breaks the design philosophy. or does it? is this even a failure mode?
+% its less about bad queries relying on one big score. Are\gs{SEAL}/\gs{MINDER} are designed to work byaggregating weak signals or is this not an issue? When it relies on a single n-gram, it breaks the design philosophy. or does it? is this even a failure mode?
 
 Overreliance on a single identifier measures the extent to which the top-1 ranked passage's total score is concentrated in one high-scoring n-gram versus distributed across multiple n-grams. We define this as the ratio of the highest scored n-gram score and the sum of all matched n-gram scores for the passage.
 
-Our analysis across 6,515 queries reveals that lower such ratio correlates with higher retrieval success, as shown in Table~\ref{tab:identifier-dominance}. For \glsxtrshort{SEAL}, we observe a Spearman correlation of $\rho = -0.115$ ($p < 0.001$), with success rates declining from 48.6\% in the lowest decile (D1) to 29.6\% in the highest decile (D10).
+Our analysis across 6,515 queries reveals that lower such ratio correlates with higher retrieval success, as shown in Table~\ref{tab:identifier-dominance}. For \gs{SEAL}, we observe a Spearman correlation of $\rho = -0.115$ ($p < 0.001$), with success rates declining from 48.6\% in the lowest decile (D1) to 29.6\% in the highest decile (D10).
 
 \begin{table}[htbp]
     \centering
@@ -638,7 +643,7 @@ Our analysis across 6,515 queries reveals that lower such ratio correlates with 
     \label{tab:identifier-dominance}
     \begin{tabular}{l|rr|rr}
         \toprule
-        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}} (Mean: 0.44)} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}} (Mean: 0.36)} \\
+        & \multicolumn{2}{c|}{\textbf{\gs{SEAL}} (Mean: 0.44)} & \multicolumn{2}{c}{\textbf{\gs{MINDER}} (Mean: 0.36)} \\
         \textbf{Decile} & \textbf{Range} & \textbf{Hits@1} & \textbf{Range} & \textbf{Hits@1} \\
         \midrule
         D1  & 0.12--0.30 & 48.6\% & 0.12--0.25 & 58.0\% \\
@@ -651,18 +656,18 @@ Our analysis across 6,515 queries reveals that lower such ratio correlates with 
     \end{tabular}
 \end{table}
 
-This trend is also noticable in \glsxtrshort{MINDER} ($\rho = -0.169$, $p < 0.001$), which also exhibits a lower mean ratio of 0.36 compared to \glsxtrshort{SEAL}'s 0.44 and a higher hit rate in all deciles. This shift toward more distributed evidence is assumed to be a consequence of \glsxtrshort{MINDER}'s multiview identifiers, since by aggregating scores from titles, pseudo-queries, and substrings, \glsxtrshort{MINDER} theoretically reduces reliance on any single identifier.
+This trend is also noticable in \gs{MINDER} ($\rho = -0.169$, $p < 0.001$), which also exhibits a lower mean ratio of 0.36 compared to \gs{SEAL}'s 0.44 and a higher hit rate in all deciles. This shift toward more distributed evidence is assumed to be a consequence of \gs{MINDER}'s multiview identifiers, since by aggregating scores from titles, pseudo-queries, and substrings, \gs{MINDER} theoretically reduces reliance on any single identifier.
 
 This finding aligns with the additive scoring design, which benefits from distributed evidence by providing redundant confirmation across multiple n-grams. %TODO SOURCE
 Conversely, if the top-scoring n-gram matches many passages or identifies the wrong one, the remaining low-scoring n-grams may provide insufficient corrective evidence to ensure correct ranking.
 
 
 
-\paragraph{Pseudo-Query Contribution in\glsxtrshort{MINDER}}
+\paragraph{Pseudo-Query Contribution in\gs{MINDER}}
 \label{sec:pseudo-minder-contrib}
-Here we analyze the contribution of synthetic identifiers in the \glsxtrshort{MINDER} framework. As detailed in Section \ref{sec:minderarch}, \glsxtrshort{MINDER} incorporates pseudo-queries alongside titles and substrings to capture high-level semantic information. Our analysis of 6,515 queries reveals an interesting divergence between the quantity of generated pseudo-queries and their influence on the final ranking.
+Here we analyze the contribution of synthetic identifiers in the \gs{MINDER} framework. As detailed in Section \ref{sec:minderarch}, \gs{MINDER} incorporates pseudo-queries alongside titles and substrings to capture high-level semantic information. Our analysis of 6,515 queries reveals an interesting divergence between the quantity of generated pseudo-queries and their influence on the final ranking.
 
-Numerically, pseudo-queries constitute a negligible fraction of the generated identifiers, accounting for only 0.32\% of the total n-grams (87714 out of 26.9 million). However, their contribution to the total accumulated score is disproportionately high, representing 4.52\% of the total score mass (14.8 million out of 328.5 million). This confirms that \glsxtrshort{MINDER}'s scoring mechanism successfully uses sparse but highly discriminative synthetic identifiers. 
+Numerically, pseudo-queries constitute a negligible fraction of the generated identifiers, accounting for only 0.32\% of the total n-grams (87714 out of 26.9 million). However, their contribution to the total accumulated score is disproportionately high, representing 4.52\% of the total score mass (14.8 million out of 328.5 million). This confirms that \gs{MINDER}'s scoring mechanism successfully uses sparse but highly discriminative synthetic identifiers. 
 
 Interestingly, titles still dominate the picture the scoring disproportionately, as only 1.08\% of ngrams are titles yet contribute 23.2\% of the total score. If we combine pseudoqueries and titles, the resulting numbers are 1.4\% and 27.72\%, respectively.
 
