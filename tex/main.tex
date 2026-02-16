@@ -248,7 +248,28 @@ assign each document a single unique integer identifier \cite{tay2022transformer
 it makes this approach prohibitively expensive for large corpora. As an example, 8.8 million documents (the amount of passages in MsMarcoFull \cite{bajaj2018msmarcohumangenerated}) with a hidden size of 768 (the hidden dimension of the T5-base model \cite{t5-raffel2023exploringlimitstransferlearning})
 adds approximately 6.8 billion parameters to the output layer alone, making this approach prohibitively expensive for large corpora. In contrast, sequential identifiers reuse a fixed vocabulary across multiple decoding steps, keeping parameter count constant regardless of corpus size \cite{kuo2024surveygenerativeinformationretrieval, pradeep2023doesgenerativeretrievalscale}. \textbf{recheck this!}
 
-\paragraph{Dynamic Corpus}
+\paragraph{Dynamic Corpora / Continual Learning}
+\label{dynamic-corpora}
+
+Continuously updating the corpora has been a central challenge in \gs{GR}. Several models have been proposed for solving such issues, such as using frozen pre-trained \gp{LM} \cite{kishore2024incdsiincrementallyupdatabledocument, 0.1145/3763233} %cite better explanation,
+and updating only specific \gs{PQ} clusters in \gs{PQ}-based models \cite{10.1145/3583780.3614821}
+
+We identified the following challenges regarding dynamic corpora/continual learning:
+\begin{itemize}
+    \item How to effectively expand the system's knowledge (e.g., new discoveries)?
+    \item How to efficiently update information (e.g., president changing)?
+    \item How to efficiently delete redundant or incorrect information (e.g., fake news)?
+    \item How to prevent the model from over-prioritizing newly-added documents (e.g., mistaking them as more important/relevant)?
+    \item How to prevent the model from over-prioritizing original/old documents (e.g., mistaking them as more foundational/tested)?
+    \item How to enable the model to index and retrieve new documents without needing a full retraining cycle?
+    \item How to avoid overwriting old information when not desired, and conversely, how to ensure overwriting when intended?
+    \item How to handle new terms that the model’s internal vocab / parametric knowledge does not recognize (e.g. COVID-19, \gs{GR} framework names)?
+    \item How to balance the growing corpus size with the need for adding more parameters?
+    \item How to avoid the model “hallucinating” the retrieval of a document that has been deleted, especially if a full retraining cycle is not conducted?
+    \item How to achieve all these changes in a compute-, time-, and cost-efficient manner?
+\end{itemize}
+
+%todo rework this all below in this paragraph
 In environments where corpora change, \gs{GR} models exhibit two opposing failure modes \cite{Chen_2023, zhang2025replicationexplorationgenerativeretrieval, yuan2024generativedenseretrievalmemory, mehta2023dsiupdatingtransformermemory}. %are these the right citations?
 Forgetting occurs when updating a model with new documents degrades its ability to retrieve previously indexed documents. Experiments demonstrate that sequential indexing of new batches can cause indexing accuracy for the initial corpus to drop by more than 25 points, necessitating retraining and increasing costs \cite{mehta2023dsiupdatingtransformermemory}. The opposing failure is an excessive bias against recency, where models fail to retrieve newly added content, favoring documents from the original training corpus \cite{zhang2025replicationexplorationgenerativeretrieval}.
 
