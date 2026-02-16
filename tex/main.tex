@@ -299,58 +299,7 @@ Accordingly, we can categorize failure modes based on the \gs{NLP} task they are
 
 \section{Proposed Failure Taxonomy}
 \label{sec:proposed-failure-taxonomy}
-\textbf{TODO NOT READY}
-
-\begin{table}[htbp]
-    \centering
-    \caption{Proposed Taxonomy of Generative Retrieval Failures.}
-    \label{tab:failure-summary-tax}
-    \begin{tabular}{lll}
-        \toprule
-        \textbf{Category} & \textbf{Specific Failure Mode} \\
-        \midrule
-        \textbf{Data-Level} & Annotation Errors \\
-        & Answer Cut-off between Passages \\
-        \midrule
-        \textbf{Representational ?} & Metadata Overreliance \\
-        & Cultural Bias \\
-        & Model Capacity \\
-        \midrule
-        \textbf{Algorithmic ?} & DocID Discriminativeness ?\\
-        & Short DocID Preference \\\\
-        & False Pruning \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-
-\textbf{OUTDATED!!!}
-\begin{table}[htbp]
-    \centering
-    \caption{Classification of potential retrieval failure modes for \gs{SEAL} and \gs{MINDER}.}
-    \label{tab:failure-summary}
-    \begin{tabular}{lp{6cm}l}
-        \toprule
-        \textbf{Type} & \textbf{Potential Failure Mode} & \textbf{Applicability} \\
-        \midrule
-        \textbf{Measurable} & Nonspecific $n$-grams & Both \\
-        & Too many unigrams & Both \\
-        & Redundant $n$-grams & Both \\
-        & Query--$n$-gram not overlapping & Both \\
-        & Answer not in $n$-gram & Both \\
-        & Single $n$-gram dominating & Both \\
-        & Title repetition in top-$k$ & Both \\
-        & No pseudo-queries as n-gram & \gs{MINDER} \\
-        \midrule
-        \textbf{Non-measurable} & False pruning & Both \\
-        & Answer cut-off btwn. passages & Both \\
-        & Optima not found in beam search & Both \\
-        & Scalability issues & Both \\
-        & Handling of dynamic corpora & Both \\
-        & Training learning bottlenecks & Both \\
-        \bottomrule
-    \end{tabular}
-\end{table}
+\textbf{TODO}
 
 \section{Methodology}
 
