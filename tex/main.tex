@@ -68,7 +68,7 @@ Pseudoqueries have been shown to prevent forgetting \cite{clever_10.1145/3583780
 
 Term sets are sometimes fully permutation invariant \cite{zhang2024generativeretrievaltermset}, but not always \cite{zeng2024planningaheadgenerativeretrieval} \textbf{finish sentence}
 
-\gp{docid} are usually static, but in some implementations they can be refined during training, as evidenced by \citet{lee2023glengenerativeretrievallexical,sun2023learningtokenizegenerativeretrieval}.
+\gc{docid} are usually static, but in some implementations they can be refined during training, as evidenced by \citet{lee2023glengenerativeretrievallexical,sun2023learningtokenizegenerativeretrieval}.
 
 %Each type of \gs{docid} design comes with its challenges. While string-based IDs are more interpretable and generalizable to dynamic corpora where document collections expand, they often suffer from ``false pruning'', where the sequence-based generation discards a relevant document early in the beam search if the model fails to predict the correct prefix token. \cite{TODO}
 
@@ -80,9 +80,6 @@ Hybrid docids have also been explored \cite{nguyen2023generativeretrievaldensere
 % Because they are often randomly initialized, they lack inherent semantic connections to the text, forcing the model to rely entirely on memorizing the association between document content and its identifier during the training phase.
 
 %\gs{docid} design is consistently identified as a core challenge affecting these representation issues. Numerical \glsplural{docid} offer efficiency but suffer from limited generalization and overfitting to initial training sets, while string-based \glsplural{docid} maintain better semantic alignment but are more susceptible to false pruning \cite{zhang2024generativeretrievaltermset, zhang2025replicationexplorationgenerativeretrieval, 10.1145/3589335.3641239}.
-
-\gp{docid} %how to capitalize
-is usually generated through \textbf{TODO}
 
 During the decoding phase, the generation is usually done autoregressively by an \gs{LM} via a beam-search algorithm, which typically %typically?
 generates a ranked list of docids. Non-autoregressive systems also exist, however, these are the minority \cite{valluri2024scalingvocabularynonautoregressivemodels, zhao2026diffugrgenerativedocumentretrieval}. For standard decoding, encoder-decoder models are the most commonly used, such as BART \cite{lewis-etal-2020-bart} and T5 \cite{t5-raffel2023exploringlimitstransferlearning} but decoder-only models such as GPT \cite{gpt-Radford2018ImprovingLU} and LLaMa \cite{grattafiori2024llama3herdmodels}. \textbf{todo recheck to understand well}
