@@ -292,6 +292,26 @@ month =Dec}
  url={https://arxiv.org/abs/2206.02743}, 
 }
 
+@misc{zhuang2023bridginggapindexingretrieval,
+      title={Bridging the Gap Between Indexing and Retrieval for Differentiable Search Index with Query Generation}, 
+      author={Shengyao Zhuang and Houxing Ren and Linjun Shou and Jian Pei and Ming Gong and Guido Zuccon and Daxin Jiang},
+      year={2023},
+      eprint={2206.10128},
+      archivePrefix={arXiv},
+      primaryClass={cs.IR},
+      url={https://arxiv.org/abs/2206.10128}, 
+}
+
+@misc{ripor_zeng2023scalableeffectivegenerativeinformation,
+      title={Scalable and Effective Generative Information Retrieval}, 
+      author={Hansi Zeng and Chen Luo and Bowen Jin and Sheikh Muhammad Sarwar and Tianxin Wei and Hamed Zamani},
+      year={2023},
+      eprint={2311.09134},
+      archivePrefix={arXiv},
+      primaryClass={cs.IR},
+      url={https://arxiv.org/abs/2311.09134}, 
+}
+
 @misc{yuan2024generativedenseretrievalmemory,
  title={Generative Dense Retrieval: Memory Can Be a Burden}, 
  author={Peiwen Yuan and Xinglin Wang and Shaoxiong Feng and Boyuan Pan and Yiwei Li and Heda Wang and Xupeng Miao and Kan Li},
@@ -320,6 +340,35 @@ month =Dec}
  archivePrefix={arXiv},
  primaryClass={cs.CL},
  url={https://arxiv.org/abs/2202.06991}, 
+}
+
+@inproceedings{qiao-etal-2023-diffusionret,
+    title = "{D}iffusion{R}et: Diffusion-Enhanced Generative Retriever using Constrained Decoding",
+    author = "Qiao, Shanbao  and
+      Liu, Xuebing  and
+      Na, Seung-Hoon",
+    editor = "Bouamor, Houda  and
+      Pino, Juan  and
+      Bali, Kalika",
+    booktitle = "Findings of the Association for Computational Linguistics: EMNLP 2023",
+    month = dec,
+    year = "2023",
+    address = "Singapore",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2023.findings-emnlp.638/",
+    doi = "10.18653/v1/2023.findings-emnlp.638",
+    pages = "9515--9529",
+    abstract = "Generative retrieval, which maps from a query to its relevant document identifiers (docids), has recently emerged as a new information retrieval (IR) paradigm, however, having suffered from 1) the $\textit{lack of the intermediate reasoning step}$, caused by the manner of merely using a query to perform the hierarchical classification, and 2) the $\textit{pretrain-finetune discrepancy}$, which comes from the use of the artificial symbols of docids. To address these limitations, we propose the novel approach of using the document generation from a query as an intermediate step before the retrieval, thus presenting $\underline{diffusion}$-enhanced generative $\underline{ret}$rieval ($\textbf{DiffusionRet}$), which consists of two processing steps: 1) the $\textit{diffusion-based document generation}$, which employs the sequence-to-sequence diffusion model to produce a pseudo document sample from a query, being expected to semantically close to a relevant document; 2) $\textit{N-gram-based generative retrieval}$, which use another sequence-to-sequence model to generate n-grams that appear in the collection index for linking a generated sample to an original document. Experiment results on MS MARCO and Natural Questions dataset show that the proposed DiffusionRet significantly outperforms all the existing generative retrieval methods and leads to the state-of-the-art performances, even with much smaller number of parameters."
+}
+
+@misc{tang2024selfretrievalendtoendinformationretrieval,
+      title={Self-Retrieval: End-to-End Information Retrieval with One Large Language Model}, 
+      author={Qiaoyu Tang and Jiawei Chen and Zhuoqun Li and Bowen Yu and Yaojie Lu and Cheng Fu and Haiyang Yu and Hongyu Lin and Fei Huang and Ben He and Xianpei Han and Le Sun and Yongbin Li},
+      year={2024},
+      eprint={2403.00801},
+      archivePrefix={arXiv},
+      primaryClass={cs.IR},
+      url={https://arxiv.org/abs/2403.00801}, 
 }
 
 @inproceedings{splade10.1145/3404835.3463098,
@@ -842,3 +891,28 @@ keywords = {language models, Bias in NLP}
   pages={390-398},
   keywords={Data structures;Indexing;Entropy;Costs;Tree data structures;Plugs;Computer science;Fault tolerance;Postal services;Data engineering},
   doi={10.1109/SFCS.2000.892127}}
+
+@inproceedings{clever_10.1145/3583780.3614821,
+author = {Chen, Jiangui and Zhang, Ruqing and Guo, Jiafeng and de Rijke, Maarten and Chen, Wei and Fan, Yixing and Cheng, Xueqi},
+title = {Continual Learning for Generative Retrieval over Dynamic Corpora},
+year = {2023},
+isbn = {9798400701245},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3583780.3614821},
+doi = {10.1145/3583780.3614821},
+abstract = {Generative retrieval (GR) directly predicts the identifiers of relevant documents (i.e., docids) based on a parametric model. It has achieved solid performance on many ad-hoc retrieval tasks. So far, these tasks have assumed a static document collection. In many practical scenarios, however, document collections are dynamic, where new documents are continuously added to the corpus. The ability to incrementally index new documents while preserving the ability to answer queries with both previously and newly indexed relevant documents is vital to applying GR models. In this paper, we address this practical continual learning problem for GR. We put forward a novel Continual-LEarner for generatiVE Retrieval (CLEVER) model and make two major contributions to continual learning for GR: (i) To encode new documents into docids with low computational cost, we present Incremental Product Quantization, which updates a partial quantization codebook according to two adaptive thresholds; and (ii) To memorize new documents for querying without forgetting previous knowledge, we propose a memory-augmented learning mechanism, to form meaningful connections between old and new documents. Empirical results demonstrate the effectiveness and efficiency of the proposed model.},
+booktitle = {Proceedings of the 32nd ACM International Conference on Information and Knowledge Management},
+pages = {306–315},
+numpages = {10},
+keywords = {document increment, generative retrieval, product quantization},
+location = {Birmingham, United Kingdom},
+series = {CIKM '23}
+}
+
+@inproceedings{gpt-Radford2018ImprovingLU,
+  title={Improving Language Understanding by Generative Pre-Training},
+  author={Alec Radford and Karthik Narasimhan},
+  year={2018},
+  url={https://api.semanticscholar.org/CorpusID:49313245}
+}
