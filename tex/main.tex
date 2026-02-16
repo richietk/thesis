@@ -5,7 +5,7 @@
 
 \gf{IR}, as defined by \href{https://en.wikipedia.org/wiki/Information_retrieval}{Wikipedia} is ``the task of identifying and retrieving information system resources that are relevant to an information need.'' Traditionally, \gf{IR} has long been structured around the ``index-retrieve-then-rank'' pipeline \cite{10.1145/3589335.3641239, Metzler_2021}, with the most popular (and best performing) methods using sparse retrieval, such as BM25 \cite{bm25robertson2009} and SPLADE \cite{splade10.1145/3404835.3463098}. These rely on lexical representations but suffer when terms do not overlap exactly \cite{Choi_2022,     biswas2024efficientinterpretableinformationretrieval, gao2021coilrevisitexactlexical}. A newer method called \gf{DR}, popularized by frameworks such as DPR \cite{karpukhin2020densepassageretrievalopendomain} utilize the bidirectional-encoder architectures (typically from BERT \cite{devlin-etal-2019-bert}) to address this issue by encoding queries and documents into semantic vector representations and then calculating the similarity between query vectors and document vectors, usually via cosine similarity. However, \gs{DR} systems still depend on separate vector index structures \cite{xiong2020approximatenearestneighbornegative, li2023constructingtreebasedindexefficient}, and queries and documents are encoded independently with limited semantic interaction \cite{ni2021largedualencodersgeneralizable}. %todo is this a bad thing?
 
-\gf{GR} represents an emerging framework in \gf{IR} which aims to directly generate document identifiers through autoregressive language models such as BART \cite{lewis-etal-2020-bart} and T5 \cite{t5-raffel2023exploringlimitstransferlearning}, consolidating the retrieval process into a single end-to-end model \cite{zhang2024generativeretrievaltermset, li2025matchinggenerationsurveygenerative, kuo2024surveygenerativeinformationretrieval}. %todo recheck the latter part
+\gf{GR} represents an emerging framework in \gf{IR} which aims to directly generate document identifiers through autoregressive language models, such as BART \cite{lewis-etal-2020-bart} and T5 \cite{t5-raffel2023exploringlimitstransferlearning}, consolidating the retrieval process into a single end-to-end model \cite{zhang2024generativeretrievaltermset, li2025matchinggenerationsurveygenerative, kuo2024surveygenerativeinformationretrieval}. %todo recheck the latter part
 using the \gs{LM} to encode the entire document corpus into the parameters of a single transformer. %todo cite
 This architecture offers several advantages: it eliminates the need for separate dense vector indexes, reduces storage needs \cite{bevilacqua2022autoregressivesearchenginesgenerating} %todo check
 reduces memory footprint \cite{zeng2024planningaheadgenerativeretrieval}, enables the model to learn document representations jointly with the retrieval objective \cite{sun2023learningtokenizegenerativeretrieval, tang2024listwisegenerativeretrievalmodels} %todo recheck
@@ -49,18 +49,11 @@ The code used for this thesis is available on \href{https://github.com/richietk/
 
 \section{Generative Retrieval}
 
-In this section we introduce the concept of \gf{GR} more in depth.
+In this section we introduce the concept of \gf{GR} more in depth. The fundamental design decision in \gs{GR} is that of \gp{docid}.
 
-
-
-
-\subsection{Information Retrieval}
-
- %todo recheck rewrite if needed
-
-\subsection{DocID Design}
-
-\gf{docid} design is important for retrieval effectiveness, as it replaces traditional external indices with the models internal parametric memory. A \gs{docid} serves as a unique ``index'' that the model must autoregressively generate to point toward a specific document or passage. Initial foundational works categorized these identifiers into three main types: unstructured atomic identifiers (such as unique random integers), naively structured string identifiers (such as titles), and semantically structured, numeric identifiers (such hierarchical cluster paths). While atomic IDs require the model to memorize random associations, semantic IDs group similar documents together under shared prefix tokens, improving retrieval quality \cite{pradeep2023doesgenerativeretrievalscale}.
+\textbf{TODO TIGHTEN THIS PART AS IT IS A BIT BLOATED}
+\gp{docid} replace traditional external indices with the models internal parametric memory. A \gs{docid} serves as a unique ``index'' for each document or passage that the model must autoregressively generate. Usually, each \gs{docid} links to one document, making it bijective \cite{li2025matchinggenerationsurveygenerative} %todo find a specific citation, todo always? todo exemptions?
+These can be categorized into several types: unstructured atomic identifiers (such as unique random integers), naively structured string identifiers (such as titles), and semantically structured, numeric identifiers (such hierarchical cluster paths). While atomic IDs require the model to memorize random associations, semantic IDs group similar documents together under shared prefix tokens, improving retrieval quality \cite{pradeep2023doesgenerativeretrievalscale}.
 
 String identifiers use natural language such as document titles, n-grams, URLs, or synthetic pseudo-queries, which allow the model to use its pre-trained linguistic knowledge rather than learning a new symbolic system from scratch. Substring or n-gram identifiers allow any span of text within a document to act as its identifier. In \gs{SEAL} and \gs{MINDER}, the documents aren't assigned a single identifier per document, unlike in other frameworks such as DSI \cite{tay2022transformermemorydifferentiablesearch} or GENRE \cite{sun2023learningtokenizegenerativeretrieval}. A single document can have multiple possible identifiers, as evidenced in \gs{SEAL}, which treats all n-grams within the passage as valid identifiers. Additionally, \gs{MINDER} also generates pseudo-queries for each document, %note: for each document or passage?
 which it can occasionally use as ``n-grams''. While string-based IDs are more interpretable and generalizable to dynamic corpora where document collections expand, they often suffer from ``false pruning'', where the sequence-based generation discards a relevant document early in the beam search if the model fails to predict the correct prefix token. We will focus on string-based \glsplural{docid} in this thesis.
@@ -69,6 +62,20 @@ Other \glsplural{docid} types include semantically structured identifiers are de
 Because they are often randomly initialized, they lack inherent semantic connections to the text, forcing the model to rely entirely on memorizing the association between document content and its identifier during the training phase.
 
 \gs{docid} design is consistently identified as a core challenge affecting these representation issues. Numerical \glsplural{docid} offer efficiency but suffer from limited generalization and overfitting to initial training sets, while string-based \glsplural{docid} maintain better semantic alignment but are more susceptible to false pruning \cite{zhang2024generativeretrievaltermset, zhang2025replicationexplorationgenerativeretrieval, 10.1145/3589335.3641239}.
+
+\textbf{UNTIL THIS}
+
+\gp{docid} %how to capitalize
+is usually generated through \textbf{TODO}
+
+During the decoding phase, the generation is usually done autoregressively by an \gs{LM} via a beam-search algorithm, which typically %typically?
+generates a ranked list of docids. Non-autoregressive systems also exist, however, these are the minority \cite{valluri2024scalingvocabularynonautoregressivemodels, zhao2026diffugrgenerativedocumentretrieval}. For standard decoding, encoder-decoder models are the most commonly used, such as BART \cite{lewis-etal-2020-bart} and T5 \cite{t5-raffel2023exploringlimitstransferlearning} but decoder-only models such as GPT \cite{gpt-Radford2018ImprovingLU} and LLaMa \cite{grattafiori2024llama3herdmodels}. \textbf{todo recheck to understand well}
+
+Decoding is usually constrained to avoid hallucinating nonexistent \gp{docid}. This is usually done via an FM-index \cite{fm-index-892127} (e.g. in SEAL \cite{bevilacqua2022autoregressivesearchenginesgenerating}) or a trie (e.g. in GENRE \cite{decao2021autoregressiveentityretrieval}). %todo are examples necessary? 
+
+FOr the query, with encoder-decoder models, the encoder embeds the query into a fixed representation, while the decoder uses that to condition \gs{docid} generation. With decoder-only models, the query tokens are encoded implicitly into hidden states for the decoder. \textbf{really? cite? check to confirm understanding.}
+
+After the model ranked a list of \gp{docid} an \gs{LLM}
 
 \subsection{SEAL Architecture}
 
@@ -194,7 +201,7 @@ Consider a passage stating ``Tom likes pizza and tomatoes'' and a query ``does T
 \label{par:hallucination}
 
 
-Related is the problem of hallucination, in which the model generates invalid (with respect to the pre-defined document index) identifiers. Constrained decoding is often used to eliminate this problem with solutions such as constraining the docid generation through an FM-index \cite{bevilacqua2022autoregressivesearchenginesgenerating} or a trie \cite{decao2021autoregressiveentityretrieval}. Using Bloom filters \cite{10.1145/362686.362692} could be another method \textbf{TODO THIS ISNT VALIDATED}. There have been several implementations of constrained decoding, such as \gs{SEAL} \cite{bevilacqua2022autoregressivesearchenginesgenerating} and \gs{MINDER} \cite{li2023multiviewidentifiersenhancedgenerative}.
+Related is the problem of hallucination, in which the model generates invalid (with respect to the pre-defined document index) identifiers. Constrained decoding is often used to eliminate this problem with solutions such as constraining the docid generation through an FM-index \cite{bevilacqua2022autoregressivesearchenginesgenerating} or a trie \cite{decao2021autoregressiveentityretrieval}. Using Bloom filters \cite{10.1145/362686.362692} could be another method \textbf{TODO THIS ISNT VALIDATED AND JUST MY IDEA}. There have been several implementations of constrained decoding, such as \gs{SEAL} \cite{bevilacqua2022autoregressivesearchenginesgenerating} and \gs{MINDER} \cite{li2023multiviewidentifiersenhancedgenerative}.
  
 Several %several?
 GR solutions use intentional hallucination, such as \gs{MINDER}\cite{li2023multiviewidentifiersenhancedgenerative}, where the generation of additional identifiers, such as pseudoqueries is achieved through intentional, constrained hallucination of docid generation.
