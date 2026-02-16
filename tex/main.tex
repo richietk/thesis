@@ -3,13 +3,14 @@
 
 \section{Introduction}
 
-\gf{IR}, as defined by \href{https://en.wikipedia.org/wiki/Information_retrieval}{Wikipedia} is ``the task of identifying and retrieving information system resources that are relevant to an information need.'' Traditionally, \gf{IR} has long been structured around the ``index-retrieve-then-rank'' pipeline \cite{10.1145/3589335.3641239, Metzler_2021}, with the most popular (and best performing) methods using sparse retrieval, such as BM25 \cite{bm25robertson2009} and SPLADE \cite{splade10.1145/3404835.3463098}. These rely on lexical representations but suffer when terms do not overlap exactly \cite{Choi_2022,     biswas2024efficientinterpretableinformationretrieval, gao2021coilrevisitexactlexical}. A newer method called \gf{DR}, popularized by frameworks such as DPR \cite{karpukhin2020densepassageretrievalopendomain} utilize the bidirectional-encoder architectures (typically from BERT \cite{devlin-etal-2019-bert}) to address this issue by encoding queries and documents into semantic vector representations. However, \gs{DR} systems still depend on separate vector index structures \cite{xiong2020approximatenearestneighbornegative, li2023constructingtreebasedindexefficient}, and queries and documents are encoded independently with limited semantic interaction \cite{ni2021largedualencodersgeneralizable}. %todo is this a bad thing?
+\gf{IR}, as defined by \href{https://en.wikipedia.org/wiki/Information_retrieval}{Wikipedia} is ``the task of identifying and retrieving information system resources that are relevant to an information need.'' Traditionally, \gf{IR} has long been structured around the ``index-retrieve-then-rank'' pipeline \cite{10.1145/3589335.3641239, Metzler_2021}, with the most popular (and best performing) methods using sparse retrieval, such as BM25 \cite{bm25robertson2009} and SPLADE \cite{splade10.1145/3404835.3463098}. These rely on lexical representations but suffer when terms do not overlap exactly \cite{Choi_2022,     biswas2024efficientinterpretableinformationretrieval, gao2021coilrevisitexactlexical}. A newer method called \gf{DR}, popularized by frameworks such as DPR \cite{karpukhin2020densepassageretrievalopendomain} utilize the bidirectional-encoder architectures (typically from BERT \cite{devlin-etal-2019-bert}) to address this issue by encoding queries and documents into semantic vector representations and then calculating the similarity between query vectors and document vectors, usually via cosine similarity. However, \gs{DR} systems still depend on separate vector index structures \cite{xiong2020approximatenearestneighbornegative, li2023constructingtreebasedindexefficient}, and queries and documents are encoded independently with limited semantic interaction \cite{ni2021largedualencodersgeneralizable}. %todo is this a bad thing?
 
 \gf{GR} represents an emerging framework in \gf{IR} which aims to directly generate document identifiers through autoregressive language models such as BART \cite{lewis-etal-2020-bart} and T5 \cite{t5-raffel2023exploringlimitstransferlearning}, consolidating the retrieval process into a single end-to-end model \cite{zhang2024generativeretrievaltermset, li2025matchinggenerationsurveygenerative, kuo2024surveygenerativeinformationretrieval}. %todo recheck the latter part
 using the \gs{LM} to encode the entire document corpus into the parameters of a single transformer. %todo cite
 This architecture offers several advantages: it eliminates the need for separate dense vector indexes, reduces storage needs \cite{bevilacqua2022autoregressivesearchenginesgenerating} %todo check
 reduces memory footprint \cite{zeng2024planningaheadgenerativeretrieval}, enables the model to learn document representations jointly with the retrieval objective \cite{sun2023learningtokenizegenerativeretrieval, tang2024listwisegenerativeretrievalmodels} %todo recheck
 , and enables the optimization of document representations and retrieval objectives \cite{TODO} %todo too vague?
+add while showing comparable performance on evaluation metrics
 \cite{bevilacqua2022autoregressivesearchenginesgenerating, zeng2024planningaheadgenerativeretrieval, tang2024listwisegenerativeretrievalmodels}.  %todo citations for specfific claims, not end of sentence todo!
 Despite these promising characteristics, generative retrieval systems exhibit distinct failure modes that differ fundamentally from those observed in traditional retrieval architectures. While \gs{IR} failures typically manifest as low similarity scores in vector space, generative retrieval failures can include hallucination of non-existent document identifiers, incorrect pruning during autoregressive generation, poor performance on dynamically expanding corpora, and challenges with scalability \cite{Metzler_2021, Ji_2023, zeng2024planningaheadgenerativeretrieval, pradeep2023doesgenerativeretrievalscale}, among others. %TODO cite each citation to specific failure mentioned
 It is also worth noting that some \gs{GR} implementations employ auxiliary data structures for constrained generation, making them not fully end-to-end differentiable.\textbf{recheck}
@@ -46,14 +47,16 @@ The code used for this thesis is available on \href{https://github.com/richietk/
 
 \pagebreak
 
-\section{Background}
+\section{Generative Retrieval}
 
-In this section we introduce the concept of \gf{GR} and discuss the important details of the \gs{SEAL} and \gs{MINDER} architecture.
+In this section we introduce the concept of \gf{GR} more in depth.
+
+
+
 
 \subsection{Information Retrieval}
 
-
-Systems like \gs{SEAL} achieves 7x less storage than DPR while showing comparable accuracy@k and exact match metrics on the \gf{nq} 320k dataset \cite{bevilacqua2022autoregressivesearchenginesgenerating}. Another \gs{GR} system, \gs{PAG} \cite{zeng2024planningaheadgenerativeretrieval} required approximately 7x less memory to index the entire corpus compared to single-vector dense retrieval models and comparable memory needs to BM25. It achieved comparable or better MRR@10 results on the MS-MARCO Dev set compared to sparse and dense retrieval models. Notably, PAG achieved a 70.1\% improvement over BM25 and an 11.2\% improvement over TAS-B \cite{hofstätter2021efficientlyteachingeffectivedense}. While some \gs{GR} implementations employ auxiliary data structures for constrained generation (such as \gs{SEAL}'s use of the FM-Index), these differ fundamentally from the separate encoding and indexing stages required by traditional systems. Additionally, the pre-trained language models used in \gs{GR} can perform effectively in zero- and few-shot scenarios when limited labeled data is available \cite{Metzler_2021}. %todo recheck rewrite if needed
+ %todo recheck rewrite if needed
 
 \subsection{DocID Design}
 

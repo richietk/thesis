@@ -19,7 +19,6 @@ wip_dirs/
 *.ist
 *.log
 *.out
-*.pdf
 *.synctex.gz
 *.toc
 
