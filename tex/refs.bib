@@ -761,3 +761,73 @@ keywords = {language models, Bias in NLP}
     ISBN = "979-8-89176-251-0",
     abstract = "Generative Retrieval (GR) introduces a new information retrieval paradigm that directly generates unique document identifiers (DocIDs). The key challenge of GR lies in creating effective yet discrete DocIDs that preserve semantic relevance for similar documents while differentiating dissimilar ones. However, existing methods generate DocIDs solely based on the textual content of documents, which may result in DocIDs with weak semantic connections for similar documents due to variations in expression. Therefore, we propose using queries as a bridge to connect documents with varying relevance levels for learning improved DocIDs. In this paper, we propose **M**ulti-l**E**vel **R**elevance document identifier learning for **G**enerative r**E**trieval (MERGE), a novel approach that utilizes multi-level document relevance to learn high-quality DocIDs. MERGE incorporates three modules: a multi-relevance query-document alignment module to effectively align document representations with related queries, an outer-level contrastive learning module to capture binary-level relevance, and an inner-level multi-level relevance learning module to distinguish documents with different relevance levels. Our approach encodes rich hierarchical semantic information and maintains uniqueness across documents. Experimental results on real-world multilingual e-commerce search datasets demonstrate that MERGE significantly outperforms existing methods, underscoring its effectiveness. The source code is available at {\ensuremath{<}}https://github.com/zhangfw123/MERGE{\ensuremath{>}}."
 }
+
+@article{Huang_2025,
+   title={A Survey on Hallucination in Large Language Models: Principles, Taxonomy, Challenges, and Open Questions},
+   volume={43},
+   ISSN={1558-2868},
+   url={http://dx.doi.org/10.1145/3703155},
+   DOI={10.1145/3703155},
+   number={2},
+   journal={ACM Transactions on Information Systems},
+   publisher={Association for Computing Machinery (ACM)},
+   author={Huang, Lei and Yu, Weijiang and Ma, Weitao and Zhong, Weihong and Feng, Zhangyin and Wang, Haotian and Chen, Qianglong and Peng, Weihua and Feng, Xiaocheng and Qin, Bing and Liu, Ting},
+   year={2025},
+   month=jan, pages={1–55} }
+
+@inproceedings{vu-etal-2024-freshllms,
+    title = "{F}resh{LLM}s: Refreshing Large Language Models with Search Engine Augmentation",
+    author = "Vu, Tu  and
+      Iyyer, Mohit  and
+      Wang, Xuezhi  and
+      Constant, Noah  and
+      Wei, Jerry  and
+      Wei, Jason  and
+      Tar, Chris  and
+      Sung, Yun-Hsuan  and
+      Zhou, Denny  and
+      Le, Quoc  and
+      Luong, Thang",
+    editor = "Ku, Lun-Wei  and
+      Martins, Andre  and
+      Srikumar, Vivek",
+    booktitle = "Findings of the Association for Computational Linguistics: ACL 2024",
+    month = aug,
+    year = "2024",
+    address = "Bangkok, Thailand",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2024.findings-acl.813/",
+    doi = "10.18653/v1/2024.findings-acl.813",
+    pages = "13697--13720",
+    abstract = "Since most large language models (LLMs) are trained once and never updated, they struggle to dynamically adapt to our ever-changing world. In this work, we present FreshQA, a dynamic QA benchmark that tests a model{'}s ability to answer questions that may require reasoning over up-to-date world knowledge. We develop a two-mode human evaluation procedure to measure both correctness and hallucination, which we use to benchmark both closed and open-source LLMs by collecting {\ensuremath{>}}50K human judgments. We observe that all LLMs struggle to answer questions that require fast-changing world knowledge as well as questions with false premises that need to be debunked. In response, we develop FreshPrompt, a few-shot prompting method that curates and organizes relevant information from a search engine into an LLM{'}s prompt. Our experiments show that FreshPrompt outperforms both competing search engine-augmented prompting methods such as Self-Ask (Press et al., 2022) as well as commercial systems such as Perplexity.AI. To facilitate future work, we additionally develop FreshEval, a reliable autorater for quick evaluation and comparison on FreshQA. Our latest results with FreshEval suggest that open-source LLMs such as Mixtral (Jiang et al., 2024), when combined with FreshPrompt, are competitive with closed-source and commercial systems on search-augmented QA."
+}
+
+@misc{wei2023chainofthoughtpromptingelicitsreasoning,
+      title={Chain-of-Thought Prompting Elicits Reasoning in Large Language Models}, 
+      author={Jason Wei and Xuezhi Wang and Dale Schuurmans and Maarten Bosma and Brian Ichter and Fei Xia and Ed Chi and Quoc Le and Denny Zhou},
+      year={2023},
+      eprint={2201.11903},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2201.11903}, 
+}
+
+@misc{asai2023selfraglearningretrievegenerate,
+      title={Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection}, 
+      author={Akari Asai and Zeqiu Wu and Yizhong Wang and Avirup Sil and Hannaneh Hajishirzi},
+      year={2023},
+      eprint={2310.11511},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2310.11511}, 
+}
+
+@misc{lewis2021retrievalaugmentedgenerationknowledgeintensivenlp,
+      title={Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks}, 
+      author={Patrick Lewis and Ethan Perez and Aleksandra Piktus and Fabio Petroni and Vladimir Karpukhin and Naman Goyal and Heinrich Küttler and Mike Lewis and Wen-tau Yih and Tim Rocktäschel and Sebastian Riedel and Douwe Kiela},
+      year={2021},
+      eprint={2005.11401},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2005.11401}, 
+}

@@ -14,9 +14,11 @@ reduces memory footprint \cite{zeng2024planningaheadgenerativeretrieval}, enable
 Despite these promising characteristics, generative retrieval systems exhibit distinct failure modes that differ fundamentally from those observed in traditional retrieval architectures. While \gs{IR} failures typically manifest as low similarity scores in vector space, generative retrieval failures can include hallucination of non-existent document identifiers, incorrect pruning during autoregressive generation, poor performance on dynamically expanding corpora, and challenges with scalability \cite{Metzler_2021, Ji_2023, zeng2024planningaheadgenerativeretrieval, pradeep2023doesgenerativeretrievalscale}, among others. %TODO cite each citation to specific failure mentioned
 It is also worth noting that some \gs{GR} implementations employ auxiliary data structures for constrained generation, making them not fully end-to-end differentiable.\textbf{recheck}
 
-Existing literature on \gs{GR} documents various challenges and failure cases. However, these failures are typically discussed in isolation with individual paper proposing new methods or architectures. There is no systematic taxonomy %todo really? https://arxiv.org/pdf/2404.14851 might be close
+Existing literature on \gs{GR} documents various challenges and failure cases. However, these failures are typically discussed in isolation with individual paper proposing new methods or architectures. There is little systematic taxonomy %todo really? https://arxiv.org/pdf/2404.14851 might be close
 that classifies the types of failures that occur in generative retrieval systems, their relative frequencies in practice, or their underlying causes. %TODO am I even analyzing frequency?
 This thesis addresses this gap by developing a taxonomy of failures, biases, and limitations for \gs{GR} systems by synthesizing documented failure cases from the literature and conducting analysis of retrieval outputs from the frameworks \gs{SEAL} \cite{bevilacqua2022autoregressivesearchenginesgenerating} and \gs{MINDER} models \cite{li2023multiviewidentifiersenhancedgenerative} on the \gf{nq} dataset. The \gs{nq} dataset \cite{kwiatkowski-etal-2019-natural} is a benchmark of Google search queries paired with full Wikipedia pages, annotated with the exact section and phrases of the page containing the answer.
+
+As explained by \citet{li2025matchinggenerationsurveygenerative}, \gs{GR} processes can be roughly segmented into two components, document retrieval and response generation. In this thesis, we will focus on the failure modes of the former, with briefly discussing the failure modes of the latter as well.
 
 \subsection{Research Question}
 
@@ -32,11 +34,10 @@ This thesis addresses two interconnected research questions:
 This thesis makes the following contributions:
 
 \begin{enumerate}
-    \item A synthesis of failure modes documented across generative retrieval research, organized into five categories: inference and decoding failures, memorization and representation issues, scalability limitations, dynamic corpus problems, and architectural constraints.
-
-    \item A mapping from abstract failure modes to observable indicators measurable from inference outputs.
-
-    \item Quantitative characterization of failure patterns via the \gs{SEAL} and \gs{MINDER} framework, including correlation analysis between failure indicators and retrieval success.
+    \item A synthesis of failure modes documented across generative retrieval research to understand and summarize the issues present in \gs{GR} and their mitigations.
+    \item A mapping from abstract failure modes to observable indicators.
+    \item Quantitative characterization of failure patterns via the \gs{SEAL} and \gs{MINDER} framework.
+    \item Discussion of \gs{SOTA} challenges, solutions, and future research directions.
 
 
 \end{enumerate}
@@ -170,7 +171,7 @@ This thesis intentionally focuses its failure analysis on the core of such syste
 \section{Literature Review of Failure Modes} 
 \label{sec:failure-modes-literature}
 
-Despite the advantages, \gs{GR} systems exhibit several distinct failure modes, behavioral biases, and structural limitations that motivate this thesis. As explained by \citet{li2025matchinggenerationsurveygenerative}, \gs{GR} processes can be roughly segmented into two components, document retrieval and response generation. In this thesis, we will focus on the failure modes of the former, with briefly discussing the failure modes of the latter.
+Despite the advantages, \gs{GR} systems exhibit several distinct failure modes, behavioral biases, and structural limitations that motivate this thesis.
 
 \paragraph{False Pruning}
 \label{par:false-pruning}
@@ -229,6 +230,14 @@ An additional issue identified is the problem that newly added documents are pra
 \paragraph{Interpretability}
 Lastly, the lack of interpretability in generation processes presents challenges for understanding and debugging failures. Unlike sparse retrieval where term matching is transparent \cite{bm25robertson2009, splade10.1145/3404835.3463098}, or dense retrieval where embedding similarity can be analyzed \cite{karpukhin2020densepassageretrievalopendomain}, the internal decision processes of generative retrieval is significantly more opaque \cite{10.1145/3589335.3641239, ross2021evaluatinginterpretabilitygenerativemodels}.
 
+\subsection{Failure Modes in Response Generation}
+\label{subsec:failure-respgen}
+
+After the \gs{GR} framework retrieved a document (or a list thereof), there usually is a component for generating a response for the user, summarizing the results \cite{TODO}.
+
+Summarizing with \gp{LLM} provides failure modes such as hallucination \cite{Huang_2025} and not being up-to-date with latest information \cite{vu-etal-2024-freshllms}. These are usually tackled by methods such as self-reflection \cite{wei2023chainofthoughtpromptingelicitsreasoning, asai2023selfraglearningretrievegenerate} or by incorporating a non-parametric memory component, such as \gs{DPR}, to condition generation on retrieved documents at runtime \cite{lewis2021retrievalaugmentedgenerationknowledgeintensivenlp}, the latter commonly known as \gs{RAG}.
+While the failure modes of \gs{RAG} systems are out-of-scope for this thesis, we briefly summarize the most critical failure modes here:
+\textbf{TODO}
 
 \section{Proposed Failure Taxonomy}
 \label{sec:proposed-failure-taxonomy}
