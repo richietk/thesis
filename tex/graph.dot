@@ -1,0 +1,119 @@
+digraph GenerativeRetrievalFailureModes {
+    graph [
+        rankdir=LR
+        fontname="Helvetica"
+        fontsize=12
+        nodesep=0.1
+        ranksep=1.0
+        splines=polyline
+        pad=0.5
+    ]
+    
+    node [
+        shape=box
+        style="filled"
+        fontname="Helvetica"
+        fontsize=10
+        fillcolor="white"
+        color="#444444"
+        width=2.4
+        fixedsize=false
+        height=0
+    ]
+    
+    edge [
+        color="#666666"
+        arrowsize=0.8
+    ]
+    
+    // Root
+    ROOT [label="GR Failure Modes" fillcolor="#2C3E50" fontcolor="white" style="filled,rounded"]
+
+    // Level 1
+    RET   [label="Document Retrieval"   fillcolor="#1A5276" fontcolor="white"]
+    RESP  [label="Response Generation"  fillcolor="#1A5276" fontcolor="white"]
+
+    // Level 2 – Retrieval branches
+    GEN    [label="DocID Generation"      fillcolor="#154360" fontcolor="white"]
+    SCORE  [label="Scoring"         fillcolor="#154360" fontcolor="white"]
+    STRUCT [label="Architectural"   fillcolor="#154360" fontcolor="white"]
+    DATA   [label="Data & Training"          fillcolor="#154360" fontcolor="white"]
+
+    // Generation Failures leaves
+    FP       [label="False Pruning"               fillcolor="#AED6F1"]
+    HALL     [label="Hallucination"               fillcolor="#AED6F1"]
+    CONTIG   [label="Contiguous N-gram Constraint" fillcolor="#AED6F1"]
+    LENB     [label="Length Bias"                 fillcolor="#AED6F1"]
+    UNIGRAM  [label="Preference for Unigrams"    fillcolor="#AED6F1"]
+    LOWLEX   [label="Low Lexical Specificity"    fillcolor="#AED6F1"]
+    FORGET   [label="Forgetfulness"               fillcolor="#AED6F1"]
+
+    // Scoring Failures leaves
+    META    [label="Metadata Dependency"         fillcolor="#A9CCE3"]
+    SINGLE  [label="Overreliance on Single Identifier" fillcolor="#A9CCE3"]
+    INDIST  [label="Indistinct Identifiers"      fillcolor="#A9CCE3"]
+
+    // Structural Limitations
+    SCALE   [label="Scalability"                  fillcolor="#A9CCE3"]
+    LATENCY [label="Latency"                      fillcolor="#A9CCE3"]
+    INTERP  [label="Interpretability"             fillcolor="#A9CCE3"]
+    CAPACITY[label="Model Capacity"               fillcolor="#A9CCE3"]
+    VOCAB   [label="Vocabulary & Tokenization"   fillcolor="#A9CCE3"]
+
+    // Data & Training
+    DYNAMIC  [label="Dynamic Corpora"             fillcolor="#A9CCE3"]
+    CATFORG  [label="Catastrophic Forgetting"    fillcolor="#D6EAF8"]
+    RECENCY  [label="Recency Bias"                fillcolor="#D6EAF8"]
+    OVERFIT  [label="Overfitting / Underfitting" fillcolor="#A9CCE3"]
+    ZEROSHOT [label="Zero-Shot Retrieval"        fillcolor="#A9CCE3"]
+    SAMPLING [label="Sampling Failures"           fillcolor="#A9CCE3"]
+    CULTURAL [label="Cultural Bias"               fillcolor="#A9CCE3"]
+    ANNOT    [label="Annotation Issues"           fillcolor="#A9CCE3"]
+    PRIVACY  [label="Privacy & Security"          fillcolor="#A9CCE3"]
+
+    // Response Generation leaves
+    RESHALL [label="Hallucination"                fillcolor="#AED6F1"]
+    STALE   [label="Stale Knowledge"              fillcolor="#AED6F1"]
+    RAG     [label="RAG Failures"                 fillcolor="#AED6F1"]
+
+    // Edges
+    ROOT:e -> RET:w
+    ROOT:e -> RESP:w
+
+    RET:e -> GEN:w
+    RET:e -> SCORE:w
+    RET:e -> STRUCT:w
+    RET:e -> DATA:w
+
+    GEN:e -> FP:w
+    GEN:e -> HALL:w
+    GEN:e -> CONTIG:w
+    GEN:e -> LENB:w
+    GEN:e -> UNIGRAM:w
+    GEN:e -> LOWLEX:w
+    GEN:e -> FORGET:w
+
+    SCORE:e -> META:w
+    SCORE:e -> SINGLE:w
+    SCORE:e -> INDIST:w
+
+    STRUCT:e -> SCALE:w
+    STRUCT:e -> LATENCY:w
+    STRUCT:e -> INTERP:w
+    STRUCT:e -> CAPACITY:w
+    STRUCT:e -> VOCAB:w
+
+    DATA:e -> DYNAMIC:w
+    DYNAMIC:e -> CATFORG:w
+    DYNAMIC:e -> RECENCY:w
+    DATA:e -> OVERFIT:w
+    DATA:e -> ZEROSHOT:w
+    DATA:e -> SAMPLING:w
+    DATA:e -> CULTURAL:w
+    DATA:e -> ANNOT:w
+    DATA:e -> PRIVACY:w
+
+    RESP:e -> RESHALL:w
+    RESP:e -> STALE:w
+    RESP:e -> RAG:w
+}

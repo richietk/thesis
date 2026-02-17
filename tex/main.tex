@@ -86,7 +86,7 @@ FOr the query, with encoder-decoder models, the encoder embeds the query into a 
 There has also a number of implementations approaches of \gs{GR}, such combining \gs{GR} with \gs{DR} methods \cite{yuan2024generativedenseretrievalmemory}, generating a list of n-grams as identifiers \cite{bevilacqua2022autoregressivesearchenginesgenerating,li2023multiviewidentifiersenhancedgenerative}, using diffusion models to generate \gp{docid} \cite{zhao2026diffugrgenerativedocumentretrieval, qiao-etal-2023-diffusionret}, %how is this special?
 using non-autoregressive generation \cite{valluri2024scalingvocabularynonautoregressivemodels, zhao2026diffugrgenerativedocumentretrieval}, and aiming to integrate the entire \gs{GR} process into a single \gs{LLM} \cite{tang2024selfretrievalendtoendinformationretrieval}.
 
-After the model ranked a list of \gp{docid} an \gs{LLM}
+After the model ranked a list of \gp{docid} an \gs{LLM}...
 
 \subsection{SEAL Architecture}
 
@@ -222,6 +222,10 @@ GR solutions use intentional hallucination, such as \gs{MINDER}\cite{li2023multi
 
 One of the problems in GR is the apparent forgetting of fine-grained features \cite{yuan2024generativedenseretrievalmemory}. While generative models capture coarse-grained semantic clusters effectively, they struggle to accurately memorize and decode fine-grained document distinctions \cite{wang2025mindrefmimickinghumanmemory}. According to \citet{yuan2024generativedenseretrievalmemory}, error rates (defined as the \% of tokens predicted at a position that does not match the \gs{GT}token in a docid) for NCI \cite{wang2023neuralcorpusindexerdocument} increase significantly at later token positions in \gs{docid} sequences, rising from approximately 1\% at the first position to over 12\% by the sixth position.
 
+Related to forgetfulness is the question how to enable the generative model to memorize its knowledge sharper. %todo
+Similarly, \gs{RAG} for \gs{GR} is also to be explored. %todo these are out of scope
+
+
 \paragraph{Indistinct Identifiers}
 \label{par:distinct-ids}
 
@@ -240,6 +244,8 @@ assign each document a single unique integer identifier \cite{tay2022transformer
 it makes this approach prohibitively expensive for large corpora. As an example, 8.8 million documents (the amount of passages in MsMarcoFull \cite{bajaj2018msmarcohumangenerated}) with a hidden size of 768 (the hidden dimension of the T5-base model \cite{t5-raffel2023exploringlimitstransferlearning})
 adds approximately 6.8 billion parameters to the output layer alone, making this approach prohibitively expensive for large corpora. In contrast, sequential identifiers reuse a fixed vocabulary across multiple decoding steps, keeping parameter count constant regardless of corpus size \cite{kuo2024surveygenerativeinformationretrieval, pradeep2023doesgenerativeretrievalscale}. \textbf{recheck this!}
 
+% https://arxiv.org/pdf/2404.14851
+%A potential solution is to create a large-scale pre-training dataset for generative retrieval on a general corpus, possibly including a variety of common DocIDs such as URLs, titles, and numerical sequences. We can utilize instructions to distinguish generation targets for various DocIDs. Then we can pre-train a GR model from scratch, the model can understand generative retrieval across diverse domains. This method could bridge the gap between language model pre-training data and GR tasks, enhancing the generalization ability of GR models across different corpora
 \paragraph{Dynamic Corpora / Continual Learning}
 \label{dynamic-corpora}
 
@@ -269,8 +275,22 @@ Forgetting occurs when updating a model with new documents degrades its ability 
 
 An additional issue identified is the problem that newly added documents are practically inaccessible until model weights are updated and the model retrained, unlike dense retrieval systems which can index new embeddings instantly without retraining the encoder \cite{kuo2024surveygenerativeinformationretrieval}.
 
+
+\gs{RAG} has been explored as a way to append new knowledge to the model \cite{TODO}
+
 \paragraph{Interpretability}
 Lastly, the lack of interpretability in generation processes presents challenges for understanding and debugging failures. Unlike sparse retrieval where term matching is transparent \cite{bm25robertson2009, splade10.1145/3404835.3463098}, or dense retrieval where embedding similarity can be analyzed \cite{karpukhin2020densepassageretrievalopendomain}, the internal decision processes of generative retrieval is significantly more opaque \cite{10.1145/3589335.3641239, ross2021evaluatinginterpretabilitygenerativemodels}.
+
+\paragraph{Privacy \& Security}
+
+Privacy surrounding \gs{LLM}-memorized content and the risk of models product unsafe content has been a point of great debate nowadays \cite{li2025matchinggenerationsurveygenerative} \cite{TODO} %find some citations
+
+Ensuring generative systems don't violate user privacy or inadvertently return malicious text remains an open challenge.
+
+
+\paragraph{Latency}
+\label{par:latency}
+\textbf{TODO}
 
 \subsection{Failure Modes in Response Generation}
 \label{subsec:failure-respgen}
@@ -299,11 +319,14 @@ Accordingly, we can categorize failure modes based on the \gs{NLP} task they are
 
 \section{Proposed Failure Taxonomy}
 \label{sec:proposed-failure-taxonomy}
-\textbf{TODO}
+\textbf{this is an ai generated PLACEHOLDER!}
+\clearpage
+\includegraphics[width=\linewidth]{assets/taxonomy.pdf}
+\clearpage
 
 \section{Methodology}
 
-Our methodology is threefold. First, we ran \gs{SEAL} and \gs{MINDER} with their default settings on the \gf{nq} \cite{kwiatkowski-etal-2019-natural}, analyzing their outputs. Second, we will run the models on the \gs{MSMARCO} dataset \cite{bajaj2018msmarcohumangenerated} as well.%todo explain reasoning why
+Our methodology is threefold. First, we ran \gs{SEAL} and \gs{MINDER} with their default settings on the \gf{nq} \cite{kwiatkowski-etal-2019-natural}, analyzing their outputs. Second, we will run the models on the \gs{MSMARCO} dataset \cite{bajaj2018msmarcohumangenerated} as well. We use the MSMARCO 300K and NQ 320K subset. %todo explain reasoning why
 Third, we will perform ablation studies based on our identifier failure modes from the literature review  in Section \ref{sec:failure-modes-literature} and the failure modes identified during our analysis of the outputs.
 
 We chose \gf{nq} as it is an academic standard for retrieval benchmarking. The \gs{nq} retrieval corpus consists of a Wikipedia dump split into approximately 21 million passages of 100 tokens each.
@@ -349,8 +372,7 @@ Taking into account the suggestions by \citet{li2025matchinggenerationsurveygene
 \item Normalized Discounted Cumulative Gain (nDCG)
 \end{itemize}
 
-For most of our evaluations, we use $k=1$ and $k=10$. We chose $k=10$ somewhat arbitrarily, as it provides a balance between being too strict by only measuring the top results and being too lax by allowing lower-scored retrieved passages to be included in the analysis. In case the amount of ground truths in a query is less than $k$, we will intentionally chooose our evaluation metrics in such a way to avoid misrepresenting the results. 
-
+For most of our evaluations, we use $k=1$, $k=10$ and $k=100$, following previous works. %cite?
 To analyze distribution, we bin the results into deciles and report them. Additionally, when appropriate, we report the Spearman $rho$ values to analyze monotonic correlation between variables.
 
 
@@ -389,6 +411,7 @@ An important observation is that \gs{MINDER} successfully retrieved the relevant
 
 %note:_ other interesting queries: is banana a fruit or berry, when was the louisiana purchase
 
+Similar questions can be raised for discriminative language, stereotyping, toxicity, and other forms of culture-related biases \cite{gallegos-etal-2024-bias}
 
 
 \paragraph{Annotation Issues}
@@ -484,6 +507,7 @@ If BART doesn't have good representations for domain-specific jargon, e.g. for r
 Supervised GR models usually perform significantly worse on datasets they weren't explicitly trained on \cite{liu2024robustnessgenerativeinformationretrieval, zhang2025replicationexplorationgenerativeretrieval}.
 Since they usually lack robust matching capabilities like that of BM25 or Contriever \cite{TODO} in zero-shot settings because they tend to overfit the training query distribution %source? or did I make that up?
 
+\textbf{Also related, Out-of-distribution retrieval, such as https://arxiv.org/abs/2306.12756}
 \paragraph{Unseen Documents}
 \textbf{UNVALIDATED}
 \label{sec:unseen-docs}
