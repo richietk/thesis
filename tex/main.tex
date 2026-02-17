@@ -10,7 +10,7 @@
 using the \gs{LM} to encode the entire document corpus into the parameters of a single transformer.
 This architecture offers several advantages: it eliminates the need for separate dense vector indexes, reduces storage needs \cite{michele-bevilacqua-autoregressive-search}
 reduces memory footprint \cite{hansi-zeng-planning-ahead}, enables the model to learn document representations jointly with the retrieval objective \cite{weiwei-sun-learning-to,yubao-tang-listwise-generative} %todo recheck
-, and potentially enables the optimization of document representations and retrieval objectives \cite{TODO} %todo too vague? and check
+, and potentially enables the optimization of document representations and retrieval objectives %todo too vague? and check
 add while showing comparable performance on evaluation metrics
 \cite{michele-bevilacqua-autoregressive-search,hansi-zeng-planning-ahead,yubao-tang-listwise-generative}.
 Despite these promising characteristics, generative retrieval systems exhibit distinct failure modes that differ fundamentally from those observed in traditional retrieval architectures. While \gs{IR} failures typically manifest as low similarity scores in vector space, generative retrieval failures can include hallucination of non-existent document identifiers, incorrect pruning during autoregressive generation, poor performance on dynamically expanding corpora, and challenges with scalability \cite{metzler-rethinking-search,ji-survey-of,hansi-zeng-planning-ahead,ronak-pradeep-how-does}, among others.
@@ -50,7 +50,8 @@ The code used for this thesis is available on \href{https://github.com/richietk/
 
 In this section we introduce the concept of \gf{GR} more in depth. 
 
-In \gs{GR}, a model is trained to map queries to relevant \gp{docid}. In many cases, seq2seq models like BART \cite{lewis-bart-denoising} and T5 \cite{colin-raffel-exploring-the} are used, however recently decoder-only models like LLaMa \cite{alec-radford-improving-language} have also been explored \cite{TODO}.
+In \gs{GR}, a model is trained to map queries to relevant \gp{docid}. In many cases, seq2seq models like BART \cite{lewis-bart-denoising} and T5 \cite{colin-raffel-exploring-the} are used, but decoder-only models such as GPT \cite{alec-radford-improving-language} and LLaMa \cite{aaron-grattafiori-the-llama} have been explored as well. %find citation todo
+
 
 A fundamental design decision in \gs{GR} is that of \gp{docid}. A \gs{docid} serves as a unique ``index'' for each document or passage, which the model typically must autoregressively generate. Usually, each \gs{docid} links to one document, making it bijective \cite{xiaoxi-li-from-matching} %todo exemptions?
 These can be categorized in several ways \cite{xiaoxi-li-from-matching}. Numeric-based \gp{docid} use (series of) numbers to represent documents. Some implementations include unique random integers \cite{yi-tay-transformer-memory}, treating integers as tokenizable text strings \cite{yi-tay-transformer-memory}, hierarchical cluster paths \cite{weiwei-sun-learning-to}, RQ\cite{chen-approximate-nearest}-based \gs{docid} sequences \cite{hansi-zeng-scalable-and}. While atomic IDs require the model to memorize random associations, semantic IDs group similar documents together under shared prefix tokens, improving retrieval quality \cite{ronak-pradeep-how-does}. Using \gp{LM} to generate \gp{docid} has also been explored \cite{weiwei-sun-learning-to,hansi-zeng-scalable-and}
@@ -72,8 +73,7 @@ Hybrid docids have also been explored \cite{thong-nguyen-generative-retrieval}.
 %\gs{docid} design is consistently identified as a core challenge affecting these representation issues. Numerical \glsplural{docid} offer efficiency but suffer from limited generalization and overfitting to initial training sets, while string-based \glsplural{docid} maintain better semantic alignment but are more susceptible to false pruning \cite{peitian-zhang-generative-retrieval,zhen-zhang-replication-and,tang-recent-advances}.
 
 During the decoding phase, the generation is usually done autoregressively by an \gs{LM} via a beam-search algorithm, which typically %typically?
-generates a ranked list of docids. Non-autoregressive systems also exist, however, these are the minority \cite{ravisri-valluri-scaling-the,xinpeng-zhao-diffugr-generative}. For standard decoding, encoder-decoder models are the most commonly used, such as BART \cite{lewis-bart-denoising} and T5 \cite{colin-raffel-exploring-the} but decoder-only models such as GPT \cite{alec-radford-improving-language} and LLaMa \cite{aaron-grattafiori-the-llama} for \gs{GR} are explored as well \cite{TODO}.
-
+generates a ranked list of docids. Non-autoregressive systems also exist, however, these are the minority \cite{ravisri-valluri-scaling-the,xinpeng-zhao-diffugr-generative}.
 Decoding is usually constrained to avoid hallucinating nonexistent \gp{docid}. This is usually done via an FM-index \cite{ferragina-opportunistic-data} (e.g. in SEAL \cite{michele-bevilacqua-autoregressive-search}) or a trie (e.g. in GENRE \cite{nicola-de-cao-autoregressive-entity}).
 
 FOr the query, with encoder-decoder models, the encoder embeds the query into a fixed representation, while the decoder uses that to condition \gs{docid} generation. With decoder-only models, the query tokens are encoded implicitly into hidden states for the decoder. %todo recheck
@@ -185,6 +185,7 @@ This thesis intentionally focuses its failure analysis on the core of such syste
 \section{Literature Review of Failure Modes} 
 \label{sec:failure-modes-literature}
 
+\subsection{Failure Modes In Document Retrieval}
 Despite the advantages, \gs{GR} systems exhibit several distinct failure modes, behavioral biases, and structural limitations that motivate this thesis.
 
 \paragraph{False Pruning}
@@ -251,33 +252,53 @@ Forgetting occurs when updating a model with new documents degrades its ability 
 An additional issue identified is the problem that newly added documents are practically inaccessible until model weights are updated and the model retrained, unlike dense retrieval systems which can index new embeddings instantly without retraining the encoder \cite{tzulin-kuo-a-survey}.
 
 We identified the following challenges regarding dynamic corpora/continual learning:
-\begin{itemize}
-    \item How to effectively expand the system's knowledge (e.g., new discoveries)?
-    \item How to efficiently update information (e.g., president changing)?
-    \item How to efficiently delete redundant or incorrect information (e.g., fake news)?
-    \item How to prevent the model from over-prioritizing newly-added documents (e.g., mistaking them as more important/relevant)?
-    \item How to prevent the model from over-prioritizing original/old documents (e.g., mistaking them as more foundational/tested)?
-    \item How to enable the model to index and retrieve new documents without needing a full retraining cycle?
-    \item How to avoid overwriting old information when not desired, and conversely, how to ensure overwriting when intended?
-    \item How to handle new terms that the model’s internal vocab / parametric knowledge does not recognize (e.g. COVID-19, \gs{GR} framework names)?
-    \item How to balance the growing corpus size with the need for adding more parameters?
+\newenvironment{tightitemize}{
+\begin{itemize}\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}{\end{itemize}}
+
+\begin{tightitemize}
+    \item How to effectively expand the system's knowledge?
+    \item How to efficiently update information?
+    \item How to efficiently delete incorrect information?
+    \item How to balance the model's attention to original and new documents?
+    \item How to have the model retrieve new documents without a full retraining cycle?
+    \item How to avoid overwriting old information when not desired, and, conversely, how to ensure overwriting when intended?
+    \item How to handle terms that the model’s parametric knowledge does not recognize?
+    \item How to balance the growing corpus size with the need for more parameters?
     \item How to avoid the model “hallucinating” the retrieval of a document that has been deleted, especially if a full retraining cycle is not conducted?
-    \item How to achieve all these changes in a compute-, time-, and cost-efficient manner?
-\end{itemize}
+    \item How to achieve these in a compute-, time-, and cost-efficient manner?
+\end{tightitemize}
 
 \paragraph{Interpretability}
-Lastly, the lack of interpretability in generation processes presents challenges for understanding and debugging failures. Unlike sparse retrieval where term matching is transparent \cite{robertson-the-probabilistic,formal-splade-sparse}, or dense retrieval where embedding similarity can be analyzed \cite{vladimir-karpukhin-dense-passage}, the internal decision processes of generative retrieval is significantly more opaque \cite{tang-recent-advances,andrew-slavin-ross-evaluating-the}.
+The lack of interpretability in generation processes presents challenges for understanding and debugging failures. Unlike sparse retrieval where term matching is transparent \cite{robertson-the-probabilistic,formal-splade-sparse}, or dense retrieval where embedding similarity can be analyzed \cite{vladimir-karpukhin-dense-passage}, the internal decision processes of generative retrieval is significantly more opaque \cite{tang-recent-advances,andrew-slavin-ross-evaluating-the}.
 
-\paragraph{Privacy \& Security}
 
-Privacy surrounding \gs{LLM}-memorized content and the risk of models producing unsafe content has been a point of great debate nowadays \cite{xiaoxi-li-from-matching} \cite{TODO}
-
-Ensuring generative systems don't violate user privacy or inadvertently return malicious text remains an open challenge.
+\paragraph{Latency}
+\label{sec:latency}
+\textbf{TODO}
+Beam search with constraints is slower than dot-product (or similar) searches.
 
 
 \paragraph{Latency}
 \label{par:latency}
 \textbf{TODO}
+
+
+\paragraph{Zero-Shot Retrieval}
+\label{sec:zero-shot}
+If the model is trained through too few epochs, it can underfit and retrieval can be noisy. If it it trained on too many, the model memorizes the training set too well and loses the ability to generalize to new queries. This is especially problematic if the model is expected to perform ``zero-shot'' retrieval. Supervised GR models usually perform significantly worse on datasets they weren't explicitly trained on \cite{yuan-liu-on-the,zhen-zhang-replication-and}. They usually lack robust matching capabilities like that of BM25 or Contriever \cite{izacard-contriever} in zero-shot settings.
+%todo: rethink how batch sizes, max-updates and epochs are to each other and how to calculate amount of epochs for this specific.
+
+%can overfitting happen also on queries like if the model only learned one type of query style then it won't know what to do if the user phrases a query in a different or a new way? or different types of queries?
+
+%Also related, Out-of-distribution retrieval, such as https://arxiv.org/abs/2306.12756}
+
+\paragraph{Model capacity}
+\label{sec:model-capacity}
+
+\textbf{TODO}
+
+Smaller models might not have capacity to memorize enough docids.
+
 
 \subsection{Failure Modes in Response Generation}
 \label{subsec:failure-respgen}
@@ -285,6 +306,20 @@ Ensuring generative systems don't violate user privacy or inadvertently return m
 After the \gs{GR} framework retrieved a document (or a list thereof), there usually is a component for generating a response for the user, summarizing the results.
 
 Summarizing with \gp{LLM} provides failure modes such as hallucination \cite{huang-a-survey} and not being up-to-date with latest information \cite{vu-freshllms-refreshing}. These are usually tackled by methods such as self-reflection \cite{jason-wei-chainofthought-prompting,akari-asai-selfrag-learning} or by incorporating a non-parametric memory component, such as \gs{DPR}, to condition generation on retrieved documents at runtime \cite{patrick-lewis-retrievalaugmented-generation}, the latter commonly known as \gs{RAG}.
+
+
+\paragraph{Privacy \& Security}
+
+Privacy surrounding \gs{LLM}-memorized content and the risk of models producing unsafe content is a central point \cite{xiaoxi-li-from-matching}. Ensuring generative systems don't violate user privacy or inadvertently return malicious text remains an open challenge.
+
+
+\paragraph{Vocabulary}
+\label{sec:vocab}
+
+
+If an important identifier (e.g. a proper noun) is split into many meaningless subwords, the model might struggle to generate it consistently compared to common words. This can happen even through BART uses BPE, which allows it to to handle ``out-of-vocabulary'' words by breaking them down into known subunits.
+
+Accordingly, if BART doesn't have good representations for domain-specific jargon, e.g. for rare medical terms, retrieval can fail. 
 
 \subsection{Failure Mode Categorization by Downstream Task}
 
@@ -302,7 +337,7 @@ Accordingly, we can categorize failure modes based on the \gs{NLP} task they are
 %How to enable the model to perform well with multimodal data/tasks?
 %How to enable models to perform as recommenders?
 
-\section{Proposed Failure Taxonomy}
+\section{Failure Taxonomy}
 \label{sec:proposed-failure-taxonomy}
 \label{tab:failure-summary}
 %todo duplicate labels
@@ -310,8 +345,8 @@ Accordingly, we can categorize failure modes based on the \gs{NLP} task they are
 
 \section{Methodology}
 
-Our methodology is threefold. First, we ran \gs{SEAL} and \gs{MINDER} with their default settings on the \gf{nq} \cite{kwiatkowski-natural-questions}, analyzing their outputs. Second, we will run the models on the \gs{MSMARCO} dataset \cite{payal-bajaj-ms-marco} as well. Following previous papers, we use the MSMARCO 300K and NQ 320K subset.
-Third, we will perform ablation studies based on our identifier failure modes from the literature review  in Section \ref{sec:failure-modes-literature} and the failure modes identified during our analysis of the outputs.
+Our methodology is threefold. First, we ran \gs{SEAL} and \gs{MINDER} with their default settings on the \gf{nq} \cite{kwiatkowski-natural-questions}, analyzing their outputs. Second, we will run the models on the \gs{MSMARCO} dataset \cite{payal-bajaj-ms-marco} as well. Following previous papers, we use the MSMARCO 300K and NQ 320K subset. %seal and minder have been ran on Msmarco countless times in other papers
+Third, we will perform ablation studies based on our identifier failure modes from the literature review  in Section \ref{sec:failure-modes-literature} and the failure modes identified during our analysis of the outputs. %or maybe no ablation?
 
 We chose \gf{nq} as it is an academic standard for retrieval benchmarking. The \gs{nq} retrieval corpus consists of a Wikipedia dump split into approximately 21 million passages of 100 tokens each.
 
@@ -357,7 +392,7 @@ Taking into account the suggestions by \citet{xiaoxi-li-from-matching}, we use t
 \end{itemize}
 
 For most of our evaluations, we use $k=1$, $k=10$ and $k=100$, following previous works. %cite?
-To analyze distribution, we bin the results into deciles and report them. Additionally, when appropriate, we report the Spearman $rho$ values to analyze monotonic correlation between variables.
+To analyze distribution, we bin the results into deciles and report them. Additionally, when appropriate, we report the Spearman $\rho$ values to analyze monotonic correlation between variables.
 
 
 \section{Failure Analysis}
@@ -419,35 +454,8 @@ directly states the current composition of the Court. \gs{SEAL}'s top result is 
 \textbf{Example 3: ``who is the youngest judge currently sitting on the u.s. supreme court'' (answer: Neil Gorsuch).} The ground-truth passage discusses Gorsuch's nomination process and him being the youngest sitting justice. \gs{SEAL}'s top result
 directly states: ``Neil Gorsuch is the youngest justice sitting, at 50 years of age.'' This is a success, because \gs{SEAL} found a passage that answers the question, even if not annotated.
 
-These examples show that these cases are a mix of such cases. To determine how many fall into each category, in section~\ref{sec:annot}, we apply LLM-as-a-judge to classify whether each retrieved passage genuinely answers the question or not. \textbf{TODO}
+% These examples show that these cases are a mix of such cases. To determine how many fall into each category, in section~\ref{sec:annot}, we apply LLM-as-a-judge to classify whether each retrieved passage genuinely answers the question or not. \textbf{TODO}
 
-
-\paragraph{Zero-Shot Retrieval}
-\label{sec:zero-shot}
-If the model is trained through too few epochs, it can underfit and retrieval can be noisy. If it it trained on too many, the model memorizes the training set too well and loses the ability to generalize to new queries. This is especially problematic if the model is expected to perform ``zero-shot'' retrieval. Supervised GR models usually perform significantly worse on datasets they weren't explicitly trained on \cite{yuan-liu-on-the,zhen-zhang-replication-and}. They usually lack robust matching capabilities like that of BM25 or Contriever \cite{izacard-contriever} in zero-shot settings.
-%todo: rethink how batch sizes, max-updates and epochs are to each other and how to calculate amount of epochs for this specific.
-
-%can overfitting happen also on queries like if the model only learned one type of query style then it won't know what to do if the user phrases a query in a different or a new way? or different types of queries?
-
-%Also related, Out-of-distribution retrieval, such as https://arxiv.org/abs/2306.12756}
-
-
-\paragraph{Unseen Documents}
-\textbf{UNVALIDATED}
-\label{sec:unseen-docs}
-
-GR by default %what does by default mean
-cannot retrieve documents added post-training %cannot? Are there methods or systems that make it able?
-. While the probability is not infinite, as documents added ex-post still get indexed by the FM-index, they are not represented in the training distribution %source
-
-Othertimes, a full retraining is required to index new information. %source
-
-\paragraph{Model capacity}
-\label{sec:model-capacity}
-
-\textbf{TODO}
-
-Smaller models might not have capacity to memorize enough docids.
 
 \paragraph{Length Bias}
 \label{sec:length-bias}
@@ -494,26 +502,6 @@ To understand the results more illustratively, we summarized the table in the fo
     \centering
     \includegraphics[width=0.7\textwidth]{assets/ngram_length_bias_comparison.png}
 \end{figure}
-
-
-\paragraph{Latency}
-\label{sec:latency}
-Beam search with constraints is probably significantly slower than dot-product (or similar) searches \cite{TODO}
-
-
-
-
-\paragraph{Vocabulary}
-\label{sec:vocab}
-
-
-If an important identifier (e.g. a proper noun) is split into many meaningless subwords, the model might struggle to generate it consistently compared to common words. This can happen even through BART uses BPE, which allows it to to handle ``out-of-vocabulary'' words by breaking them down into known subunits.
-
-Accordingly, if BART doesn't have good representations for domain-specific jargon, e.g. for rare medical terms, retrieval can fail. 
-
-\subsection{Generative Failures}
-\label{sec:gen-fail}
-Using the identified failure modes in Table \ref{tab:failure-summary}, we present the analysis results pertaining to generation below.
 
 \paragraph{Low Lexical Specificity}
 \label{sec:failure-low-lex-spec}
@@ -606,11 +594,130 @@ Table \ref{tab:answer-presence-impact} illustrates the results of our analysis. 
 
 We can see that in cases where the answer string is identified among the n-grams, the success rate jumps significantly for both systems. This indicates that direct identification is a strong predictor of retrieval success. Both \gs{SEAL} and \gs{MINDER} are able to retrieve (at least) one correct passage in around ~35\% of cases at the first place and ~73\% of cases among the top-10 retrieved, suggesting that the model is able to identify the semantic environment in which an answer is likely to be in relatively convincingly. That said, the performance gap between the two cases indicates that when the model fails to generate the specific answer as an identifier, the remaining contextual cues are oftentimes too generic to distinguish the correct passage from topically similar alternatives.
 
+We analyzed the relationship between query term availability and retrieval success using SEAL's FM-Index. For each of 6,515 Natural Questions queries, we measured the percentage of query words present in the Wikipedia corpus and correlated this with retrieval performance (Hits@1 and Hits@10). Queries were stratified into deciles based on coverage scores. The mean coverage was $85.2\%$ with $90.5\%$ of all queries having $\geq70\%$ of their terms present in the corpus.
 
-\subsection{Scoring Failures}
 
-Just like in Section \ref{sec:gen-fail}, we present the analysis results of the identified failure modes (Table \ref{tab:failure-summary}) pertaining to scoring below.
+Results revealed no meaningful correlation between corpus coverage and retrieval success (Pearson's $r = 0.017$, $p = 0.165$ for Hits@1; $r = 0.001$, $p = 0.962$ for Hits@10). As shown in Table~\ref{tab:coverage}, queries in D1 achieved 42.1\% Hits@1 and 77.1\% Hits@10, while queries with complete coverage in D1 achieved 44.8\% Hits@1 and 77.4\% Hits@10, effectively identical performance. This null result demonstrates that SEAL's retrieval failures are not primarily driven by out-of-vocabulary terms or lexical gaps.
 
+\begin{table}[H]
+\centering
+\caption{Retrieval performance across corpus coverage deciles. Coverage represents the percentage of query words present in the Wikipedia corpus.}
+\label{tab:coverage}
+\begin{tabular}{lcccc}
+\hline
+\textbf{Decile} & \textbf{Coverage} & \textbf{Hits@1} & \textbf{Hits@10} & \textbf{N} \\
+\hline
+D1 (lowest)  & 0.38--0.70 & 42.1\% & 77.1\% & 651 \\
+D2           & 0.70--0.75 & 37.6\% & 74.7\% & 651 \\
+D3           & 0.75--0.78 & 41.9\% & 76.5\% & 651 \\
+D4           & 0.78--0.88 & 39.2\% & 73.4\% & 651 \\
+D5           & 0.88--0.88 & 40.2\% & 77.1\% & 651 \\
+D6           & 0.88--0.89 & 43.6\% & 76.7\% & 651 \\
+D7           & 0.89--0.90 & 41.5\% & 75.7\% & 651 \\
+D8           & 0.90--1.00 & 41.6\% & 79.3\% & 651 \\
+D9           & 1.00--1.00 & 43.9\% & 73.6\% & 651 \\
+D10 (highest)& 1.00--1.00 & 44.8\% & 77.4\% & 656 \\
+\hline
+\end{tabular}
+\end{table}
+
+
+\paragraph{Impact of N-gram Quantity}
+
+While not a necessarily failure mode, given that \glsxtrshort{SEAL}'s scoring mechanism additively aggregates evidence from multiple n-grams, it is essential to examine whether the quantity of matched n-grams correlates with retrieval success. Intuitively, a higher number of matched n-grams should provide stronger cumulative evidence for a passage and a passage with more matched n-grams has a mathematical advantage over a passage with fewer matched n-grams. However, excessive generation may also introduce noise if additional n-grams are redundant or non-discriminative.
+
+Across 6,515 queries, the number of n-grams matched to the top-1 retrieved passage has a mean of 41.5 (median: 42.0, $\sigma$: 6.3), with a range of 11 to 65. Table~\ref{tab:ngram-count} presents retrieval performance stratified by n-gram count deciles.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Hits@1 and mean n-gram corpus frequency $\bar{F}_c$ by n-gram count deciles for the top-1 retrieved passage.}
+    \label{tab:ngram-count}
+    \begin{tabular}{lrrrr}
+        \toprule
+        \textbf{Decile} & \textbf{Range} & \textbf{$N$} & \textbf{Hits@1} & \textbf{$\bar{F}_c$} \\
+        \midrule
+        D1  & 11--34 & 828  & 36.0\% & 384,785 \\
+        D2  & 35--36 & 495  & 37.4\% & 378,346 \\
+        D3  & 37--39 & 1,017 & 39.5\% & 380,174 \\
+        D4  & 40--40 & 425  & 46.1\% & 392,012 \\
+        D5  & 41--42 & 861  & 45.2\% & 382,931 \\
+        D6  & 43--43 & 448  & 43.8\% & 382,506 \\
+        D7  & 44--45 & 795  & 45.0\% & 385,779 \\
+        D8  & 46--47 & 622  & 42.4\% & 382,767 \\
+        D9  & 48--49 & 432  & 41.7\% & 380,999 \\
+        D10 & 50--65 & 592  & 41.6\% & 371,719 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The relationship between n-gram count and retrieval success is notably weak (Spearman $\rho = 0.040$, $p = 0.001$), exhibiting a non-monotonic, inverted-U pattern. Hits@1 increases from 36.0\% for passages with low identifier counts (D1, $<$34) to a peak of 46.1\% in the fourth decile, subsequently plateauing and slightly declining to 41.6\% for passages in the highest decile (D10, $>$50). This trend suggests that while a minimum amount of evidence is required to identify a passage, accumulating n-grams beyond a moderate threshold yields diminishing returns and does not significantly influence hit-rate.
+
+Notably, the mean n-gram corpus frequency ($\bar{F}_c$) remains stable across all deciles. This stability indicates that the hit-rate plateau is not caused by the model reverting to generic "filler" tokens at higher counts. Instead, the it likely stems from the scoring mechanism's inability to disambiguate between a small set of highly discriminative n-grams and the large aggregate score from multiple, less specific identifiers.
+
+
+\paragraph{Overlapping N-gram Tokens}
+\label{sec:overlapping-ngram-tokens}
+
+We initially hypothesized that cases where the model produces semantically redundant n-grams with high token overlap would constitute a failure mode by inflating scores without providing new evidence. To test this, we measure a ratio defined as the number of unique tokens divided by the total number of tokens across all generated n-grams for the top-1 retrieved query, which we will refer to as ``diversity''. We split up the n-grams into tokens using \texttt{GPT2TokenizerFast}.
+
+Table \ref{tab:token-diversity-ratio} illustrates the results. Contrary to our initial hypothesis, the results reveal a  negative correlation between diversity and hits@k. For \glsxtrshort{SEAL}, $\rho = -0.111$ for  $k=1$ and $\rho = -0.101 $ for  $k=10$. For \glsxtrshort{MINDER}, the Spearman correlations are $\rho = -0.289$ and $\rho = -0.242$, respectively. All values are statistically significant at $p<0.001$.
+
+\begin{table}[H]
+    \centering
+    \caption{Hits@k by token-based diversity ratio deciles (unique / total tokens).}
+    \label{tab:token-diversity-ratio}
+    \begin{tabular}{l|rr|rr}
+        \toprule
+        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
+        \textbf{Decile} & \textbf{Diversity} & \textbf{H@1 / H@10} & \textbf{Diversity} & \textbf{H@1 / H@10} \\
+        \midrule
+        D1  & 0.36--0.48 & 52.6\% / 84.4\% & 0.28--0.56 & 70.9\% / 91.4\% \\
+        D2  & 0.48--0.49 & 46.3\% / 81.4\% & 0.56--0.64 & 64.3\% / 88.6\% \\
+        D3  & 0.49--0.50 & 43.1\% / 78.2\% & 0.64--0.71 & 53.2\% / 85.6\% \\
+        D5  & 0.51--0.52 & 40.4\% / 73.9\% & 0.76--0.79 & 53.7\% / 84.1\% \\
+        D8  & 0.53--0.54 & 34.9\% / 68.1\% & 0.86--0.88 & 32.2\% / 73.2\% \\
+        D10 & 0.56--0.63 & 32.4\% / 69.8\% & 0.92--1.00 & 22.0\% / 55.6\% \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+It is interesting to note that \glsxtrshort{MINDER} has a considerably higher success rate at low diversity scenarios. This is expected, as \glsxtrshort{MINDER}'s generates titles, pseudo-queries, and substrings simultaneously, meaning that the model frequently repeats key tokens across these different identifier views. The highest success rate is found in the lowest diversity decile, which suggests that the model is able to reinforce a specific semantic cluster through multiview identifiers.
+
+These findings suggest that token repetition is not a redundancy failure, but rather a signal of model certainty. When \glsxtrshort{SEAL} and \glsxtrshort{MINDER} are highly confident in a target document, it generates multiple overlapping n-grams that concentrate score on a specific semantic cluster. In contrast, high identifier diversity indicates a lack of model confidence, where the model produces a wide variety of topically related but lexically distinct tokens that fail to converge.
+
+\paragraph{Unique Articles among Passages}
+
+Firstly, we analyze whether there is a correlation with retrieval failure and the amoung of unique titles retrieved in the top-k passages. For this, according to the other analyses, we use $k=10$. Thie analysis is possible, as Wikipedia articles have unique titles.
+
+The results are illustrated in the following table and line chart:
+
+\begin{table}[H]
+    \centering
+    \caption{Hits@k by title repetition count.}
+    \label{tab:title-repetition-impact}
+    \begin{tabular}{l|rr|rr}
+        \toprule
+        & \multicolumn{2}{c|}{\textbf{\glsxtrshort{SEAL}}} & \multicolumn{2}{c}{\textbf{\glsxtrshort{MINDER}}} \\
+        \textbf{Max Repetition\textsuperscript{*}} & \textbf{$N$} & \textbf{H@1 / H@10} & \textbf{$N$} & \textbf{H@1 / H@10} \\
+        \midrule
+        1 & 23    & 30.4\% / 60.9\% & 38    & 28.9\% / 60.5\% \\
+        2                 & 556   & 45.3\% / 70.1\% & 665   & 46.9\% / 72.9\% \\
+        4                 & 653   & 42.1\% / 77.3\% & 819   & 46.8\% / 77.7\% \\
+        6                 & 573   & 41.5\% / 76.1\% & 650   & 45.1\% / 79.5\% \\
+        8                 & 567   & 44.3\% / 78.0\% & 609   & 49.8\% / 82.8\% \\
+        10 & 1,606 & 38.0\% / 76.7\% & 990   & 42.1\% / 79.1\% \\
+        \bottomrule
+        \multicolumn{5}{l}{\small \textsuperscript{*}Maximum number of passages sharing the same title in the top-10 results.}
+    \end{tabular}
+\end{table}
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{assets/title_repetition_comparison.png}
+\end{figure}
+
+We can see that when stratified by maximum title repetition, i.e. the maximum number of passages from the same Wikipedia article per query, \glsxtrshort{MINDER} marginally outperforms \glsxtrshort{SEAL}, especially on queries where the system is relatively sure of the answer, as evidenced by a specific title appearing in several of the top-10 results. We can see that in cases where the max repetition is very low, i.e. the model couldn't confidently pinpoint a single document and is likely guessing, retrieval success suffers. Based on this analysis, there are significantly more cases with high title repetition than low title repetition, indicating that the models are fairly certain about the correct document (or, alternatively, are confidently incorrect about one).
 
 
 \paragraph{Overreliance on a Single Identifier}
@@ -663,30 +770,3 @@ Interestingly, titles still dominate the picture the scoring disproportionately,
 \section{Conclusion} % incl future work
 
 \textbf{TODO}
-
-\section*{AI Use Disclosure}
-Some portions of code for this thesis were generated with the assistance of \textit{Claude by Antropic} and \textit{ChatGPT by OpenAI} large language models. All AI-generated code was reviewed, edited, and verified by the author.
-
-
-\clearpage
-\appendix
-
-\section{LLM-as-Judge prompt}
-
-The prompt used for the LLM-as-Ludge component in Section \ref{sec:annot} is pasted below:
-
-\lstset{breaklines=true}
-\begin{lstlisting}
-Question: [QUESTION]
-Expected answer: [ANSWER]
-Retrieved passage title: [PASSAGE TITLE]
-Retrieved passage text: [PASSAGE TEXT]
-
-Does this passage answer the question?
-- YES: The passage directly answers the question.
-- NO: The answer string appears coincidentally but does not answer the question.
-- PARTIAL: Contains relevant information but requires inference.
-
-The answer explanation should not exceed 100 words. 
-\end{lstlisting}
-
