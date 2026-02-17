@@ -256,3 +256,16 @@ The high variance in scores for unique positive keys compared to unique negative
 \subsection{Examples of advantages of GR (outdated)}
 
 Systems like \gs{SEAL} achieves 7x less storage than DPR while showing comparable accuracy@k and exact match metrics on the \gf{nq} 320k dataset \cite{michele-bevilacqua-autoregressive-search}. Another \gs{GR} system, \gs{PAG} \cite{hansi-zeng-planning-ahead} required approximately 7x less memory to index the entire corpus compared to single-vector dense retrieval models and comparable memory needs to BM25. It achieved comparable or better MRR@10 results on the MS-MARCO Dev set compared to sparse and dense retrieval models. Notably, PAG achieved a 70.1\% improvement over BM25 and an 11.2\% improvement over TAS-B \cite{sebastian-hofsttter-efficiently-teaching}. While some \gs{GR} implementations employ auxiliary data structures for constrained generation (such as \gs{SEAL}'s use of the FM-Index), these differ fundamentally from the separate encoding and indexing stages required by traditional systems. Additionally, the pre-trained language models used in \gs{GR} can perform effectively in zero- and few-shot scenarios when limited labeled data is available \cite{metzler-rethinking-search}.
+
+
+\textbf{TODO FROM HERE}
+If most of the 349 cases are genuine retrievals, then \gs{SEAL}'s effective top-10 recall is closer to 81.5\% rather than 76.1\%. If most are coincidental matches, then 76.1\% remains the accurate figure. Similar calculations can be done for \gs{MINDER}.
+
+For each case, we present a large language model (\texttt{claude-sonnet-4-5\-20250929}) with the original question, the expected answer, and the retrieved passage text, asking it to determine whether the passage genuinely answers the question or whether the answer string's presence is coincidental. The model was chosen based on expected reasoning capabilities and cost of operation.
+
+The judge classifies each case into one of three categories:
+\begin{itemize}
+    \item \textbf{YES}: The passage directly and unambiguously answers the question.
+    \item \textbf{NO}: The answer string appears coincidentally and the passage does not answer the question.
+    \item \textbf{PARTIAL}: The passage provides relevant information from which the answer could be inferred, but does not state it directly.
+\end{itemize}
