@@ -215,6 +215,7 @@ def analyze_dataset(datapath, tokenizer):
         
         # Explicit accumulator for 'Other' category
         total_other_score = 0.0
+        other_count = 0
         
         # Track uncategorized examples
         uncategorized_examples = []
@@ -272,6 +273,7 @@ def analyze_dataset(datapath, tokenizer):
             # --- Logic for Other ---
             elif is_other:
                 total_other_score += score_accum
+                other_count += 1
             
             # --- Uncategorized ---
             else:
@@ -296,6 +298,20 @@ def analyze_dataset(datapath, tokenizer):
         print(f"Total 'Other' Score:      {total_other_score:.4f} ({pct_other_global:.2f}% of global)")
 
         sum_pct = pct_title_global + pct_pseudo_global + pct_other_global
+
+        # --- Average Score Per N-gram Comparison ---
+        avg_title_score = np.mean(title_scores) if title_scores else 0.0
+        avg_pseudo_score = np.mean(pseudo_scores) if pseudo_scores else 0.0
+        avg_other_score = (total_other_score / other_count) if other_count > 0 else 0.0
+
+        if avg_other_score > 0:
+            pct_more_title = (avg_title_score - avg_other_score) / avg_other_score * 100
+            pct_more_pseudo = (avg_pseudo_score - avg_other_score) / avg_other_score * 100
+            print(f"\n--- Average Score Per Unique N-gram (vs 'Other') ---")
+            print(f"Avg Title Score:      {avg_title_score:.4f} ({pct_more_title:+.2f}% vs Other)")
+            if dataset_name == "MINDER":
+                print(f"Avg Pseudo Score:     {avg_pseudo_score:.4f} ({pct_more_pseudo:+.2f}% vs Other)")
+            print(f"Avg 'Other' Score:    {avg_other_score:.4f}")
 
         # --- Ground Truth (Successfully Retrieved) Passages Score Analysis ---
         gt_total_score = gt_title_score + gt_pseudo_score + gt_other_score + gt_uncategorized_score
@@ -491,14 +507,14 @@ def main():
     tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
     
     # Analyze SEAL data
-    analyze_dataset("data/seal_output.json", tokenizer)
+    analyze_dataset("/home/h12313036/MINDER/recreated.json", tokenizer)
     
     # Analyze Minder data if it exists
     minder_path = "data/minder_output.json"
-    if os.path.exists(minder_path):
-        analyze_dataset(minder_path, tokenizer)
-    else:
-        print(f"\nSkipping Minder analysis: {minder_path} not found.")
+    #if os.path.exists(minder_path):
+    #    analyze_dataset(minder_path, tokenizer)
+    #else:
+    #    print(f"\nSkipping Minder analysis: {minder_path} not found.")
 
 if __name__ == "__main__":
     main()

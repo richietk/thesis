@@ -4,7 +4,7 @@ import pandas as pd
 from scipy.stats import spearmanr
 import sys
 import os
-from scripts.utils.utils import get_dataset_name, strip_ngram_markers, parse_ngrams, calculate_retrieval_metrics
+from utils.utils import get_dataset_name, strip_ngram_markers, parse_ngrams, calculate_retrieval_metrics
 
 def analyze_single_ngram_dominance(datapath="data/seal_output.json"):
     """Analyze score concentration in a single n-gram."""
@@ -69,6 +69,10 @@ def analyze_single_ngram_dominance(datapath="data/seal_output.json"):
         median_dom = float(df['dominance'].median())
         std_dom = float(df['dominance'].std())
 
+        # Dominance stdev split by retrieval outcome
+        dom_std_success = float(df.loc[df['success_top1'] == True, 'dominance'].std())
+        dom_std_fail = float(df.loc[df['success_top1'] == False, 'dominance'].std())
+
 
         # Create decile bins
         df['dominance_decile'] = pd.qcut(df['dominance'], q=10, labels=False, duplicates='drop')
@@ -110,6 +114,8 @@ def analyze_single_ngram_dominance(datapath="data/seal_output.json"):
             "mean_dominance": mean_dom,
             "median_dominance": median_dom,
             "std_dominance": std_dom,
+            "dominance_std_success": dom_std_success,
+            "dominance_std_fail": dom_std_fail,
             "precision_at_1": float(df['precision_at_1'].mean()),
             "r_precision": float(df['r_precision'].mean()),
             "deciles": deciles_data,

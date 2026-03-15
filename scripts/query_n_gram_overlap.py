@@ -80,8 +80,9 @@ def analyze_query_ngram_overlap_topk(datapath="data/seal_output.json"):
         df = pd.DataFrame(results)
         total_queries = len(df)
 
-        # Define decile-based coverage bins
+        # Define equal-width coverage bins (0-20, 20-40, 40-60, 60-80, 80-100)
         topk = [1, 10]
+        bin_edges = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
 
         # Collect output data
         output_data = {
@@ -91,41 +92,43 @@ def analyze_query_ngram_overlap_topk(datapath="data/seal_output.json"):
             "r_precision": float(df['r_precision'].mean())
         }
 
-        for k in topk:
-            # Create decile bins for this k
-            df[f'coverage_decile_top{k}'] = pd.qcut(df[f'query_coverage_top{k}'], q=10, labels=False, duplicates='drop')
+        # Bin by top1 coverage so both k=1 and k=10 metrics are computed over the same query groups
+        df['coverage_bin'] = pd.cut(
+            df['query_coverage_top1'],
+            bins=bin_edges,
+            labels=False,
+            include_lowest=True
+        )
 
-            deciles_data = []
-            for decile in sorted(df[f'coverage_decile_top{k}'].unique()):
-                mask = df[f'coverage_decile_top{k}'] == decile
-                if mask.sum() == 0:
-                    continue
+        bins_data = []
+        for bin_idx in range(len(bin_edges) - 1):
+            mask = df['coverage_bin'] == bin_idx
+            if mask.sum() == 0:
+                continue
+            count = mask.sum()
+            bin_entry = {
+                "bin": bin_idx + 1,
+                "coverage_min": bin_edges[bin_idx],
+                "coverage_max": bin_edges[bin_idx + 1],
+                "count": int(count)
+            }
+            for k in topk:
                 success_rate = df.loc[mask, f'success_top{k}'].mean()
-                cov_min = df.loc[mask, f'query_coverage_top{k}'].min()
-                cov_max = df.loc[mask, f'query_coverage_top{k}'].max()
-                count = mask.sum()
+                bin_entry[f"hits_at_{k}"] = float(success_rate * 100)
+            bins_data.append(bin_entry)
 
-                deciles_data.append({
-                    "decile": int(decile) + 1,
-                    "coverage_min": float(cov_min),
-                    "coverage_max": float(cov_max),
-                    f"hits_at_{k}": float(success_rate * 100),
-                    "count": int(count)
-                })
+        output_data["bins"] = bins_data
 
+        for k in topk:
             # Spearman correlation
             corr, p_val = spearmanr(df[f'query_coverage_top{k}'], df[f'success_top{k}'])
-
-            output_data[f"top{k}"] = {
-                "deciles": deciles_data,
+            output_data[f"top{k}_spearman"] = {
                 "spearman_correlation": float(corr),
                 "spearman_p_value": float(p_val)
             }
 
-        # Drop temporary columns
-        for k in topk:
-            if f'coverage_decile_top{k}' in df.columns:
-                df = df.drop(columns=[f'coverage_decile_top{k}'])
+        # Drop temporary column
+        df = df.drop(columns=['coverage_bin'])
 
         # Write JSON output
         json_path = os.path.join(output_dir, f"{script_name}_results.json")

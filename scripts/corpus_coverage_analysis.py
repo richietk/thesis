@@ -5,26 +5,61 @@ Corpus Coverage Analysis for SEAL/MINDER
 This script analyzes whether query term availability in the corpus
 correlates with retrieval success.
 
+The corpus vocabulary is loaded directly from the .oth pickle file
+(no C++ FM-Index required). The .oth file stores the set of all
+token IDs present in the corpus.
+
 Research Question: Do queries with more terms in the corpus perform better?
 
 Usage:
-    python scripts/corpus_coverage_analysis.py data/seal_output.json seal_nq/SEAL-checkpoint+index.NQ/NQ.fm_index
+    # SEAL
+    python scripts/corpus_coverage_analysis.py data/seal_output.json \
+        wip_dirs/SEAL-checkpoint+index.NQ/NQ.fm_index
+
+    # MINDER
+    python scripts/corpus_coverage_analysis.py data/minder_output.json \
+        wip_dirs/MINDER-checkpoint+index.NQ/NQ.fm_index
 """
 
 import json
+import os
+import pickle
 import sys
-from collections import defaultdict
-from seal.index import FMIndex
+
+_thesis_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(_thesis_root, 'scripts'))
+
 from utils.utils import stream_data, get_tokenizer, get_ground_truth_ids
 import numpy as np
 
 
-def analyze_corpus_coverage(fm_index, output_data_path, dataset_name, sample_size=None):
+def load_corpus_vocab(fm_index_base_path):
+    """
+    Load the set of token IDs present in the corpus from the .oth pickle file.
+    No C++ extension required.
+
+    Returns:
+        set of int token IDs
+    """
+    oth_path = fm_index_base_path + '.oth'
+    print(f"Loading corpus vocabulary from {oth_path} ...")
+    with open(oth_path, 'rb') as f:
+        beginnings, occurring, labels = pickle.load(f)
+    vocab = set(occurring)
+    n_docs = len(beginnings) - 1
+    print(f"✓ Loaded: {n_docs:,} documents, {len(vocab):,} unique tokens\n")
+    return vocab
+
+
+def analyze_corpus_coverage(corpus_vocab, output_data_path, dataset_name, sample_size=None):
     """
     Analyze correlation between corpus coverage and retrieval success.
 
+    Coverage is defined as the fraction of query tokens whose token ID
+    appears anywhere in the corpus vocabulary.
+
     Args:
-        fm_index: Loaded SEAL FM-Index
+        corpus_vocab: set of token IDs present in corpus (from load_corpus_vocab)
         output_data_path: Path to SEAL/MINDER output JSON
         dataset_name: Name of dataset (for output path)
         sample_size: Number of queries to analyze (None = all queries)
@@ -51,31 +86,17 @@ def analyze_corpus_coverage(fm_index, output_data_path, dataset_name, sample_siz
             break
         count += 1
 
-        # Get query and ground truth
         gold_ids = get_ground_truth_ids(query_data)
         question = query_data.get('question', '')
 
-        # Calculate coverage: % of query words that exist in corpus
-        # Tokenize, then decode to get words (handles subword tokenization)
+        # Tokenize query and measure what fraction of tokens exist in corpus
         query_tokens = tokenizer.encode(question.lower(), add_special_tokens=False)
-        query_words = tokenizer.decode(query_tokens).split()
-
-        if not query_words:
+        if not query_tokens:
             continue
 
-        # Check which words exist in corpus (word-level, not token-level)
-        words_in_corpus = 0
-        for word in query_words:
-            # Encode the word to token IDs and check if it exists
-            word_tokens = tokenizer.encode(word, add_special_tokens=False)
-            if word_tokens:
-                word_count = fm_index.get_count(word_tokens)
-                if word_count > 0:
-                    words_in_corpus += 1
+        tokens_in_corpus = sum(1 for t in query_tokens if t in corpus_vocab)
+        coverage_score = tokens_in_corpus / len(query_tokens)
 
-        coverage_score = words_in_corpus / len(query_words)
-
-        # Check retrieval success
         retrieved_ids = [ctx.get('passage_id', '') for ctx in query_data.get('ctxs', [])[:10]]
         hits_1 = retrieved_ids[0] in gold_ids if retrieved_ids else False
         hits_10 = any(pid in gold_ids for pid in retrieved_ids)
@@ -89,7 +110,7 @@ def analyze_corpus_coverage(fm_index, output_data_path, dataset_name, sample_siz
 
     print(f"Analyzed {len(all_data)} queries\n")
 
-    # Calculate coverage statistics
+    # Coverage statistics
     coverages = [d["coverage"] for d in all_data]
     mean_coverage = np.mean(coverages)
     median_coverage = np.median(coverages)
@@ -102,7 +123,7 @@ def analyze_corpus_coverage(fm_index, output_data_path, dataset_name, sample_siz
     print(f"  Queries with ≥70% coverage: {pct_high_coverage:.1f}%")
     print()
 
-    # Calculate correlations with p-values
+    # Correlations with p-values
     from scipy import stats
 
     hits_1_vals = [1 if d["hits_1"] else 0 for d in all_data]
@@ -115,31 +136,18 @@ def analyze_corpus_coverage(fm_index, output_data_path, dataset_name, sample_siz
     print(f"  Coverage vs Hits@1:  r = {corr_hits_1:.4f}, p = {p_hits_1:.4f}")
     print(f"  Coverage vs Hits@10: r = {corr_hits_10:.4f}, p = {p_hits_10:.4f}")
 
-    # Interpret statistical significance
-    if p_hits_1 < 0.001:
-        sig_1 = "***"
-    elif p_hits_1 < 0.01:
-        sig_1 = "**"
-    elif p_hits_1 < 0.05:
-        sig_1 = "*"
-    else:
-        sig_1 = "n.s."
-
-    if p_hits_10 < 0.001:
-        sig_10 = "***"
-    elif p_hits_10 < 0.01:
-        sig_10 = "**"
-    elif p_hits_10 < 0.05:
-        sig_10 = "*"
-    else:
-        sig_10 = "n.s."
+    def sig_label(p):
+        if p < 0.001: return "***"
+        if p < 0.01:  return "**"
+        if p < 0.05:  return "*"
+        return "n.s."
 
     print(f"\n  Significance: * p<0.05, ** p<0.01, *** p<0.001, n.s. = not significant")
-    print(f"  Hits@1:  {sig_1}")
-    print(f"  Hits@10: {sig_10}")
+    print(f"  Hits@1:  {sig_label(p_hits_1)}")
+    print(f"  Hits@10: {sig_label(p_hits_10)}")
     print()
 
-    # Create deciles for detailed analysis
+    # Decile breakdown
     all_data.sort(key=lambda x: x["coverage"])
     decile_size = len(all_data) // 10
 
@@ -168,7 +176,6 @@ def analyze_corpus_coverage(fm_index, output_data_path, dataset_name, sample_siz
             "count": len(decile_data)
         }
 
-
     print("DECILE BREAKDOWN:")
     print(f"  {'Decile':<8} {'Coverage':<20} {'Hits@1':<10} {'Hits@10':<10}")
     print(f"  {'-'*60}")
@@ -195,16 +202,21 @@ def analyze_corpus_coverage(fm_index, output_data_path, dataset_name, sample_siz
 def main():
     if len(sys.argv) < 3:
         print("Usage: python corpus_coverage_analysis.py <output_json> <fm_index_base_path>")
-        print("\nExample:")
+        print("\nExamples:")
+        print("  # SEAL")
         print("  python scripts/corpus_coverage_analysis.py \\")
         print("         data/seal_output.json \\")
-        print("         seal_nq/SEAL-checkpoint+index.NQ/NQ.fm_index")
+        print("         wip_dirs/SEAL-checkpoint+index.NQ/NQ.fm_index")
+        print()
+        print("  # MINDER")
+        print("  python scripts/corpus_coverage_analysis.py \\")
+        print("         data/minder_output.json \\")
+        print("         wip_dirs/MINDER-checkpoint+index.NQ/NQ.fm_index")
         sys.exit(1)
 
     output_json = sys.argv[1]
     fm_index_path = sys.argv[2]
 
-    # Determine dataset name
     if "seal" in output_json.lower():
         dataset_name = "seal"
     elif "minder" in output_json.lower():
@@ -216,20 +228,14 @@ def main():
     print("CORPUS COVERAGE ANALYSIS")
     print("="*70)
     print(f"Output JSON: {output_json}")
-    print(f"FM-Index: {fm_index_path}")
+    print(f"FM-Index:    {fm_index_path}")
     print()
 
-    # Load FM-Index
-    print("Loading FM-Index (this may take 30-60 seconds)...")
-    fm_index = FMIndex.load(fm_index_path)
-    print(f"✓ Loaded: {fm_index.n_docs:,} documents\n")
+    corpus_vocab = load_corpus_vocab(fm_index_path)
 
-    # Run analysis
-    results = analyze_corpus_coverage(fm_index, output_json, dataset_name)
+    results = analyze_corpus_coverage(corpus_vocab, output_json, dataset_name)
 
-    # Save results
     output_dir = f"generated_data/{dataset_name}"
-    import os
     os.makedirs(output_dir, exist_ok=True)
 
     output_path = os.path.join(output_dir, "corpus_coverage_analysis.json")

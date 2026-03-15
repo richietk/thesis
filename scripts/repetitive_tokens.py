@@ -65,6 +65,7 @@ def analyze_repetitive_generation(datapath="data/seal_output.json"):
                     'max_repetition': max_repetition,
                     'precision_at_1': metrics['precision_at_1'],
                     'hits_at_10': metrics['hits_at_10'],
+                    'hits_at_100': metrics['hits_at_100'],
                     'r_precision': metrics['r_precision']
                 })
 
@@ -78,7 +79,7 @@ def analyze_repetitive_generation(datapath="data/seal_output.json"):
         # Calculate statistics
         mean_diversity = float(df['diversity_ratio'].mean())
 
-        # Create decile bins
+        # Create decile bins (equal-count)
         df['diversity_decile'] = pd.qcut(df['diversity_ratio'], q=10, labels=False, duplicates='drop')
 
         deciles_data = []
@@ -88,6 +89,7 @@ def analyze_repetitive_generation(datapath="data/seal_output.json"):
                 continue
             success_rate = df.loc[mask, 'success'].mean()
             hits10_rate = df.loc[mask, 'hits_at_10'].mean()
+            hits100_rate = df.loc[mask, 'hits_at_100'].mean()
             div_min = df.loc[mask, 'diversity_ratio'].min()
             div_max = df.loc[mask, 'diversity_ratio'].max()
             count = mask.sum()
@@ -98,6 +100,7 @@ def analyze_repetitive_generation(datapath="data/seal_output.json"):
                 "diversity_max": float(div_max),
                 "hits_at_1": float(success_rate * 100),
                 "hits_at_10": float(hits10_rate * 100),
+                "hits_at_100": float(hits100_rate * 100),
                 "count": int(count)
             })
 
@@ -110,18 +113,24 @@ def analyze_repetitive_generation(datapath="data/seal_output.json"):
         # Correlation with hits@10
         corr_hits10, p_val_hits10 = spearmanr(df['diversity_ratio'], df['hits_at_10'])
 
+        # Correlation with hits@100
+        corr_hits100, p_val_hits100 = spearmanr(df['diversity_ratio'], df['hits_at_100'])
+
         # Collect output data
         output_data = {
             "total_queries": len(df),
             "mean_diversity": mean_diversity,
             "precision_at_1": float(df['precision_at_1'].mean()),
             "hits_at_10": float(df['hits_at_10'].mean()),
+            "hits_at_100": float(df['hits_at_100'].mean()),
             "r_precision": float(df['r_precision'].mean()),
             "deciles": deciles_data,
             "spearman_correlation_hits1": float(corr_hits1),
             "spearman_p_value_hits1": float(p_val_hits1),
             "spearman_correlation_hits10": float(corr_hits10),
-            "spearman_p_value_hits10": float(p_val_hits10)
+            "spearman_p_value_hits10": float(p_val_hits10),
+            "spearman_correlation_hits100": float(corr_hits100),
+            "spearman_p_value_hits100": float(p_val_hits100)
         }
 
         # Write JSON output
