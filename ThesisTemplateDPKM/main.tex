@@ -72,7 +72,7 @@ Decoding is usually constrained to avoid hallucinating nonexistent \gp{docid}. T
 
 For the query, with encoder-decoder models, the encoder embeds the query into a fixed representation, while the decoder uses that to condition \gs{docid} generation. With decoder-only models, the query tokens are encoded implicitly into hidden states for the decoder.
 
-There has been a number of \gs{GR} implementation approaches, such combining \gs{GR} with \gs{DR} methods \cite{peiwen-yuan-generative-dense}, generating a list of n-grams as identifiers \cite{michele-bevilacqua-autoregressive-search,yongqi-li-multiview-identifiers}, using diffusion models to generate \gp{docid} \cite{xinpeng-zhao-diffugr-generative,qiao-diffusionret-diffusionenhanced}, %reread diffugr again to understand
+There has been a number of \gs{GR} implementation approaches, such combining \gs{GR} with \gs{DR} methods \cite{peiwen-yuan-generative-dense}, generating a list of n-grams as identifiers \cite{michele-bevilacqua-autoregressive-search,yongqi-li-multiview-identifiers}, using diffusion models to generate \gp{docid} \cite{xinpeng-zhao-diffugr-generative,qiao-diffusionret-diffusionenhanced}, 
 non-autoregressive generation \cite{ravisri-valluri-scaling-the,xinpeng-zhao-diffugr-generative}, implementing \gs{RLHF} \cite{zhou-yujia-enhancing-generative}, using non-unique \gp{docid} \cite{tianchi-yang-auto-search}, and aiming to integrate the entire \gs{GR} process into a single \gs{LLM} \cite{qiaoyu-tang-selfretrieval-endtoend}. Multimodal \gs{GR} models have also been explored \cite{zhang-irgen}, however, such methods are out-of-scope for this thesis.
 
 \subsection{SEAL Architecture}
@@ -216,9 +216,7 @@ For MINDER on MSMARCO, the average annotated correct passage count per query is 
 
 \paragraph{Evaluation Metrics}
 
-%Taking into account the suggestions by \citet{xiaoxi-li-from-matching}, we use...
-
-We used Hits@k to determine retrieval performance for \gs{SEAL} and \gs{MINDER}. For most of our evaluations, we use $k=1$, $k=10$ and $k=100$, following previous works. %cite?
+We used Hits@k to determine retrieval performance for \gs{SEAL} and \gs{MINDER}. For most of our evaluations, we use $k=1$, $k=10$ and $k=100$, following previous works. 
 To analyze distribution, we bin the results into deciles and report them. Additionally, when appropriate, we report the Spearman $\rho$ values to analyze monotonic correlation between variables.
 
 For MSMARCO, we include MRR, nDCG, and Recall when appropriate.
@@ -255,8 +253,8 @@ If an important identifier (e.g. a proper noun) is split into many meaningless s
 \subparagraph{DocID assignment is often a static pre-processing step decoupled from the E2E gradient}
 Many \gs{GR} implementations use static, pre-computed document identifiers, which act as a decoupled preprocessing step in the retrieval pipeline \cite{tianchi-yang-auto-search}. Because these DocIDs are typically assigned before the model training begins, 
 
-Non-differentiability can be considered a failure mode in the optimization of \gs{GR} systems. Since in most models %citaton and which exactly!
-\gp{docid} are assigned via a non-differentiable argmax function (which necessitates a static preprocessing phase), %recheck to be clear
+Non-differentiability can be considered a failure mode in the optimization of \gs{GR} systems. Since in most models 
+\gp{docid} are assigned via a non-differentiable argmax function (which necessitates a static preprocessing phase), 
 such models form a ``fake end-to-end'' framework, according to \citet{tianchi-yang-auto-search}. Static, pre-computed document identifiers are a decoupled preprocessing step in the retrieval pipeline as DocIDs are typically assigned before the model training begins, thus the indexing module cannot receive gradient updates from the retrieval decoder. Consequently, the model is stuck with a potentially sub-optimal document representation that it cannot refine, forcing the decoder to ``meaninglessly mimic'' the index rather than autonomously learning to shape the identifier space to maximize retrieval accuracy \cite{tianchi-yang-auto-search}. This restricts the model’s ability to move beyond rote memorization. \citet{tianchi-yang-auto-search} proposes the use of the Straight-Through Estimator \cite{bengio-ste} as a reparameterization mechanism.
 
 Non-discrete \gp{docid} (such as embedding vectors) have been explored as a solution by replacing the argmax operation with a continuous similarity function, essentially forming a hybrid between traditional \gs{GR} and \gs{DR} models \cite{zihan-wang-novo, thong-nguyen-generative-retrieval, peiwen-yuan-generative-dense}.
@@ -276,7 +274,7 @@ Consider a passage stating ``Tom likes pizza and tomatoes'' and a query ``does T
 \paragraph{Training}
 
 \subparagraph{Sequential indexing of new documents causes the model to "forget" the initial corpus}
-Continuously updating the corpora has been a central challenge in \gs{GR}. When a model is fine-tuned to index new documents, it often suffers from forgetting, where the ability to retrieve previously learned documents degrades. Several models have been proposed for solving such issues, such as using frozen pre-trained \gp{LM} \cite{varsha-kishore-incdsi-incrementally,guo-corpusbrain-a} %cite better explanation,
+Continuously updating the corpora has been a central challenge in \gs{GR}. When a model is fine-tuned to index new documents, it often suffers from forgetting, where the ability to retrieve previously learned documents degrades. Several models have been proposed for solving such issues, such as using frozen pre-trained \gp{LM} \cite{varsha-kishore-incdsi-incrementally,guo-corpusbrain-a} 
 and updating only specific \gs{PQ} clusters in \gs{PQ}-based models \cite{chen-continual-learning}.
 
 
@@ -294,7 +292,7 @@ Unlike traditional \gf{IR} systems where a document can be removed from an inver
 , which is a significant challenge for production-ready compliance and content management systems \cite{sanket-vaibhav-mehta-dsi-updating}.
 
 \subparagraph{Implicit Western-centricity in the model's parametric knowledge and English datasets}
-\gs{GR} models often default to Western-centric interpretations of ambiguous queries because they are trained on datasets which are overwhelmingly English-based and Western-focused, such as the English Wikipedia \cite{kwiatkowski-natural-questions, payal-bajaj-ms-marco}. English content in public corpora is itself not culturally neutral, as a substantial portion reflects Western (particularly US and Eurocentric) perspectives and framing simply because such sources dominate English public corpora. As BART (which \gs{SEAL} and \gs{MINDER} uses) was trained on the English Wikipedia and on BookCorpus \cite{zhu-aligning,yinhan-liu-roberta-a}, it can be presumed that BART would implicitly default to Western interpretations in ambiguous cases. Other commonly used language models, such as T5 and LLaMa-3 \cite{colin-raffel-exploring-the,aaron-grattafiori-the-llama} were also trained on overwhelmingly English data. Similar bias was also demonstrated for LLMs %which LLMs, autoregressive? or all kind of? also demonstrated for encoder-decoder seq2seq? for bidirectional masked models? T5? bart? bert? is bart even autoregressive? which does each paper analyze?
+\gs{GR} models often default to Western-centric interpretations of ambiguous queries because they are trained on datasets which are overwhelmingly English-based and Western-focused, such as the English Wikipedia \cite{kwiatkowski-natural-questions, payal-bajaj-ms-marco}. English content in public corpora is itself not culturally neutral, as a substantial portion reflects Western (particularly US and Eurocentric) perspectives and framing simply because such sources dominate English public corpora. As BART (which \gs{SEAL} and \gs{MINDER} uses) was trained on the English Wikipedia and on BookCorpus \cite{zhu-aligning,yinhan-liu-roberta-a}, it can be presumed that BART would implicitly default to Western interpretations in ambiguous cases. Other commonly used language models, such as T5 and LLaMa-3 \cite{colin-raffel-exploring-the,aaron-grattafiori-the-llama} were also trained on overwhelmingly English data. Similar bias was also demonstrated for LLMs
 by multiple papers \cite{tarek-naous-having-beer,md-abdul-aowal-detecting-natural,navigli-biases-in}. 
 
 Similarly, the NQ dataset is also based on the English Wikipedia \cite{kwiatkowski-natural-questions}, adding onto the issue. Such a ``Western-centricity'' can be also be shown in other commonly used datasets, such as MSMarco \cite{payal-bajaj-ms-marco}, Trivia QA \cite{joshi-triviaqa-a} and the KILT datasets \cite{fabio-petroni-kilt-a}.
@@ -318,7 +316,7 @@ Many documents in a large corpus lack associated labeled queries, meaning the \g
 \subparagraph{The model’s capacity fails to scale with corpus size}
 Generative retrieval models face significant challenges regarding parametric capacity, as models have increasingly been tested on large corpora. The ``parameter budget'' of the transformer can become insufficient to encode nuances of a massive corpus. According to \citet{ronak-pradeep-how-does} the retrieval effectiveness of the DSI \cite{yi-tay-transformer-memory} model drops significantly on the full MS MARCO dataset \cite{payal-bajaj-ms-marco} (8.8M passages) as the corpus scales, with MRR@10 falling from 80.3 on a 100k subset to just 24.2 on the full collection. They found that that a T5-XXL (11B) \cite{colin-raffel-exploring-the} model underperformed a T5-XL (3B) model under identical settings. This is in accordance with \citet{michele-bevilacqua-autoregressive-search} who argued that memorizing fixed document identifiers fails to scale when applied to the 21M passages of the NQ \cite{kwiatkowski-natural-questions} Wikipedia corpus. \citet{peiwen-yuan-generative-dense} reached a similar conclusion, stating that when the corpus size exceeds the available memory of the parameters, it hinders retrieval accuracy. They showed that scaling the NCI \cite{yujing-wang-a-neural} model from a 334k to a 1M document corpus on the NQ \cite{kwiatkowski-natural-questions} dataset showed resulted in an 11.0 percentage point drop.
 
-As explained by \citet{yujia-zhou-ultron-an}, the use of unstructured atomic identifiers (i.e. assigning unique, non-semantic integers as \gp{docid}) does not fic this issue either. Since the output projection layer has dimensions of hidden size × vocabulary size \cite{reusch-reverseengineering-the,yi-tay-transformer-memory}, %is this relevant
+As explained by \citet{yujia-zhou-ultron-an}, the use of unstructured atomic identifiers (i.e. assigning unique, non-semantic integers as \gp{docid}) does not fic this issue either. Since the output projection layer has dimensions of hidden size × vocabulary size \cite{reusch-reverseengineering-the,yi-tay-transformer-memory},
 it makes this approach prohibitively expensive for large corpora. As an example, 8.8 million documents (the amount of passages in MsMarcoFull \cite{payal-bajaj-ms-marco}) with a hidden size of 768 (the hidden dimension of the T5-base model \cite{colin-raffel-exploring-the})
 adds approximately 6.8 billion parameters to the output layer alone, making this approach prohibitively expensive for large corpora. Sequential identifiers reuse a fixed vocabulary across multiple decoding steps, keeping parameter count constant regardless of corpus size \cite{tzulin-kuo-a-survey,ronak-pradeep-how-does}. As an example, \gs{PQ}-based \gp{docid} allows for \gs{docid} tokens to be ``sharable'' among documents.
 
@@ -343,7 +341,7 @@ Replacing transformer-based architectures with alternatives like RetNet \cite{su
 \gs{GR} models often exhibit a length bias, where they disproportionately prefer shorter identifiers because token probabilities are multiplicative and tend to shrink as the sequence length increases \cite{peiwen-yuan-generative-dense, michele-bevilacqua-autoregressive-search, yongqi-li-multiview-identifiers, peitian-zhang-generative-retrieval}. Consequently, the model may favor a shorter, more generic DocID, e.g. ``War'', over a longer, more discriminative one, e.g. ``The Napoleonic Wars'', because the shorter sequence is ``safer'' to generate without making a mistake. This bias drowns out highly specific, unique identifiers, essentially punishing long but precise DocIDs \cite{hansi-zeng-scalable-and}.
 
 \subparagraph{Error rates increase at later token positions in a docID sequence, fine-grained features disappear}
-Empirical analysis of \gs{GR} generation reveals that models frequently experience "drift" at the end of long identifiers, where fine-grained features of the DocID are lost as the model "loses its train of thought" \cite{peiwen-yuan-generative-dense}. Error rates for generated tokens often increase from 1% at the first position to over 12% by the sixth position. This suggests that the \gs{GR} framework struggles to maintain the structural integrity of complex DocIDs, leading to invalid or near-miss identifiers that point to the wrong document or result in a total failure to retrieve any target at all \cite{ye-wang-mindref-mimicking}.
+Empirical analysis of \gs{GR} generation reveals that models frequently experience "drift" at the end of long identifiers, where fine-grained features of the DocID are lost as the model "loses its train of thought" \cite{peiwen-yuan-generative-dense}. Error rates for generated tokens often increase from 1\% at the first position to over 12\% by the sixth position. This suggests that the \gs{GR} framework struggles to maintain the structural integrity of complex DocIDs, leading to invalid or near-miss identifiers that point to the wrong document or result in a total failure to retrieve any target at all \cite{ye-wang-mindref-mimicking}.
 
 \subparagraph{Passages retrieved are not sufficiently distinct}
 Generative retrieval may retrieve a list of passages that are topically redundant, failing to provide the diverse perspectives needed for ambiguous queries, such as "What is IVF?" \cite{cheng-descriptive-and, weiwei-sun-learning-to}. The model’s guess might match only one intent (e.g., the medical procedure), completely ignoring others (e.g., the inverted file index). This lack of diversity in the ranked list is a critical failure mode in \gs{GR}, as the models often lack a mechanism to force the generation of distinct DocIDs that cover different facets of an ambiguous query, unlike traditional IR systems that can employ diversity re-ranking \cite{xiaoxi-li-from-matching}.
@@ -351,7 +349,7 @@ Generative retrieval may retrieve a list of passages that are topically redundan
 \subparagraph{Generation of docIDs that do not exist in the corpus}
 Related is the problem of hallucination, in which the model generates invalid (with respect to the pre-defined document index) identifiers. Constrained decoding is often used to eliminate this problem with solutions such as constraining the docid generation through an FM-index \cite{michele-bevilacqua-autoregressive-search} or a trie \cite{nicola-de-cao-autoregressive-entity}. Using Bloom filters \cite{bloom-spacetime-tradeoffs} or cuckoo filters \cite{fan-cuckoo} could be another method. There have been several implementations of constrained decoding, such as \gs{SEAL} \cite{michele-bevilacqua-autoregressive-search} and \gs{MINDER} \cite{yongqi-li-multiview-identifiers}.
  
-Several %several?
+Several
 GR solutions use intentional hallucination, such as \gs{MINDER}\cite{yongqi-li-multiview-identifiers}, where the generation of additional identifiers, such as pseudoqueries is achieved through intentional, constrained hallucination of docid generation.
 
 
@@ -383,19 +381,16 @@ A critical failure occurs when the \gs{LLM}'s parametric knowledge directly conf
 \subparagraph{Annotation Issues}
 \label{sec:annotation}
 
-% this is not a failure of the GR system but of the dataset. Although GR is evaluated on such dataset, so implicitly it influences it. Maybe move out to discussion or limitations? or idk?
-
-
 The reliability of GR evaluation depends on the quality of \gs{GT} annotations in benchmark datasets. When those contain annotation errors, such as relevant passages incorrectly labeled as negative or vice versa, the measured performance metrics no longer accurately reflect a system's true retrieval capabilities. These can lead to misleading conclusions being published that do not generalize to real-world scenarios or accurately represent comparisons.
 
 For QA tasks, multiple passages may contain semantically equivalent answers but only a subset are annotated as ground truth. The authors of MS MARCO, TriviaQA, and NQ each acknowledge this concern \cite{payal-bajaj-ms-marco,joshi-triviaqa-a,kwiatkowski-natural-questions}.
 
 During our analysis, we identified such cases where the annotation can cause misleading evaluation results. Here we present 3 such examples:
-\textbf{Example 1: ``which apostle had a thorn in his side'' (answer: Paul).} The ground-truth passage %the only \gs{GT}passage?
+\textbf{Example 1: ``which apostle had a thorn in his side'' (answer: Paul).} The ground-truth passage 
 is from the Wikipedia article ``Thorn in the flesh,'' which explains that Paul the Apostle used this phrase in 2 Corinthians 12:7--9. \gs{SEAL}'s  top-1 result 
 was from Galatians 3, which mentions ``Paul the Apostle'' as the author of that epistle but contains nothing about a thorn. Even though \gs{SEAL} seemed to be able to identify ``Paul'' as a relevant term, potentially from BART's parametric knowledge, Galatians 3 is the wrong chapter entirely. \gs{SEAL} matched on generic terms (``Paul,'' ``apostle'') but never generated n-grams containing ``thorn'' for the top-1 result.
 
-\textbf{Example 2: ``how many judges currently serve on the supreme court'' (answer: nine).} The ground-truth passage %which \gs{GT}passage?
+\textbf{Example 2: ``how many judges currently serve on the supreme court'' (answer: nine).} The ground-truth passage 
 directly states the current composition of the Court. \gs{SEAL}'s top result is a historical passage stating that in 1869, ``the Circuit Judges Act returned the number of justices to nine, where it has since remained.'' This is borderline, because the reader could infer the answer, but the passage is not specifically about the current number of judges.
 
 \textbf{Example 3: ``who is the youngest judge currently sitting on the u.s. supreme court'' (answer: Neil Gorsuch).} The ground-truth passage discusses Gorsuch's nomination process and him being the youngest sitting justice. \gs{SEAL}'s top result
@@ -572,10 +567,10 @@ Interestingly, titles still dominate the picture the scoring disproportionately,
 
 For \gs{SEAL}, this is best illustrated by the query: ``where did the southern song have their capital'' from the NQ dataset.
 
-Although the correct answer is Lin'an (the query referring to the Southern Song Dynasty), \gs{SEAL} focused entirely on passages about the southern United States, especially about about Tennessee and Virginia. The model likely %likely? cant you be sure?
+Although the correct answer is Lin'an (the query referring to the Southern Song Dynasty), \gs{SEAL} focused entirely on passages about the southern United States, especially about about Tennessee and Virginia. The model likely
 found a quasi-perfect ``query keyword match'' for such passages and connected ``southern'' with the southern US, ``song'' with country music, the 'Dixie' song and the 'Music City' sobriquet of Nashville, Tennessee, and, building onto these, ``capital'' with Nashville being the capital of Tennesse and Richmond being the capital of Virginia and the former capital of the confederate South. These substrings, while common, were likely propped up by their implicit connection to the US in the dataset and BART, even though they possess different meanings in a US geography context versus a 12th-century Chinese history context.
 
-There is no ground truth passages retrieved in the \textit{top-100} retrieved passages, which consists entirely of passages about the southern United States. This is also an example of \textit{false pruning}, as \gs{SEAL}seemingly %seemingly?
+There is no ground truth passages retrieved in the \textit{top-100} retrieved passages, which consists entirely of passages about the southern United States. This is also an example of \textit{false pruning}, as \gs{SEAL}seemingly
 discarded the tokens related to the Song Dynasty early on. This example can also be considered a failure of term disambiguation. 
 
 An important observation is that \gs{MINDER} successfully retrieved the relevant passages. All queries in the \textit{top-100} retrieved passages were in some way relevant to Ancient China, with the first ground-truth passage appearing at rank-4. Both systems use BART-large as their autoregressive language model and the same dataset to build their FM-index. The observed success is therefore likely due to the use of pseudoqueries. Since BART is capable of generating the correct terms, failure in \gs{SEAL} happened likely due to failing to disambiguate the context, in which pseudoqueries assisted. For the highest-ranked retrieved \gs{GT} passage, \gs{MINDER} generated pseudoqueries such as \textit{what was the capital of the song dynasty in north china} and \textit{who took over the capital of the song dynasty}.
@@ -764,9 +759,7 @@ As explained by \citet{xiaoxi-li-from-matching}, \gs{GR} has mostly been applied
 While our taxonomy identifies failures common to the GR paradigm, aiming to explain them in a task-agnostic way,  certain failure modes may be more or less severe depending on the downstream task:
 \begin{itemize}
     \item Indistinct identifiers serve as a critical failure mode in entity linking when terms are ambiguous. As an example, IVF could mean both \textit{Inverted File Index} and \textit{In vitro fertilization}.
-    %cite a source
-    \item Vocabulary/tokenization issues are exacerbated in code retrieval scenarios, as splitting tokens may break semantic units in programming language syntax %cite source
-    % give one more example
+    \item Vocabulary/tokenization issues are exacerbated in code retrieval scenarios, as splitting tokens may break semantic units in programming language syntax
 \end{itemize}
 
 Empirical validation of these task-specific effects requires dedicated experiments beyond the scope of this work.
