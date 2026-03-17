@@ -87,19 +87,19 @@ def analyze_title_repetition(datapath="data/seal_output.json"):
         for count in sorted(df['same_title_count'].unique()):
             group = df[df['same_title_count'] == count]
 
-        grouped_stats.append({
-            'same_title_count': int(count),
-            'num_queries': len(group),
-            'pct_of_total': float(100 * len(group) / len(df)),
-            'hits@10_rate': float(group['hits@10'].mean() * 100),
-            'hits@10_std': float(group['hits@10'].std() * 100),
-            'hits@1_rate': float(group['hits@1'].mean() * 100),
-            'hits@1_std': float(group['hits@1'].std() * 100),
-            'r_precision_avg': float(group['r_precision'].mean()),
-            'r_precision_std': float(group['r_precision'].std()),
-            'avg_unique_titles': float(group['unique_titles_in_top10'].mean()),
-            'unique_titles_std': float(group['unique_titles_in_top10'].std())
-        })
+            grouped_stats.append({
+                'same_title_count': int(count),
+                'num_queries': len(group),
+                'pct_of_total': float(100 * len(group) / len(df)),
+                'hits@10_rate': float(group['hits@10'].mean() * 100),
+                'hits@10_std': float(group['hits@10'].std() * 100),
+                'hits@1_rate': float(group['hits@1'].mean() * 100),
+                'hits@1_std': float(group['hits@1'].std() * 100),
+                'r_precision_avg': float(group['r_precision'].mean()),
+                'r_precision_std': float(group['r_precision'].std()),
+                'avg_unique_titles': float(group['unique_titles_in_top10'].mean()),
+                'unique_titles_std': float(group['unique_titles_in_top10'].std())
+            })
 
 
         # Overall statistics

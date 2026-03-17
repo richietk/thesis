@@ -28,15 +28,15 @@ def get_dataset_name(datapath: str) -> str:
 
 
 def strip_ngram_markers(ngram: str, datapath: str) -> str:
-    """Strip pseudoquery markers from ngrams if using Minder data."""
-    if "minder" in datapath.lower():
+    """Strip pseudoquery markers from ngrams if using Minder NQ data."""
+    if "minder_nq" in datapath.lower():
         ngram = ngram.replace(" ||", "").strip()
     return ngram
 
 
 def strip_pseudoqueries(text: str, datapath: str) -> str:
-    """Strip pseudoquery markers from text if using Minder data."""
-    if "minder" in datapath.lower():
+    """Strip pseudoquery markers from text if using Minder NQ data."""
+    if "minder_nq" in datapath.lower():
         # Remove || ... @@ patterns
         text = re.sub(r'\|\|[^@]*@@', '', text)
     return text
