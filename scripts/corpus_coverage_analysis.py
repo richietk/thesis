@@ -1,29 +1,5 @@
 #!/usr/bin/env python
-"""
-Corpus Coverage Analysis for SEAL/MINDER
 
-This script analyzes whether query term availability in the corpus
-correlates with retrieval success.
-
-The corpus vocabulary is loaded directly from the .oth pickle file
-(no C++ FM-Index required). The .oth file stores the set of all
-token IDs present in the corpus.
-
-Research Question: Do queries with more terms in the corpus perform better?
-
-Usage:
-    # SEAL NQ
-    python scripts/corpus_coverage_analysis.py data/seal_nq_output.json \
-        wip_dirs/SEAL-checkpoint+index.NQ/NQ.fm_index
-
-    # MINDER NQ
-    python scripts/corpus_coverage_analysis.py data/minder_nq_output.json \
-        wip_dirs/MINDER-checkpoint+index.NQ/NQ.fm_index
-
-    # MINDER MSMARCO
-    python scripts/corpus_coverage_analysis.py data/minder_msmarco_output.json \
-        wip_dirs/MINDER-checkpoint+index.MSMARCO/MSMARCO.fm_index
-"""
 
 import json
 import os
