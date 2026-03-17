@@ -6,6 +6,7 @@ from pathlib import Path
 from scipy.stats import spearmanr
 import sys
 import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import matplotlib.pyplot as plt
 from utils.utils import get_dataset_name, strip_ngram_markers, parse_ngrams, calculate_retrieval_metrics
 
@@ -226,6 +227,12 @@ def analyze_ngram_length_bias(datapath="data/seal_output.json"):
         print(f"error: running {script_name} {e}")
         raise
 
+DATASETS = [
+    'data/seal_nq_output.json',
+    'data/minder_nq_output.json',
+    'data/minder_msmarco_output.json',
+]
+
 if __name__ == "__main__":
-    datapath = sys.argv[1] if len(sys.argv) > 1 else 'data/seal_output.json'
-    analyze_ngram_length_bias(datapath)
+    for datapath in DATASETS:
+        analyze_ngram_length_bias(datapath)

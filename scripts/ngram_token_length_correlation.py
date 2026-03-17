@@ -1,4 +1,6 @@
 import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ijson
 from scipy.stats import spearmanr
 from transformers import GPT2TokenizerFast
@@ -47,6 +49,12 @@ def main(datapath="data/seal_output.json"):
     except Exception as e:
         print(f"Error: {e}")
 
+DATASETS = [
+    'data/seal_nq_output.json',
+    'data/minder_nq_output.json',
+    'data/minder_msmarco_output.json',
+]
+
 if __name__ == "__main__":
-    path = sys.argv[1] if len(sys.argv) > 1 else "data/seal_output.json"
-    main(path)
+    for path in DATASETS:
+        main(path)

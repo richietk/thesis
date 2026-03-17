@@ -3,8 +3,11 @@ import json
 import ijson
 import numpy as np
 import matplotlib.pyplot as plt
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from typing import List, Dict
-from utils.utils import parse_ngrams, stream_data
+from utils.utils import parse_ngrams, stream_data, get_dataset_name
 
 def get_top_k_ngram_scores(datapath: str, k: int = 10) -> List[np.ndarray]:
     """
@@ -59,42 +62,57 @@ def calculate_averages(scores_list: List[List[float]], k: int = 10) -> np.ndarra
             averages.append(0.0)
     return np.array(averages)
 
+DATASETS = [
+    'data/seal_nq_output.json',
+    'data/minder_nq_output.json',
+    'data/minder_msmarco_output.json',
+]
+
 def main():
     k = 10
-    seal_path = '../data/seal_output.json'
-    minder_path = '../data/minder_output.json'
-    
-    seal_scores = get_top_k_ngram_scores(seal_path, k)
-    minder_scores = get_top_k_ngram_scores(minder_path, k)
-    
-    seal_avg = calculate_averages(seal_scores, k)
-    minder_avg = calculate_averages(minder_scores, k)
-    
-    # Plotting
+
+    all_scores = {}
+    all_avgs = {}
+    for datapath in DATASETS:
+        scores = get_top_k_ngram_scores(datapath, k)
+        dataset_name = get_dataset_name(datapath)
+        all_scores[dataset_name] = scores
+        all_avgs[dataset_name] = calculate_averages(scores, k)
+
+    # Comparison plot: seal_nq vs minder_nq
+    seal_avg = all_avgs.get('seal_nq', np.zeros(k))
+    minder_avg = all_avgs.get('minder_nq', np.zeros(k))
+
     x = np.arange(1, k + 1)
-    width = 0.35
-    
+
     fig, ax = plt.subplots(figsize=(10, 6))
-    ax.plot(x, seal_avg, marker='o', label='SEAL', color='skyblue', linewidth=2)
-    ax.plot(x, minder_avg, marker='s', label='MINDER', color='salmon', linewidth=2)
-    
+    ax.plot(x, seal_avg, marker='o', label='SEAL (NQ)', color='skyblue', linewidth=2)
+    ax.plot(x, minder_avg, marker='s', label='MINDER (NQ)', color='salmon', linewidth=2)
+    if 'minder_msmarco' in all_avgs:
+        ax.plot(x, all_avgs['minder_msmarco'], marker='^', label='MINDER (MSMARCO)', color='green', linewidth=2)
+
     ax.set_ylabel('Average N-gram Score Contribution (%)')
     ax.set_xlabel('N-gram Rank (by Score)')
-    ax.set_title('Mean N-gram Contribution to Total Passage Score on NQ')
+    ax.set_title('Mean N-gram Contribution to Total Passage Score')
     ax.set_xticks(x)
     ax.grid(True, linestyle='--', alpha=0.7)
     ax.legend()
-    
+
     plt.tight_layout()
-    plt.savefig('ngram_score_comparison.png')
-    print("Plot saved to ngram_score_comparison.png")
-    
-    # Print numerical results for quick check
+    output_dir = 'generated_data/shared'
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, 'ngram_score_comparison.png')
+    plt.savefig(output_path)
+    plt.close()
+    print(f"Plot saved to {output_path}")
+
+    # Print numerical results
     print("\nNumerical Averages (Percentage of total score):")
-    print(f"{'Rank':<5} | {'SEAL (%)':<10} | {'MINDER (%)':<10}")
-    print("-" * 35)
+    print(f"{'Rank':<5} | {'seal_nq (%)':<12} | {'minder_nq (%)':<14} | {'minder_msmarco (%)'}")
+    print("-" * 60)
+    msmarco_avg = all_avgs.get('minder_msmarco', np.zeros(k))
     for i in range(k):
-        print(f"{i+1:<5} | {seal_avg[i]:<10.2f} | {minder_avg[i]:<10.2f}")
+        print(f"{i+1:<5} | {seal_avg[i]:<12.2f} | {minder_avg[i]:<14.2f} | {msmarco_avg[i]:<.2f}")
 
 if __name__ == "__main__":
     main()

@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 import ijson
 import json
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from pathlib import Path
 from collections import defaultdict
 
@@ -83,23 +86,31 @@ def analyze_minder_output(filepath):
 
     return stats
 
+DATASETS = [
+    'data/seal_nq_output.json',
+    'data/minder_nq_output.json',
+    'data/minder_msmarco_output.json',
+]
+
 def main():
-    print("running script")
-    try:
-        input_file = Path('data/minder_output.json')
-        output_dir = Path('generated_data/minder')
-        output_dir.mkdir(parents=True, exist_ok=True)
+    for datapath in DATASETS:
+        basename = os.path.splitext(os.path.basename(datapath))[0]
+        dataset_name = '_'.join(basename.split('_')[:2])
+        print(f"running script on {dataset_name}")
+        try:
+            output_dir = Path(f'generated_data/{dataset_name}')
+            output_dir.mkdir(parents=True, exist_ok=True)
 
-        stats = analyze_minder_output(input_file)
+            stats = analyze_minder_output(datapath)
 
-        output_file = output_dir / 'pseudoquery_analysis.json'
-        with open(output_file, 'w') as f:
-            json.dump(stats, f, indent=2)
+            output_file = output_dir / 'pseudoquery_analysis.json'
+            with open(output_file, 'w') as f:
+                json.dump(stats, f, indent=2)
 
-        print("script success")
-    except Exception as e:
-        print(f"script error {e}")
-        raise
+            print(f"script success for {dataset_name}")
+        except Exception as e:
+            print(f"script error for {dataset_name}: {e}")
+            raise
 
 if __name__ == '__main__':
     main()

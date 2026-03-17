@@ -12,13 +12,17 @@ token IDs present in the corpus.
 Research Question: Do queries with more terms in the corpus perform better?
 
 Usage:
-    # SEAL
-    python scripts/corpus_coverage_analysis.py data/seal_output.json \
+    # SEAL NQ
+    python scripts/corpus_coverage_analysis.py data/seal_nq_output.json \
         wip_dirs/SEAL-checkpoint+index.NQ/NQ.fm_index
 
-    # MINDER
-    python scripts/corpus_coverage_analysis.py data/minder_output.json \
+    # MINDER NQ
+    python scripts/corpus_coverage_analysis.py data/minder_nq_output.json \
         wip_dirs/MINDER-checkpoint+index.NQ/NQ.fm_index
+
+    # MINDER MSMARCO
+    python scripts/corpus_coverage_analysis.py data/minder_msmarco_output.json \
+        wip_dirs/MINDER-checkpoint+index.MSMARCO/MSMARCO.fm_index
 """
 
 import json
@@ -199,52 +203,38 @@ def analyze_corpus_coverage(corpus_vocab, output_data_path, dataset_name, sample
     }
 
 
+DATASETS = [
+    ('data/seal_nq_output.json',      'data/seal_fm_index/NQ.fm_index'),
+    ('data/minder_nq_output.json',    'data/minder_fm_index/psgs_w100.fm_index'),
+    ('data/minder_msmarco_output.json', 'data/minder_fm_index/msmarco-passage-corpus.fm_index'),
+]
+
 def main():
-    if len(sys.argv) < 3:
-        print("Usage: python corpus_coverage_analysis.py <output_json> <fm_index_base_path>")
-        print("\nExamples:")
-        print("  # SEAL")
-        print("  python scripts/corpus_coverage_analysis.py \\")
-        print("         data/seal_output.json \\")
-        print("         wip_dirs/SEAL-checkpoint+index.NQ/NQ.fm_index")
+    for output_json, fm_index_path in DATASETS:
+        basename = os.path.splitext(os.path.basename(output_json))[0]
+        dataset_name = '_'.join(basename.split('_')[:2])
+
+        print("\n" + "="*70)
+        print("CORPUS COVERAGE ANALYSIS")
+        print("="*70)
+        print(f"Output JSON: {output_json}")
+        print(f"FM-Index:    {fm_index_path}")
         print()
-        print("  # MINDER")
-        print("  python scripts/corpus_coverage_analysis.py \\")
-        print("         data/minder_output.json \\")
-        print("         wip_dirs/MINDER-checkpoint+index.NQ/NQ.fm_index")
-        sys.exit(1)
 
-    output_json = sys.argv[1]
-    fm_index_path = sys.argv[2]
+        corpus_vocab = load_corpus_vocab(fm_index_path)
 
-    if "seal" in output_json.lower():
-        dataset_name = "seal"
-    elif "minder" in output_json.lower():
-        dataset_name = "minder"
-    else:
-        dataset_name = "unknown"
+        results = analyze_corpus_coverage(corpus_vocab, output_json, dataset_name)
 
-    print("\n" + "="*70)
-    print("CORPUS COVERAGE ANALYSIS")
-    print("="*70)
-    print(f"Output JSON: {output_json}")
-    print(f"FM-Index:    {fm_index_path}")
-    print()
+        output_dir = f"generated_data/{dataset_name}"
+        os.makedirs(output_dir, exist_ok=True)
 
-    corpus_vocab = load_corpus_vocab(fm_index_path)
+        output_path = os.path.join(output_dir, "corpus_coverage_analysis.json")
+        with open(output_path, 'w') as f:
+            json.dump(results, f, indent=2)
 
-    results = analyze_corpus_coverage(corpus_vocab, output_json, dataset_name)
-
-    output_dir = f"generated_data/{dataset_name}"
-    os.makedirs(output_dir, exist_ok=True)
-
-    output_path = os.path.join(output_dir, "corpus_coverage_analysis.json")
-    with open(output_path, 'w') as f:
-        json.dump(results, f, indent=2)
-
-    print(f"\n{'='*70}")
-    print(f"✓ Results saved to: {output_path}")
-    print(f"{'='*70}\n")
+        print(f"\n{'='*70}")
+        print(f"✓ Results saved to: {output_path}")
+        print(f"{'='*70}\n")
 
 
 if __name__ == "__main__":

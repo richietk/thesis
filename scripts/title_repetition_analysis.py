@@ -7,6 +7,7 @@ from collections import Counter
 from pathlib import Path
 import sys
 import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from utils.utils import get_dataset_name, calculate_retrieval_metrics
 
 
@@ -138,7 +139,7 @@ def analyze_title_repetition(datapath="data/seal_output.json"):
         print("-"*80)
 
         for stat in grouped_stats:
-            print(f"{stat['max_same_title_count']:<20} "
+            print(f"{stat['same_title_count']:<20} "
                   f"{stat['num_queries']:<15} "
                   f"{stat['pct_of_total']:<14.2f}% "
                   f"{stat['hits@10_rate']:<14.2f}%")
@@ -154,10 +155,10 @@ def analyze_title_repetition(datapath="data/seal_output.json"):
 def create_comparison_chart():
     """Create comparison chart with large legend and labels."""
     print("Creating comparison chart...")
-    
+
     # Load data
-    seal_path = "generated_data/seal/title_repetition_analysis_results.json"
-    minder_path = "generated_data/minder/title_repetition_analysis_results.json"
+    seal_path = "generated_data/seal_nq/title_repetition_analysis_results.json"
+    minder_path = "generated_data/minder_nq/title_repetition_analysis_results.json"
     output_dir = "generated_data/shared"
     
     try:
@@ -223,37 +224,13 @@ def create_comparison_chart():
     print(f"Chart saved to: {output_path}")
     plt.close()
 
+DATASETS = [
+    'data/seal_nq_output.json',
+    'data/minder_nq_output.json',
+    'data/minder_msmarco_output.json',
+]
+
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        # If argument provided, run on that specific file
-        datapath = sys.argv[1]
+    for datapath in DATASETS:
         analyze_title_repetition(datapath)
-    else:
-        # No arguments: run on both datasets and create comparison chart
-        seal_json_path = "generated_data/seal/title_repetition_analysis_results.json"
-        minder_json_path = "generated_data/minder/title_repetition_analysis_results.json"
-
-        seal_exists = os.path.exists(seal_json_path)
-        minder_exists = os.path.exists(minder_json_path)
-
-        if seal_exists and minder_exists:
-            print("JSON results already exist. Skipping analysis, regenerating image only...\n")
-        else:
-            print("No arguments provided. Running on both SEAL and Minder datasets...\n")
-
-            # Run on SEAL if needed
-            if not seal_exists:
-                analyze_title_repetition('data/seal_output.json')
-                print()
-            else:
-                print("SEAL results already exist, skipping...\n")
-
-            # Run on Minder if needed
-            if not minder_exists:
-                analyze_title_repetition('data/minder_output.json')
-                print()
-            else:
-                print("Minder results already exist, skipping...\n")
-
-        # Create comparison chart
-        create_comparison_chart()
+    create_comparison_chart()

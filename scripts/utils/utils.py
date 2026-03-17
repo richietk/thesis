@@ -21,25 +21,22 @@ def get_tokenizer():
 
 
 def get_dataset_name(datapath: str) -> str:
-    """Extract dataset name (seal or minder) from datapath."""
-    if "minder" in datapath.lower():
-        return "minder"
-    elif "seal" in datapath.lower():
-        return "seal"
-    else:
-        return os.path.splitext(os.path.basename(datapath))[0]
+    """Extract dataset name from first two underscore-separated words of filename."""
+    basename = os.path.splitext(os.path.basename(datapath))[0]
+    parts = basename.split('_')
+    return '_'.join(parts[:2])
 
 
 def strip_ngram_markers(ngram: str, datapath: str) -> str:
     """Strip pseudoquery markers from ngrams if using Minder data."""
-    if "minder_output.json" in datapath:
+    if "minder" in datapath.lower():
         ngram = ngram.replace(" ||", "").strip()
     return ngram
 
 
 def strip_pseudoqueries(text: str, datapath: str) -> str:
     """Strip pseudoquery markers from text if using Minder data."""
-    if "minder_output.json" in datapath:
+    if "minder" in datapath.lower():
         # Remove || ... @@ patterns
         text = re.sub(r'\|\|[^@]*@@', '', text)
     return text

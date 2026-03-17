@@ -2,6 +2,7 @@ import json
 import matplotlib.pyplot as plt
 import os
 import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 def plot_ngram_length_comparison():
     """Create unified chart comparing SEAL and MINDER ngram length bias results."""
@@ -10,8 +11,8 @@ def plot_ngram_length_comparison():
 
     try:
         # Paths to the JSON files
-        seal_path = "generated_data/seal/ngram_length_bias_results.json"
-        minder_path = "generated_data/minder/ngram_length_bias_results.json"
+        seal_path = "generated_data/seal_nq/ngram_length_bias_results.json"
+        minder_path = "generated_data/minder_nq/ngram_length_bias_results.json"
 
         # Load JSON data
         with open(seal_path, 'r') as f:

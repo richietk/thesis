@@ -2,6 +2,7 @@ import sys
 import ijson
 import numpy as np
 import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from collections import defaultdict
 from transformers import GPT2TokenizerFast
 from utils.utils import parse_ngrams
@@ -503,18 +504,16 @@ def analyze_dataset(datapath, tokenizer):
     except Exception as e:
         print(f"Error processing {datapath}: {e}")
 
+DATASETS = [
+    'data/seal_nq_output.json',
+    'data/minder_nq_output.json',
+    'data/minder_msmarco_output.json',
+]
+
 def main():
     tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
-    
-    # Analyze SEAL data
-    analyze_dataset("/home/h12313036/MINDER/recreated.json", tokenizer)
-    
-    # Analyze Minder data if it exists
-    minder_path = "data/minder_output.json"
-    #if os.path.exists(minder_path):
-    #    analyze_dataset(minder_path, tokenizer)
-    #else:
-    #    print(f"\nSkipping Minder analysis: {minder_path} not found.")
+    for datapath in DATASETS:
+        analyze_dataset(datapath, tokenizer)
 
 if __name__ == "__main__":
     main()

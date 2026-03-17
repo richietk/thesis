@@ -4,6 +4,7 @@ import pandas as pd
 from pathlib import Path
 import sys
 import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from utils.utils import strip_ngram_markers, get_dataset_name, parse_ngrams, calculate_retrieval_metrics
 
 def analyze_answer_coverage(datapath="data/seal_output.json"):
@@ -146,6 +147,12 @@ def analyze_answer_coverage(datapath="data/seal_output.json"):
         print(f"error: running {script_name} {e}")
         raise
 
+DATASETS = [
+    'data/seal_nq_output.json',
+    'data/minder_nq_output.json',
+    'data/minder_msmarco_output.json',
+]
+
 if __name__ == "__main__":
-    datapath = sys.argv[1] if len(sys.argv) > 1 else 'data/seal_output.json'
-    analyze_answer_coverage(datapath)
+    for datapath in DATASETS:
+        analyze_answer_coverage(datapath)

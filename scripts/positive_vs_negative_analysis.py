@@ -6,7 +6,8 @@ import re
 import json
 import argparse
 from collections import defaultdict
-from utils.utils import parse_ngrams
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from utils.utils import parse_ngrams, get_dataset_name
 
 def analyze_dataset(datapath):
     """Analyze dataset and return results as a dictionary."""
@@ -503,59 +504,42 @@ def display_results(results):
 
     print(f"\n{'='*60}\n")
 
+DATASETS = [
+    'data/seal_nq_output.json',
+    'data/minder_nq_output.json',
+    'data/minder_msmarco_output.json',
+]
+
 def main():
     parser = argparse.ArgumentParser(description='Analyze positive vs negative passage retrieval')
     parser.add_argument('-re', '--rerun', action='store_true',
                         help='Force rerun of analysis even if cached results exist')
     args = parser.parse_args()
 
-    # Create output directories
-    os.makedirs("generated_data/seal", exist_ok=True)
-    os.makedirs("generated_data/minder", exist_ok=True)
+    for datapath in DATASETS:
+        dataset_name = get_dataset_name(datapath)
+        output_dir = f"generated_data/{dataset_name}"
+        os.makedirs(output_dir, exist_ok=True)
+        results_path = os.path.join(output_dir, "positive_vs_negative_results.json")
 
-    # Analyze SEAL data
-    seal_path = "data/seal_output.json"
-    seal_results_path = "generated_data/seal/positive_vs_negative_results.json"
+        if not os.path.exists(datapath):
+            print(f"Data not found: {datapath}")
+            continue
 
-    if os.path.exists(seal_path):
-        if args.rerun or not os.path.exists(seal_results_path):
-            print(f"Analyzing SEAL dataset...")
-            results = analyze_dataset(seal_path)
+        if args.rerun or not os.path.exists(results_path):
+            print(f"Analyzing {dataset_name} dataset...")
+            results = analyze_dataset(datapath)
             if results:
-                with open(seal_results_path, 'w') as f:
+                with open(results_path, 'w') as f:
                     json.dump(results, f, indent=2)
-                print(f"Results saved to {seal_results_path}")
+                print(f"Results saved to {results_path}")
         else:
-            print(f"Loading cached SEAL results from {seal_results_path}")
-            with open(seal_results_path, 'r') as f:
+            print(f"Loading cached results from {results_path}")
+            with open(results_path, 'r') as f:
                 results = json.load(f)
 
         if results:
             display_results(results)
-    else:
-        print(f"SEAL data not found: {seal_path}")
-
-    # Analyze Minder data
-    minder_path = "data/minder_output.json"
-    minder_results_path = "generated_data/minder/positive_vs_negative_results.json"
-
-    if os.path.exists(minder_path):
-        if args.rerun or not os.path.exists(minder_results_path):
-            print(f"Analyzing MINDER dataset...")
-            results = analyze_dataset(minder_path)
-            if results:
-                with open(minder_results_path, 'w') as f:
-                    json.dump(results, f, indent=2)
-                print(f"Results saved to {minder_results_path}")
-        else:
-            print(f"Loading cached MINDER results from {minder_results_path}")
-            with open(minder_results_path, 'r') as f:
-                results = json.load(f)
-
-        if results:
-            display_results(results)
-    else:
-        print(f"\nSkipping Minder analysis: {minder_path} not found.")
 
 if __name__ == "__main__":
     main()
