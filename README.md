@@ -18,7 +18,7 @@ Each script will run itself on each 3 model output data.
 
 ### Tying data in thesis to scripts
 
-#### Section 2 — Background
+#### Section 2 — Information Retrieval
 
 - "N-gram length is strongly correlated with frequency (ρ = −0.835, p < 0.001)."
   - `scripts/ngram_token_length_correlation.py`, output to terminal.
@@ -36,7 +36,7 @@ Each script will run itself on each 3 model output data.
 
 - Non-discriminative DocIDs
   - N-gram corpus frequency stats
-    - scripts/nonspecific_highfreq_ngrams.py`, output in `generated_data/[dataset]/nonspecific_highfreq_ngrams_results.json` -> fields `avg_frequency_top5` and `avg_frequency_all`.
+    - `scripts/nonspecific_highfreq_ngrams.py`, output in `generated_data/[dataset]/nonspecific_highfreq_ngrams_results.json` -> fields `avg_frequency_top5` and `avg_frequency_all`.
   - Table 2
     - `scripts/nonspecific_highfreq_ngrams.py`, output in ``generated_data/[dataset]/nonspecific_highfreq_ngrams_results.json`-> field `deciles_top5`, subfields `hits@1_pct`, `hits@10_pct`, `hits@100_pct`.
   - Table 3
@@ -66,7 +66,7 @@ Each script will run itself on each 3 model output data.
 
 - Query-to-DocID Overlap
   - Spearman correlations in text (query overlap section)
-    - scripts/query_n_gram_overlap.py`, output in `generated_data/[dataset]/query_n_gram_overlap_results.json` -> Spearman correlation fields.
+    - `scripts/query_n_gram_overlap.py`, output in `generated_data/[dataset]/query_n_gram_overlap_results.json` -> Spearman correlation fields.
   - Table 7
     - `scripts/query_n_gram_overlap.py`, output in `generated_data/[dataset]/query_n_gram_overlap_results.json`
 
