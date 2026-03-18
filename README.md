@@ -40,7 +40,7 @@ The generated results are uploaded to `generated_data/`. Please note that some s
   - N-gram corpus frequency stats
     - `scripts/nonspecific_highfreq_ngrams.py`, output in `generated_data/[dataset]/nonspecific_highfreq_ngrams_results.json` -> fields `avg_frequency_top5` and `avg_frequency_all`.
   - Table 2
-    - `scripts/nonspecific_highfreq_ngrams.py`, output in ``generated_data/[dataset]/nonspecific_highfreq_ngrams_results.json`-> field `deciles_top5`, subfields `hits@1_pct`, `hits@10_pct`, `hits@100_pct`.
+    - `scripts/nonspecific_highfreq_ngrams.py`, output in `generated_data/[dataset]/nonspecific_highfreq_ngrams_results.json`-> field `deciles_top5`, subfields `hits@1_pct`, `hits@10_pct`, `hits@100_pct`.
   - Table 3
     - `scripts/nonspecific_highfreq_ngrams.py`, output in `generated_data/[dataset]/nonspecific_highfreq_ngrams_results.json` -> field `deciles_top5`, subfields `mrr`, `recall@10`, `recall@100`, `ndcg@10`, `ndcg@100`.
   - Spearman correlations in text
