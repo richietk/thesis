@@ -14,7 +14,7 @@ Running the scripts:
 - run from the base directory e.g. `python scripts/[scriptname].py`
 - OR run ./run_all_scripts.sh
 
-Each script will run itself on each 3 model output data.
+Each script will run itself on each 3 model output data and save its results either to the terminal or to `generated_data/`.
 
 The generated results are uploaded to `generated_data/`. Please note that some scripts output to the terminal only. 
 
