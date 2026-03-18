@@ -59,33 +59,20 @@ def analyze_ngram_frequency(datapath="data/seal_output.json"):
                 success_top20 = int(any(ctx['passage_id'] in positive_ids for ctx in ctxs[:20]))
                 success_top100 = int(any(ctx['passage_id'] in positive_ids for ctx in ctxs[:100]))
 
-                # Aggregate n-gram statistics across top-5 passages
-                per_passage_top5_freqs = []
-                per_passage_top5_lengths = []
-                per_passage_ngram_counts = []
-                all_frequencies = []
-                all_top10_freqs = []
-
-                for ctx in ctxs[:5]:
-                    p_ngrams = parse_ngrams(ctx.get('keys', ''))
-                    if not p_ngrams:
-                        continue
-                    p_sorted = sorted(p_ngrams, key=lambda x: x[2], reverse=True)
-                    p_top5 = p_sorted[:5]
-                    p_top10 = p_sorted[:10]
-                    per_passage_ngram_counts.append(len(p_ngrams))
-                    per_passage_top5_freqs.append(np.mean([ng[1] for ng in p_top5]))
-                    per_passage_top5_lengths.append(np.mean([len(ng[0].strip()) for ng in p_top5]))
-                    all_frequencies.extend([freq for _, freq, _ in p_ngrams])
-                    all_top10_freqs.extend([ng[1] for ng in p_top10])
-
-                if not per_passage_top5_freqs:
+                # N-gram statistics from top-1 passage only
+                ngrams = parse_ngrams(ctxs[0].get('keys', ''))
+                if not ngrams:
                     continue
 
-                frequencies = all_frequencies
-                top_5_freq = per_passage_top5_freqs
-                top_10_freq = all_top10_freqs
-                top_5_lengths = per_passage_top5_lengths
+                sorted_ngrams = sorted(ngrams, key=lambda x: x[2], reverse=True)
+                top_5 = sorted_ngrams[:5]
+                top_10 = sorted_ngrams[:10]
+
+                frequencies = [freq for _, freq, _ in ngrams]
+                top_5_freq = [ng[1] for ng in top_5]
+                top_10_freq = [ng[1] for ng in top_10]
+                top_5_lengths = [len(ng[0].strip()) for ng in top_5]
+                per_passage_ngram_counts = [len(ngrams)]
 
                 # Calculate retrieval metrics
                 retrieved_ids = [ctx['passage_id'] for ctx in ctxs]

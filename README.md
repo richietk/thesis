@@ -2,12 +2,25 @@ Bachelor's thesis: Taxonomy and Analysis of Failure Modes in N-gram Based Genera
 
 Data: https://drive.google.com/drive/folders/1efondSjYtrF2LzWv2Zi0_KVe5CxRUik-?usp=sharing
 
+Download output data from the google drive link above, place it in a folder called data/
+
+```
+├── data
+│   ├── minder_msmarco_output.json
+│   ├── minder_nq_output.json
+│   └── seal_nq_output.json
+```
+Running the scripts:
+- run from the base directory like `python scripts/[scriptname].py`
+- OR run ./run_all_scripts.sh
+
 ## Scripts (`scripts/`)
 
 - `ngram_token_length_correlation.py` — Section 2 (ρ = −0.835 number, page 6). Computes Spearman correlation between n-gram token length and corpus frequency. Outputs to terminal.
 - `analyze_positive_ctxs.py` — Section 3 "Methodology". Computes statistics and histogram of ground-truth positive context counts per query. Outputs results to generated_data/[model_dataset]/positive_ctxs_histogram.png
 - `nonspecific_highfreq_ngrams.py` — Tables 2, 3. Correlates top-5 n-gram corpus frequency with retrieval metrics across deciles. Outputs results to generated_data/[model_dataset]/nonspecific_highfreq_ngrams_results.json
 - `ngram_length_bias.py` — Tables 4, 5. Correlates unigram proportion with retrieval metrics across deciles. Outputs results to generated_data/[model_dataset]/ngram_length_bias_results.json
+- `plot_ngram_length_comparison.py` — Plots unigram fraction vs. Hits@1 and Hits@10 for both models on NQ. Outputs to generated_data/shared/ngram_length_bias_comparison.png
 - `title_ngram_analysis.py` — Section 5 "Metadata Dependency". Compares title vs. non-title n-gram score contributions. Outputs results to terminal.
 - `positive_vs_negative_analysis.py` — Section 5 "Metadata Dependency". Computes title score differential between positive and negative passages. Outputs results to terminal.
 - `answer_coverage.py` — Table 6. Checks whether the answer string appears in generated n-grams and correlates with hit rate. Reported only on SEAL NQ and MINDER NQ. Outptus to generated_data/[model_dataset]/answer_coverage_results.json
