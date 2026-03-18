@@ -16,9 +16,9 @@ Running the scripts:
 
 Each script will run itself on each 3 model output data.
 
----
+### Tying data in thesis to scripts
 
-### Section 2 — Background
+#### Section 2 — Background
 
 - "N-gram length is strongly correlated with frequency (ρ = −0.835, p < 0.001)."
   - `scripts/ngram_token_length_correlation.py`, output to terminal.
@@ -26,13 +26,13 @@ Each script will run itself on each 3 model output data.
 - Table 1
   - this table was constructed manually from inspecting the raw output data (`data/seal_nq_output.json`).
 
-## Section 3 — Methodology
+#### Section 3 — Methodology
 
 - Positive Context Stats / Histogram
   - `scripts/analyze_positive_ctxs.py`
   - Output to `generated_data/[model_dataset]/positive_ctxs_histogram.png`, stats outputted to terminal
 
-## Section 5 — RQ2
+#### Section 5 — RQ2
 
 - Non-discriminative DocIDs
   - N-gram corpus frequency stats
@@ -83,7 +83,7 @@ Each script will run itself on each 3 model output data.
     - `scripts/title_repetition_analysis.py`, output in `generated_data/[dataset]/title_repetition_results.json`. Also produces the line chart.
 
 
-#### Scripts (`scripts/`)
+#### Script Explanations (`scripts/`)
 
 - `ngram_token_length_correlation.py` — Section 2 (ρ = −0.835 number, page 6). Computes Spearman correlation between n-gram token length and corpus frequency. Outputs to terminal.
 - `analyze_positive_ctxs.py` — Section 3 "Methodology". Computes statistics and histogram of ground-truth positive context counts per query. Outputs results to generated_data/[model_dataset]/positive_ctxs_histogram.png
@@ -99,4 +99,4 @@ Each script will run itself on each 3 model output data.
 - `generate_score_concentr_graph.py` — Generates score concentration comparison chart for SEAL and MINDER for the presentation. Outputs to generated_data/shared/ngram_score_comparison.png
 - `repetitive_tokens.py` — Table 9. Computes token diversity ratio across generated n-grams and correlates with retrieval success.
 - `title_repetition_analysis.py` — Table 10 + chart. Counts passages sharing the same title in top-10 results and correlates with Hits@10.
-- `utils/utils.py` — Shared utility functions (tokenization, metrics, n-gram parsing) used across all scripts.
+- `utils/utils.py` — Shared utility functions (e.g. tokenization, metrics, n-gram parsing) used across all scripts.
