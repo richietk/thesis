@@ -1,9 +1,10 @@
 .vscode
 .claude
-temp_data/
 generated_data/
-data/
-wip_dirs/
+
+data/*
+!data/.gitkeep
+
 
 *.acn
 *.acr
@@ -24,5 +25,3 @@ wip_dirs/
 
 scripts/__pycache__/
 scripts/utils/__pycache__/
-
-tex/main2.tex
