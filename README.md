@@ -16,6 +16,8 @@ Running the scripts:
 
 Each script will run itself on each 3 model output data.
 
+The generated results are uploaded to `generated_data/`. Please note that some scripts output to the terminal only. 
+
 ### Tying data in thesis to scripts
 
 #### Section 2 — Information Retrieval
