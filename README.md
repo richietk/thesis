@@ -1,8 +1,8 @@
-Bachelor's thesis: Taxonomy and Analysis of Failure Modes in N-gram Based Generative Retrieval
+### Bachelor's thesis: Taxonomy and Analysis of Failure Modes in N-gram Based Generative Retrieval
 
 Data: https://drive.google.com/drive/folders/1efondSjYtrF2LzWv2Zi0_KVe5CxRUik-?usp=sharing
 
-Download output data from the google drive link above, place it in a folder called data/
+Download data from the google drive link above, place it in the folder called data/
 
 ```
 ├── data
@@ -11,10 +11,13 @@ Download output data from the google drive link above, place it in a folder call
 │   └── seal_nq_output.json
 ```
 Running the scripts:
-- run from the base directory like `python scripts/[scriptname].py`
+- run from the base directory e.g. `python scripts/[scriptname].py`
 - OR run ./run_all_scripts.sh
 
-## Scripts (`scripts/`)
+Each script will run itself on each 3 model output data.
+
+
+#### Scripts (`scripts/`)
 
 - `ngram_token_length_correlation.py` — Section 2 (ρ = −0.835 number, page 6). Computes Spearman correlation between n-gram token length and corpus frequency. Outputs to terminal.
 - `analyze_positive_ctxs.py` — Section 3 "Methodology". Computes statistics and histogram of ground-truth positive context counts per query. Outputs results to generated_data/[model_dataset]/positive_ctxs_histogram.png
