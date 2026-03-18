@@ -1,0 +1,22 @@
+{
+  "total_questions": 6515,
+  "total_ngrams": 26944978,
+  "pseudoquery_ngrams": 87714,
+  "pseudoquery_score": 14840634.828516463,
+  "title_ngrams": 290927,
+  "title_score": 76231535.02996634,
+  "regular_ngrams": 26566337,
+  "regular_score": 237416862.8344529,
+  "questions_with_keys": 6515,
+  "combined_ngrams": 378641,
+  "combined_score": 91072169.85848281,
+  "pseudoquery_ngram_pct": 0.325530048679201,
+  "title_ngram_pct": 1.0797076917264508,
+  "combined_ngram_pct": 1.405237740405652,
+  "regular_ngram_pct": 98.59476225959435,
+  "pseudoquery_score_pct": 4.5178478888179985,
+  "title_score_pct": 23.206721516704608,
+  "combined_score_pct": 27.724569405522608,
+  "regular_score_pct": 72.2754305944774,
+  "total_score": 328489032.6929357
+}

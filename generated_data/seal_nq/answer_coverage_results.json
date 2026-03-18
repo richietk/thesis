@@ -1,0 +1,26 @@
+{
+  "query_level": {
+    "total_queries": 6515,
+    "answer_in_top1_count": 1096,
+    "answer_in_top1_pct": 16.822716807367613,
+    "answer_not_in_top1_count": 5419,
+    "answer_not_in_top1_pct": 83.17728319263239,
+    "hits@1": 0.4165771297006907,
+    "hits@1_answer_present": 0.75,
+    "hits@1_answer_absent": 0.34914190810112566,
+    "hits@10": 0.7614735226400614,
+    "hits@10_answer_present": 0.9352189781021898,
+    "hits@10_answer_absent": 0.7263332718213693
+  },
+  "passage_level": {
+    "contingency_table": {
+      "has_answer_and_ground_truth": 3523,
+      "has_answer_not_ground_truth": 3815,
+      "no_answer_and_ground_truth": 6931,
+      "no_answer_not_ground_truth": 50881
+    },
+    "precision": 0.4801035704551649,
+    "recall": 0.33700019131432946,
+    "odds_ratio": 6.77919053436864
+  }
+}

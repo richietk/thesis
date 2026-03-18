@@ -1,6 +1,5 @@
 .vscode
 .claude
-generated_data/
 
 data/*
 !data/.gitkeep

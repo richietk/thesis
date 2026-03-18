@@ -1,0 +1,444 @@
+{
+  "dataset_name": "SEAL",
+  "queries_processed": 6515,
+  "queries_with_both": 6027,
+  "summary": {
+    "title_score": {
+      "positive_absolute": {
+        "mean": 212.18520704044508,
+        "median": 217.74868881397967,
+        "std": 117.85577280072332
+      },
+      "negative_absolute": {
+        "mean": 131.62162725754487,
+        "median": 128.13213615563268,
+        "std": 82.79179366858334
+      },
+      "pct_increase": {
+        "mean": 280.27306163640355,
+        "median": 41.410101410995125,
+        "std": 1113.1203123629382
+      }
+    },
+    "overall_score": {
+      "positive_absolute": {
+        "mean": 576.1388845850299,
+        "median": 542.9147236823644,
+        "std": 191.78254806543686
+      },
+      "negative_absolute": {
+        "mean": 413.1250812142616,
+        "median": 411.2197185073997,
+        "std": 91.46264016727075
+      },
+      "pct_increase": {
+        "mean": 42.34953016402424,
+        "median": 29.08000903379496,
+        "std": 46.84268793348776
+      }
+    },
+    "other_score": {
+      "positive_absolute": {
+        "mean": 363.94134902073927,
+        "median": 342.71236753672457,
+        "std": 169.75481051798332
+      },
+      "negative_absolute": {
+        "mean": 281.4930141947214,
+        "median": 270.78517719874793,
+        "std": 101.05554364853104
+      },
+      "pct_increase": {
+        "mean": 33.77243811556335,
+        "median": 25.73714121667375,
+        "std": 53.492702140778135
+      }
+    },
+    "word_coverage": {
+      "positive": {
+        "mean": 61.13340242263209,
+        "median": 61.22637433181487,
+        "std": 8.76653994480278
+      },
+      "negative": {
+        "mean": 55.01488816746557,
+        "median": 55.436665719065644,
+        "std": 7.0690186867062605
+      }
+    }
+  },
+  "top_bottom_queries": {
+    "title_pct_increase": {
+      "top_5_largest": [
+        {
+          "query_id": 2288,
+          "query_text": "who sang this is how we do it",
+          "title_pct_increase": 54468.44965390453,
+          "overall_pct_increase": 81.45799254815253,
+          "other_pct_increase": 24.785347104530263,
+          "pos_title": 258.43453327002175,
+          "neg_title": 0.47359698673706047,
+          "pos_overall": 825.5794884155304,
+          "neg_overall": 454.970032910758,
+          "pos_other": 567.1449551455084,
+          "neg_other": 454.4964359240209,
+          "pos_word_cov": 73.08223289315725,
+          "neg_word_cov": 63.69559502360718,
+          "pos_title_to_other_ratio": 0.4475738915069226,
+          "neg_title_to_other_ratio": 0.11160614310405091,
+          "title_to_other_diff": 0.3359677484028717
+        },
+        {
+          "query_id": 2512,
+          "query_text": "what part of cow does ribeye come from",
+          "title_pct_increase": 14281.005334593709,
+          "overall_pct_increase": 234.56929454628025,
+          "other_pct_increase": 152.51720078627451,
+          "pos_title": 439.4104902815458,
+          "neg_title": 3.0554921582883896,
+          "pos_overall": 1760.2456415910242,
+          "neg_overall": 526.1228900213774,
+          "pos_other": 1320.835151309478,
+          "neg_other": 523.0673978630891,
+          "pos_word_cov": 71.63415414134954,
+          "neg_word_cov": 50.48661358997,
+          "pos_title_to_other_ratio": 0.3367001726869162,
+          "neg_title_to_other_ratio": 0.1532180598841833,
+          "title_to_other_diff": 0.1834821128027329
+        },
+        {
+          "query_id": 1175,
+          "query_text": "who sang there 's a meeting in the ladies room",
+          "title_pct_increase": 12589.10695099508,
+          "overall_pct_increase": 179.99938239392827,
+          "other_pct_increase": 70.11057107005189,
+          "pos_title": 266.145990381818,
+          "neg_title": 2.0974367338037676,
+          "pos_overall": 669.0552477707226,
+          "neg_overall": 238.94882983328714,
+          "pos_other": 402.9092573889046,
+          "neg_other": 236.85139309948337,
+          "pos_word_cov": 65.93705619801176,
+          "neg_word_cov": 33.41713267871677,
+          "pos_title_to_other_ratio": 1.0672749193354523,
+          "neg_title_to_other_ratio": 0.9011352003011155,
+          "title_to_other_diff": 0.16613971903433677
+        },
+        {
+          "query_id": 4067,
+          "query_text": "who wrote it was almost like a song",
+          "title_pct_increase": 12552.355014092562,
+          "overall_pct_increase": 194.63856960056805,
+          "other_pct_increase": 84.44180662581846,
+          "pos_title": 387.24723190837665,
+          "neg_title": 3.0606731432768792,
+          "pos_overall": 1020.3084495490557,
+          "neg_overall": 346.2915432057163,
+          "pos_other": 633.0612176406788,
+          "neg_other": 343.23087006243946,
+          "pos_word_cov": 76.09126984126985,
+          "neg_word_cov": 55.13037282717299,
+          "pos_title_to_other_ratio": 0.6124083801483621,
+          "neg_title_to_other_ratio": 0.47789356468856764,
+          "title_to_other_diff": 0.13451481545979443
+        },
+        {
+          "query_id": 1130,
+          "query_text": "who has won the us open golf 2018 title in new york",
+          "title_pct_increase": 11011.18661351406,
+          "overall_pct_increase": 67.22696378475969,
+          "other_pct_increase": 10.577337121283236,
+          "pos_title": 334.67459371551433,
+          "neg_title": 3.012050875902525,
+          "pos_overall": 978.111342769994,
+          "neg_overall": 584.900497284,
+          "pos_other": 643.4367490544796,
+          "neg_other": 581.8884464080976,
+          "pos_word_cov": 73.57142857142857,
+          "neg_word_cov": 64.10144850702508,
+          "pos_title_to_other_ratio": 0.5201501532990624,
+          "neg_title_to_other_ratio": 0.28861109044569444,
+          "title_to_other_diff": 0.231539062853368
+        }
+      ],
+      "top_5_smallest": [
+        {
+          "query_id": 0,
+          "query_text": "who sings does he love me with reba",
+          "title_pct_increase": -100.0,
+          "overall_pct_increase": 23.653157152256224,
+          "other_pct_increase": 30.371019579115956,
+          "pos_title": 0.0,
+          "neg_title": 23.505082206984532,
+          "pos_overall": 564.1206563779623,
+          "neg_overall": 456.21209305909673,
+          "pos_other": 564.1206563779623,
+          "neg_other": 432.704030542328,
+          "pos_word_cov": 64.2438525779224,
+          "neg_word_cov": 66.90036930377686,
+          "pos_title_to_other_ratio": null,
+          "neg_title_to_other_ratio": 0.4748266305676295,
+          "title_to_other_diff": null
+        },
+        {
+          "query_id": 10,
+          "query_text": "which apostle had a thorn in his side",
+          "title_pct_increase": -100.0,
+          "overall_pct_increase": -10.405757280388055,
+          "other_pct_increase": 103.18328564939523,
+          "pos_title": 0.0,
+          "neg_title": 183.1325123703859,
+          "pos_overall": 293.6061872112895,
+          "neg_overall": 327.70653370009444,
+          "pos_other": 293.6061872112895,
+          "neg_other": 144.5031200636869,
+          "pos_word_cov": 58.666666666666664,
+          "neg_word_cov": 54.06489910338086,
+          "pos_title_to_other_ratio": null,
+          "neg_title_to_other_ratio": 1.4428016709696225,
+          "title_to_other_diff": null
+        },
+        {
+          "query_id": 54,
+          "query_text": "who won i want to work for diddy",
+          "title_pct_increase": -100.0,
+          "overall_pct_increase": 113.63265956783324,
+          "other_pct_increase": 128.24309082171104,
+          "pos_title": 0.0,
+          "neg_title": 15.41589081237071,
+          "pos_overall": 514.482820525906,
+          "neg_overall": 240.8259212644151,
+          "pos_other": 514.482820525906,
+          "neg_other": 225.4100304520443,
+          "pos_word_cov": 66.35593220338983,
+          "neg_word_cov": 53.35228433768628,
+          "pos_title_to_other_ratio": null,
+          "neg_title_to_other_ratio": 0.8882789766464925,
+          "title_to_other_diff": null
+        },
+        {
+          "query_id": 55,
+          "query_text": "who played mason on wizards of waverly place",
+          "title_pct_increase": -100.0,
+          "overall_pct_increase": 1.8059046816871982,
+          "other_pct_increase": 22.439943386325282,
+          "pos_title": 0.0,
+          "neg_title": 78.29291140351306,
+          "pos_overall": 472.9707570294068,
+          "neg_overall": 464.5808693594219,
+          "pos_other": 472.9707570294068,
+          "neg_other": 386.28795795590884,
+          "pos_word_cov": 57.14285714285714,
+          "neg_word_cov": 55.80735523878133,
+          "pos_title_to_other_ratio": null,
+          "neg_title_to_other_ratio": 1.6996810430828015,
+          "title_to_other_diff": null
+        },
+        {
+          "query_id": 56,
+          "query_text": "where is the mesophyll located in a plant",
+          "title_pct_increase": -100.0,
+          "overall_pct_increase": 17.412482976379355,
+          "other_pct_increase": 18.00833975723195,
+          "pos_title": 0.0,
+          "neg_title": 2.1051473023446485,
+          "pos_overall": 489.5167723550317,
+          "neg_overall": 416.92055218141587,
+          "pos_other": 489.5167723550317,
+          "neg_other": 414.81540487907125,
+          "pos_word_cov": 56.13183293686193,
+          "neg_word_cov": 53.236973425466566,
+          "pos_title_to_other_ratio": null,
+          "neg_title_to_other_ratio": 0.22924435352519387,
+          "title_to_other_diff": null
+        }
+      ]
+    },
+    "title_to_other_diff": {
+      "top_5_largest": [
+        {
+          "query_id": 2516,
+          "query_text": "who wrote a romance called le morte d'arthur about the death of king arthur",
+          "title_pct_increase": 9.06681108850539,
+          "overall_pct_increase": -2.1914624800036875,
+          "other_pct_increase": -8.734890239005475,
+          "pos_title": 156.62431633779434,
+          "neg_title": 143.6040118663569,
+          "pos_overall": 382.0496613023,
+          "neg_overall": 390.60972691079496,
+          "pos_other": 225.42534496450577,
+          "neg_other": 247.00057399246072,
+          "pos_word_cov": 47.546514005315885,
+          "neg_word_cov": 43.46931924471977,
+          "pos_title_to_other_ratio": 9.335210872623934,
+          "neg_title_to_other_ratio": 2.9269511059729933,
+          "title_to_other_diff": 6.408259766650941
+        },
+        {
+          "query_id": 4557,
+          "query_text": "who is the writer of this is us",
+          "title_pct_increase": 330.7254302699851,
+          "overall_pct_increase": 26.06490862758501,
+          "other_pct_increase": -81.12387977451301,
+          "pos_title": 355.3789958258611,
+          "neg_title": 82.50708475770848,
+          "pos_overall": 399.64504850765815,
+          "neg_overall": 317.0153001802196,
+          "pos_other": 44.26605268179719,
+          "neg_other": 234.50821542251109,
+          "pos_word_cov": 38.46153846153847,
+          "neg_word_cov": 52.93171814622168,
+          "pos_title_to_other_ratio": 8.02825113755279,
+          "neg_title_to_other_ratio": 1.768753747046241,
+          "title_to_other_diff": 6.2594973905065485
+        },
+        {
+          "query_id": 3949,
+          "query_text": "who wrote the song i hung my head",
+          "title_pct_increase": 4196.611792658053,
+          "overall_pct_increase": 51.7939740783639,
+          "other_pct_increase": -51.96944267039143,
+          "pos_title": 415.77049120857606,
+          "neg_title": 9.676706001669377,
+          "pos_overall": 601.4253651000705,
+          "neg_overall": 396.2116208839645,
+          "pos_other": 185.65487389149442,
+          "neg_other": 386.534914882295,
+          "pos_word_cov": 42.54807692307693,
+          "neg_word_cov": 57.7874506483594,
+          "pos_title_to_other_ratio": 6.526637398458064,
+          "neg_title_to_other_ratio": 1.3507939406675777,
+          "title_to_other_diff": 5.175843457790486
+        },
+        {
+          "query_id": 1254,
+          "query_text": "who died in the book into thin air",
+          "title_pct_increase": 1249.681112711344,
+          "overall_pct_increase": 148.9693214165916,
+          "other_pct_increase": -70.0377647106437,
+          "pos_title": 411.71707496063743,
+          "neg_title": 30.504766724752358,
+          "pos_overall": 457.6535186842334,
+          "neg_overall": 183.81924169623207,
+          "pos_other": 45.93644372359603,
+          "neg_other": 153.31447497147974,
+          "pos_word_cov": 51.388888888888886,
+          "neg_word_cov": 47.893214113010984,
+          "pos_title_to_other_ratio": 8.962754462997264,
+          "neg_title_to_other_ratio": 3.8766451542618388,
+          "title_to_other_diff": 5.086109308735425
+        },
+        {
+          "query_id": 5451,
+          "query_text": "where is the story of abigail found in the bible",
+          "title_pct_increase": 96.21669657070483,
+          "overall_pct_increase": 32.37312187242489,
+          "other_pct_increase": 20.20896947198471,
+          "pos_title": 102.75688316495143,
+          "neg_title": 52.36908222431722,
+          "pos_overall": 431.1358247927954,
+          "neg_overall": 325.6974064631521,
+          "pos_other": 328.378941627844,
+          "neg_other": 273.1734104952745,
+          "pos_word_cov": 58.400543597853876,
+          "neg_word_cov": 54.18666969529733,
+          "pos_title_to_other_ratio": 5.705219036821773,
+          "neg_title_to_other_ratio": 0.8404836305557429,
+          "title_to_other_diff": 4.86473540626603
+        }
+      ],
+      "top_5_smallest": [
+        {
+          "query_id": 3511,
+          "query_text": "who sang take on me in the 90s",
+          "title_pct_increase": 287.8225758589357,
+          "overall_pct_increase": 60.063791022870426,
+          "other_pct_increase": -23.939624444517023,
+          "pos_title": 371.31407343836094,
+          "neg_title": 95.7432848296641,
+          "pos_overall": 568.7585466913793,
+          "neg_overall": 355.332422815172,
+          "pos_other": 197.4444732530182,
+          "neg_other": 259.5891379855079,
+          "pos_word_cov": 64.51612903225806,
+          "neg_word_cov": 63.994290316168836,
+          "pos_title_to_other_ratio": 1.880599975477333,
+          "neg_title_to_other_ratio": 94.30008737241529,
+          "title_to_other_diff": -92.41948739693795
+        },
+        {
+          "query_id": 1416,
+          "query_text": "when does braxton family values season 5 start",
+          "title_pct_increase": 3500.0,
+          "overall_pct_increase": 65.27155132969929,
+          "other_pct_increase": -3.4402329947294237,
+          "pos_title": 293.0613974259907,
+          "neg_title": 8.140594372944188,
+          "pos_overall": 685.9898747031136,
+          "neg_overall": 415.0683340139019,
+          "pos_other": 392.92847727712285,
+          "neg_other": 406.9277396409577,
+          "pos_word_cov": 58.30324370465216,
+          "neg_word_cov": 44.58296244226647,
+          "pos_title_to_other_ratio": 1.3804012116972693,
+          "neg_title_to_other_ratio": 31.38142086441969,
+          "title_to_other_diff": -30.001019652722423
+        },
+        {
+          "query_id": 3551,
+          "query_text": "when did look who 's talking come out",
+          "title_pct_increase": 546.6666666666666,
+          "overall_pct_increase": 48.40667294439187,
+          "other_pct_increase": -23.23379513165534,
+          "pos_title": 259.36599979007946,
+          "neg_title": 40.10814429743497,
+          "pos_overall": 473.5072051514682,
+          "neg_overall": 319.06058922895727,
+          "pos_other": 214.14120536138876,
+          "neg_other": 278.95244493152234,
+          "pos_word_cov": 45.23529411764705,
+          "neg_word_cov": 35.07398705750348,
+          "pos_title_to_other_ratio": 3.5167876793705837,
+          "neg_title_to_other_ratio": 33.19112526777852,
+          "title_to_other_diff": -29.674337588407933
+        },
+        {
+          "query_id": 2641,
+          "query_text": "who wrote the song the night the lights went out in georgia",
+          "title_pct_increase": 237.037037037037,
+          "overall_pct_increase": 57.39557720321328,
+          "other_pct_increase": 41.76834093715524,
+          "pos_title": 118.61879808951628,
+          "neg_title": 35.19458844414219,
+          "pos_overall": 691.9515034686824,
+          "neg_overall": 439.62576062433095,
+          "pos_other": 573.3327053791662,
+          "neg_other": 404.415190012924,
+          "pos_word_cov": 52.42130625928618,
+          "neg_word_cov": 39.772870595456055,
+          "pos_title_to_other_ratio": 2.031794383768765,
+          "neg_title_to_other_ratio": 28.896752460716055,
+          "title_to_other_diff": -26.86495807694729
+        },
+        {
+          "query_id": 4870,
+          "query_text": "what is the setting of shadow of the dragon",
+          "title_pct_increase": 1268.7927267549687,
+          "overall_pct_increase": 75.20454875399632,
+          "other_pct_increase": -44.51571839442887,
+          "pos_title": 391.4058379801357,
+          "neg_title": 28.59496769156944,
+          "pos_overall": 549.5839577428246,
+          "neg_overall": 313.68132942398216,
+          "pos_other": 158.17811976268902,
+          "neg_other": 285.0863617324127,
+          "pos_word_cov": 35.55812486861467,
+          "neg_word_cov": 51.99311052654742,
+          "pos_title_to_other_ratio": 2.474495038731603,
+          "neg_title_to_other_ratio": 25.8629318810263,
+          "title_to_other_diff": -23.388436842294695
+        }
+      ]
+    }
+  }
+}

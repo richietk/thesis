@@ -1,0 +1,444 @@
+{
+  "dataset_name": "MINDER",
+  "queries_processed": 6515,
+  "queries_with_both": 6087,
+  "summary": {
+    "title_score": {
+      "positive_absolute": {
+        "mean": 201.6196655100363,
+        "median": 195.56511265785775,
+        "std": 128.98747535029477
+      },
+      "negative_absolute": {
+        "mean": 113.85757002609593,
+        "median": 105.53855427925485,
+        "std": 77.82271367035321
+      },
+      "pct_increase": {
+        "mean": 324.9897195816229,
+        "median": 57.5044964796779,
+        "std": 939.5860848176981
+      }
+    },
+    "overall_score": {
+      "positive_absolute": {
+        "mean": 740.1726839136946,
+        "median": 686.0352488320486,
+        "std": 252.00167962579525
+      },
+      "negative_absolute": {
+        "mean": 500.19501528770104,
+        "median": 496.6159737478558,
+        "std": 103.86647142047215
+      },
+      "pct_increase": {
+        "mean": 51.9273826003548,
+        "median": 34.92578345020127,
+        "std": 58.67285248261815
+      }
+    },
+    "other_score": {
+      "positive_absolute": {
+        "mean": 444.61937454923196,
+        "median": 433.88306868797827,
+        "std": 153.61180460762583
+      },
+      "negative_absolute": {
+        "mean": 365.26615416815287,
+        "median": 357.37802643295413,
+        "std": 106.86900343503675
+      },
+      "pct_increase": {
+        "mean": 26.145825762735583,
+        "median": 20.30411067434848,
+        "std": 45.09613046225321
+      }
+    },
+    "word_coverage": {
+      "positive": {
+        "mean": 59.42707742984359,
+        "median": 59.466911764705884,
+        "std": 7.976125891990756
+      },
+      "negative": {
+        "mean": 53.03287546160691,
+        "median": 53.54866147208069,
+        "std": 7.0021557269374
+      }
+    }
+  },
+  "top_bottom_queries": {
+    "title_pct_increase": {
+      "top_5_largest": [
+        {
+          "query_id": 4803,
+          "query_text": "where is the 2018 baseball all-star game played",
+          "title_pct_increase": 15595.552711533785,
+          "overall_pct_increase": 89.08664325349265,
+          "other_pct_increase": -34.71718958107596,
+          "pos_title": 281.6007207526862,
+          "neg_title": 1.7941433852517572,
+          "pos_overall": 1337.4552659722042,
+          "neg_overall": 707.3240303807127,
+          "pos_other": 433.5445222888263,
+          "neg_other": 664.1021112705517,
+          "pos_word_cov": 75.67776092798043,
+          "neg_word_cov": 59.297401225171164,
+          "pos_title_to_other_ratio": 0.6813042199630797,
+          "neg_title_to_other_ratio": 0.6073185049077521,
+          "title_to_other_diff": 0.07398571505532758
+        },
+        {
+          "query_id": 810,
+          "query_text": "who wrote what the hell did i say",
+          "title_pct_increase": 12555.119052862827,
+          "overall_pct_increase": 102.88172414462969,
+          "other_pct_increase": -3.480474605781668,
+          "pos_title": 208.45703066241677,
+          "neg_title": 1.6472150897328766,
+          "pos_overall": 870.4457924510058,
+          "neg_overall": 429.04100707981223,
+          "pos_other": 412.4790869698028,
+          "neg_other": 427.35299959785226,
+          "pos_word_cov": 64.10585686447754,
+          "neg_word_cov": 49.1590084148235,
+          "pos_title_to_other_ratio": 1.370175778795128,
+          "neg_title_to_other_ratio": 0.2154509187896526,
+          "title_to_other_diff": 1.1547248600054756
+        },
+        {
+          "query_id": 1190,
+          "query_text": "who wrote it is no secret what god can do",
+          "title_pct_increase": 10676.482420839504,
+          "overall_pct_increase": 149.84618571389032,
+          "other_pct_increase": 70.25907985705582,
+          "pos_title": 130.33882393486977,
+          "neg_title": 1.2094746582875804,
+          "pos_overall": 834.1228094372392,
+          "neg_overall": 333.8545301597797,
+          "pos_other": 566.3584106868332,
+          "neg_other": 332.64505550149215,
+          "pos_word_cov": 54.96255402391575,
+          "neg_word_cov": 46.81348533478325,
+          "pos_title_to_other_ratio": 0.442874513351192,
+          "neg_title_to_other_ratio": 0.6845486628831258,
+          "title_to_other_diff": -0.24167414953193378
+        },
+        {
+          "query_id": 3009,
+          "query_text": "who wrote the song i am the warrior",
+          "title_pct_increase": 9800.000000000002,
+          "overall_pct_increase": 132.59759565627067,
+          "other_pct_increase": 31.932412275408296,
+          "pos_title": 288.00302829516966,
+          "neg_title": 2.9091214979310065,
+          "pos_overall": 656.5933014757042,
+          "neg_overall": 282.28722641054645,
+          "pos_other": 368.59027318053455,
+          "neg_other": 279.37810491261547,
+          "pos_word_cov": 64.38356164383562,
+          "neg_word_cov": 48.65307426887313,
+          "pos_title_to_other_ratio": 0.781363612850258,
+          "neg_title_to_other_ratio": 0.7868297812677486,
+          "title_to_other_diff": -0.005466168417490591
+        },
+        {
+          "query_id": 5845,
+          "query_text": "where did the saying dressed to the nines come from",
+          "title_pct_increase": 9800.0,
+          "overall_pct_increase": 311.5039327327627,
+          "other_pct_increase": 170.35431097522135,
+          "pos_title": 442.4566120704803,
+          "neg_title": 4.469258707782629,
+          "pos_overall": 1259.1258581914335,
+          "neg_overall": 305.98148839785944,
+          "pos_other": 814.9631474181149,
+          "neg_other": 301.4426307752896,
+          "pos_word_cov": 63.1578947368421,
+          "neg_word_cov": 32.74077020113421,
+          "pos_title_to_other_ratio": 0.5429160974079763,
+          "neg_title_to_other_ratio": 1.4049935651225356,
+          "title_to_other_diff": -0.8620774677145593
+        }
+      ],
+      "top_5_smallest": [
+        {
+          "query_id": 0,
+          "query_text": "who sings does he love me with reba",
+          "title_pct_increase": -100.0,
+          "overall_pct_increase": 31.977488205929454,
+          "other_pct_increase": 81.79814584066366,
+          "pos_title": 0.0,
+          "neg_title": 110.31000506037303,
+          "pos_overall": 537.0915825632685,
+          "neg_overall": 406.95696657389345,
+          "pos_other": 537.0915825632685,
+          "neg_other": 295.4329264909008,
+          "pos_word_cov": 58.19184896751544,
+          "neg_word_cov": 60.774716726386515,
+          "pos_title_to_other_ratio": null,
+          "neg_title_to_other_ratio": 0.9389865835148622,
+          "title_to_other_diff": null
+        },
+        {
+          "query_id": 10,
+          "query_text": "which apostle had a thorn in his side",
+          "title_pct_increase": -100.0,
+          "overall_pct_increase": 16.83252997309358,
+          "other_pct_increase": 121.02740106063763,
+          "pos_title": 0.0,
+          "neg_title": 176.51463272716055,
+          "pos_overall": 442.0113440395309,
+          "neg_overall": 378.3290014701605,
+          "pos_other": 442.0113440395309,
+          "neg_other": 199.98033814742615,
+          "pos_word_cov": 51.20313680360319,
+          "neg_word_cov": 45.01855319822915,
+          "pos_title_to_other_ratio": null,
+          "neg_title_to_other_ratio": 1.682594431897722,
+          "title_to_other_diff": null
+        },
+        {
+          "query_id": 32,
+          "query_text": "who won women 's cricket world cup 2016",
+          "title_pct_increase": -100.0,
+          "overall_pct_increase": 22.32297481039961,
+          "other_pct_increase": 4.9496636108762555,
+          "pos_title": 0.0,
+          "neg_title": 1.636769070927949,
+          "pos_overall": 633.4333282372875,
+          "neg_overall": 517.8367589727997,
+          "pos_other": 515.3715452851823,
+          "neg_other": 491.06545705190115,
+          "pos_word_cov": 66.82051282051282,
+          "neg_word_cov": 59.70287039010405,
+          "pos_title_to_other_ratio": null,
+          "neg_title_to_other_ratio": 0.6163997173761436,
+          "title_to_other_diff": null
+        },
+        {
+          "query_id": 43,
+          "query_text": "who plays the fairy god mother in shrek 2",
+          "title_pct_increase": -100.0,
+          "overall_pct_increase": 28.944274450764894,
+          "other_pct_increase": 97.48940450097308,
+          "pos_title": 0.0,
+          "neg_title": 142.80621136777916,
+          "pos_overall": 530.8629999851933,
+          "neg_overall": 411.6995517997148,
+          "pos_other": 530.8629999851933,
+          "neg_other": 268.8058133177355,
+          "pos_word_cov": 55.32679738562092,
+          "neg_word_cov": 54.92488651952521,
+          "pos_title_to_other_ratio": null,
+          "neg_title_to_other_ratio": 1.622318927180942,
+          "title_to_other_diff": null
+        },
+        {
+          "query_id": 45,
+          "query_text": "who plays caroline on the bold and beautiful",
+          "title_pct_increase": -100.0,
+          "overall_pct_increase": 34.88857714251145,
+          "other_pct_increase": 48.07944320289619,
+          "pos_title": 0.0,
+          "neg_title": 81.5250054534008,
+          "pos_overall": 801.3177817998039,
+          "neg_overall": 594.0590365581526,
+          "pos_other": 755.7013184830125,
+          "neg_other": 510.33506213793777,
+          "pos_word_cov": 64.4388246416644,
+          "neg_word_cov": 59.45234382693776,
+          "pos_title_to_other_ratio": null,
+          "neg_title_to_other_ratio": 0.6803269387162267,
+          "title_to_other_diff": null
+        }
+      ]
+    },
+    "title_to_other_diff": {
+      "top_5_largest": [
+        {
+          "query_id": 4613,
+          "query_text": "who is the writer of this is us",
+          "title_pct_increase": 449.80642364816845,
+          "overall_pct_increase": 19.00122251156283,
+          "other_pct_increase": -81.41390718323538,
+          "pos_title": 377.2659395305711,
+          "neg_title": 68.61795775816375,
+          "pos_overall": 431.9810996206134,
+          "neg_overall": 363.00559818084196,
+          "pos_other": 54.715160090042225,
+          "neg_other": 294.3876404226781,
+          "pos_word_cov": 42.35294117647059,
+          "neg_word_cov": 47.31454395580116,
+          "pos_title_to_other_ratio": 6.895089624422779,
+          "neg_title_to_other_ratio": 1.1186246060390588,
+          "title_to_other_diff": 5.77646501838372
+        },
+        {
+          "query_id": 4533,
+          "query_text": "what do you call 5 siblings born at the same time",
+          "title_pct_increase": 95.96952627245668,
+          "overall_pct_increase": 12.31014469351186,
+          "other_pct_increase": -66.4919122588347,
+          "pos_title": 312.89019395924055,
+          "neg_title": 159.66267812691905,
+          "pos_overall": 368.40531661848456,
+          "neg_overall": 328.02496838005345,
+          "pos_other": 55.515122659244,
+          "neg_other": 165.67678552137332,
+          "pos_word_cov": 40.0,
+          "neg_word_cov": 41.12290555077666,
+          "pos_title_to_other_ratio": 5.63612531748617,
+          "neg_title_to_other_ratio": 2.043719771687901,
+          "title_to_other_diff": 3.5924055457982687
+        },
+        {
+          "query_id": 2840,
+          "query_text": "in which country there is a provision of due process of law",
+          "title_pct_increase": 110.373382973174,
+          "overall_pct_increase": -21.900940235127308,
+          "other_pct_increase": -79.21532251032053,
+          "pos_title": 358.8400999506703,
+          "neg_title": 170.57295693934256,
+          "pos_overall": 439.7846265382168,
+          "neg_overall": 563.1112946330535,
+          "pos_other": 80.94452658754653,
+          "neg_other": 389.443264769151,
+          "pos_word_cov": 37.83783783783784,
+          "neg_word_cov": 57.15230873040664,
+          "pos_title_to_other_ratio": 4.433160716918911,
+          "neg_title_to_other_ratio": 0.9845006148896466,
+          "title_to_other_diff": 3.4486601020292644
+        },
+        {
+          "query_id": 1449,
+          "query_text": "why is there a different girl in now you see me 2",
+          "title_pct_increase": 263.6426468668361,
+          "overall_pct_increase": 78.36852839091976,
+          "other_pct_increase": -58.881922214975944,
+          "pos_title": 380.25260820631274,
+          "neg_title": 104.56766044428203,
+          "pos_overall": 435.50897634883967,
+          "neg_overall": 244.162454149064,
+          "pos_other": 55.25636814252694,
+          "neg_other": 134.3846092013871,
+          "pos_word_cov": 35.61643835616438,
+          "neg_word_cov": 42.07314917815517,
+          "pos_title_to_other_ratio": 6.881606846542856,
+          "neg_title_to_other_ratio": 3.613550761090369,
+          "title_to_other_diff": 3.268056085452487
+        },
+        {
+          "query_id": 2129,
+          "query_text": "what is the name of ramaiya vastavaiya heroine",
+          "title_pct_increase": 3357.2861517623132,
+          "overall_pct_increase": 98.61242021021471,
+          "other_pct_increase": -57.002071971920486,
+          "pos_title": 391.3558714531932,
+          "neg_title": 11.31974196737241,
+          "pos_overall": 632.3162005338844,
+          "neg_overall": 318.366897631392,
+          "pos_other": 131.84601494247883,
+          "neg_other": 306.6334146528588,
+          "pos_word_cov": 53.228301380132734,
+          "neg_word_cov": 49.70971795130203,
+          "pos_title_to_other_ratio": 3.9173192908651955,
+          "neg_title_to_other_ratio": 0.8102419264479995,
+          "title_to_other_diff": 3.107077364417196
+        }
+      ],
+      "top_5_smallest": [
+        {
+          "query_id": 809,
+          "query_text": "where was the movie gerald 's game filmed",
+          "title_pct_increase": 759.809299356917,
+          "overall_pct_increase": 63.700793035095025,
+          "other_pct_increase": -22.35902340067136,
+          "pos_title": 381.3390515974707,
+          "neg_title": 44.351584925016304,
+          "pos_overall": 657.6555508620115,
+          "neg_overall": 401.742434272154,
+          "pos_other": 276.3164992645406,
+          "neg_other": 355.8900356064428,
+          "pos_word_cov": 44.85981308411215,
+          "neg_word_cov": 58.62007776229024,
+          "pos_title_to_other_ratio": 1.380080636633655,
+          "neg_title_to_other_ratio": 18.746026966741454,
+          "title_to_other_diff": -17.3659463301078
+        },
+        {
+          "query_id": 5394,
+          "query_text": "name of bird in secret life of pets",
+          "title_pct_increase": 256.20058392088816,
+          "overall_pct_increase": 147.3254588679158,
+          "other_pct_increase": 89.13011581677854,
+          "pos_title": 373.62718598051987,
+          "neg_title": 104.89235639869196,
+          "pos_overall": 744.7733400680365,
+          "neg_overall": 301.13088376631003,
+          "pos_other": 371.14615408751666,
+          "neg_other": 196.23852736761805,
+          "pos_word_cov": 50.08741258741259,
+          "neg_word_cov": 35.07393984150804,
+          "pos_title_to_other_ratio": 1.2433373371445686,
+          "neg_title_to_other_ratio": 11.396564020995266,
+          "title_to_other_diff": -10.153226683850697
+        },
+        {
+          "query_id": 5914,
+          "query_text": "who is best known as the founder of the sierra club quizlet",
+          "title_pct_increase": -71.21212121212122,
+          "overall_pct_increase": 19.721645322995055,
+          "other_pct_increase": 151.58983263064368,
+          "pos_title": 73.44342858562283,
+          "neg_title": 255.11927824479514,
+          "pos_overall": 532.2048890593688,
+          "neg_overall": 444.53522804797916,
+          "pos_other": 458.76146047374596,
+          "neg_other": 182.34499211549962,
+          "pos_word_cov": 58.393165893165886,
+          "neg_word_cov": 45.74187222547419,
+          "pos_title_to_other_ratio": 0.7758816596268941,
+          "neg_title_to_other_ratio": 8.355692475787292,
+          "title_to_other_diff": -7.579810816160397
+        },
+        {
+          "query_id": 5624,
+          "query_text": "where was the movie gifted filmed in florida",
+          "title_pct_increase": 1103.986922324287,
+          "overall_pct_increase": 67.50763636211906,
+          "other_pct_increase": -32.34210165011642,
+          "pos_title": 397.83147781270753,
+          "neg_title": 33.04284045251065,
+          "pos_overall": 629.8964398039326,
+          "neg_overall": 376.04043223570926,
+          "pos_other": 232.0649619912252,
+          "neg_other": 342.9975917831987,
+          "pos_word_cov": 53.125,
+          "neg_word_cov": 57.81272029292424,
+          "pos_title_to_other_ratio": 1.7143108235074256,
+          "neg_title_to_other_ratio": 8.77934569819354,
+          "title_to_other_diff": -7.0650348746861145
+        },
+        {
+          "query_id": 1521,
+          "query_text": "who plays amy fowler on big bang theory",
+          "title_pct_increase": 333.07455522065067,
+          "overall_pct_increase": 190.35081162789703,
+          "other_pct_increase": 85.82091181006717,
+          "pos_title": 406.87884061778544,
+          "neg_title": 93.95122288135387,
+          "pos_overall": 1405.7960949819205,
+          "neg_overall": 484.17157406934933,
+          "pos_other": 715.8615261266457,
+          "neg_other": 385.2427152323674,
+          "pos_word_cov": 72.0,
+          "neg_word_cov": 53.2011105062817,
+          "pos_title_to_other_ratio": 0.5683764599711517,
+          "neg_title_to_other_ratio": 7.488486342687561,
+          "title_to_other_diff": -6.920109882716409
+        }
+      ]
+    }
+  }
+}

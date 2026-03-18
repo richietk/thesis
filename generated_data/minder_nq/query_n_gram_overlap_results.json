@@ -1,0 +1,56 @@
+{
+  "total_queries": 6515,
+  "precision_at_1": 0.46508058326937834,
+  "hits_at_10": 0.7848042977743669,
+  "r_precision": 0.2981843732700724,
+  "bins": [
+    {
+      "bin": 1,
+      "coverage_min": 0.0,
+      "coverage_max": 0.2,
+      "count": 120,
+      "hits_at_1": 6.666666666666667,
+      "hits_at_10": 31.666666666666664
+    },
+    {
+      "bin": 2,
+      "coverage_min": 0.2,
+      "coverage_max": 0.4,
+      "count": 915,
+      "hits_at_1": 18.251366120218577,
+      "hits_at_10": 60.32786885245902
+    },
+    {
+      "bin": 3,
+      "coverage_min": 0.4,
+      "coverage_max": 0.6,
+      "count": 1941,
+      "hits_at_1": 36.476043276661514,
+      "hits_at_10": 74.3946419371458
+    },
+    {
+      "bin": 4,
+      "coverage_min": 0.6,
+      "coverage_max": 0.8,
+      "count": 2311,
+      "hits_at_1": 53.22371267849416,
+      "hits_at_10": 84.07615750757247
+    },
+    {
+      "bin": 5,
+      "coverage_min": 0.8,
+      "coverage_max": 1.0,
+      "count": 1228,
+      "hits_at_1": 74.6742671009772,
+      "hits_at_10": 92.50814332247556
+    }
+  ],
+  "top1_spearman": {
+    "spearman_correlation": 0.38044590515228627,
+    "spearman_p_value": 1.965702482518709e-223
+  },
+  "top10_spearman": {
+    "spearman_correlation": 0.20229362063763492,
+    "spearman_p_value": 3.924428256981893e-61
+  }
+}

@@ -1,0 +1,444 @@
+{
+  "dataset_name": "MINDER",
+  "queries_processed": 6980,
+  "queries_with_both": 5256,
+  "summary": {
+    "title_score": {
+      "positive_absolute": {
+        "mean": 50.389720302666746,
+        "median": 0.0,
+        "std": 102.84481005271208
+      },
+      "negative_absolute": {
+        "mean": 23.32629150949708,
+        "median": 12.180973396138885,
+        "std": 28.48420258837921
+      },
+      "pct_increase": {
+        "mean": 329.57752847316675,
+        "median": -100.0,
+        "std": 1690.616814971513
+      }
+    },
+    "overall_score": {
+      "positive_absolute": {
+        "mean": 814.7699567510522,
+        "median": 771.9063090164157,
+        "std": 270.20181429085704
+      },
+      "negative_absolute": {
+        "mean": 595.5927392959395,
+        "median": 578.4640747289598,
+        "std": 159.2182278619171
+      },
+      "pct_increase": {
+        "mean": 44.332361641731,
+        "median": 26.881611299788148,
+        "std": 58.91768763710792
+      }
+    },
+    "other_score": {
+      "positive_absolute": {
+        "mean": 545.4465930883354,
+        "median": 535.7686574047652,
+        "std": 190.6213810778002
+      },
+      "negative_absolute": {
+        "mean": 528.5386104879166,
+        "median": 506.3360314002566,
+        "std": 148.008967907186
+      },
+      "pct_increase": {
+        "mean": 6.9309991208661685,
+        "median": 4.4635290732649455,
+        "std": 37.47626257517091
+      }
+    },
+    "word_coverage": {
+      "positive": {
+        "mean": 61.87242014874416,
+        "median": 62.5,
+        "std": 9.90482220966681
+      },
+      "negative": {
+        "mean": 55.08366795610979,
+        "median": 56.43993858830399,
+        "std": 8.551575608324649
+      }
+    }
+  },
+  "top_bottom_queries": {
+    "title_pct_increase": {
+      "top_5_largest": [
+        {
+          "query_id": 3575,
+          "query_text": "where is quincy market in boston?",
+          "title_pct_increase": 57812.55664959788,
+          "overall_pct_increase": 205.05806510792013,
+          "other_pct_increase": -28.763809159242427,
+          "pos_title": 387.2805960005439,
+          "neg_title": 0.6687333773637378,
+          "pos_overall": 1601.9419043803305,
+          "neg_overall": 525.1268816032164,
+          "pos_other": 346.2204466200598,
+          "neg_other": 486.0176302716776,
+          "pos_word_cov": 60.0,
+          "neg_word_cov": 54.82964966872579,
+          "pos_title_to_other_ratio": 1.1185953881774864,
+          "neg_title_to_other_ratio": 0.16419214584101885,
+          "title_to_other_diff": 0.9544032423364676
+        },
+        {
+          "query_id": 4114,
+          "query_text": "oxnard area code phone number",
+          "title_pct_increase": 24351.81377907756,
+          "overall_pct_increase": 216.98027472754325,
+          "other_pct_increase": 12.365235410575034,
+          "pos_title": 269.22415947195344,
+          "neg_title": 1.1010396279981396,
+          "pos_overall": 1733.5058762128017,
+          "neg_overall": 546.8813091612142,
+          "pos_other": 602.2308604186403,
+          "neg_other": 535.9583488773277,
+          "pos_word_cov": 74.35897435897436,
+          "neg_word_cov": 63.46277251634011,
+          "pos_title_to_other_ratio": 0.4470447742212309,
+          "neg_title_to_other_ratio": 0.24856002926066487,
+          "title_to_other_diff": 0.19848474496056603
+        },
+        {
+          "query_id": 5246,
+          "query_text": "what is pre licensing course for real estate",
+          "title_pct_increase": 22591.39188093711,
+          "overall_pct_increase": 33.94125875964728,
+          "other_pct_increase": 9.015427254353733,
+          "pos_title": 190.13727564753717,
+          "neg_title": 0.837926896001784,
+          "pos_overall": 882.0592536962606,
+          "neg_overall": 658.5418577251718,
+          "pos_other": 691.9219780487234,
+          "neg_other": 634.700973500143,
+          "pos_word_cov": 54.02298850574713,
+          "neg_word_cov": 61.34873587603764,
+          "pos_title_to_other_ratio": 0.2747958316181024,
+          "neg_title_to_other_ratio": 0.11873212868616818,
+          "title_to_other_diff": 0.15606370293193422
+        },
+        {
+          "query_id": 1118,
+          "query_text": "tom scott honda nampa idaho phone number",
+          "title_pct_increase": 22161.670613076905,
+          "overall_pct_increase": 240.78516053077647,
+          "other_pct_increase": 7.697112045290562,
+          "pos_title": 243.95011031540577,
+          "neg_title": 1.0958302032018437,
+          "pos_overall": 1464.5636902027793,
+          "neg_overall": 429.76157997070817,
+          "pos_other": 436.3017803989171,
+          "neg_other": 405.11929439244045,
+          "pos_word_cov": 58.490566037735846,
+          "neg_word_cov": 40.53712012573587,
+          "pos_title_to_other_ratio": 0.5591315935800835,
+          "neg_title_to_other_ratio": 0.3953106279596454,
+          "title_to_other_diff": 0.16382096562043807
+        },
+        {
+          "query_id": 459,
+          "query_text": "what is a portable engine",
+          "title_pct_increase": 16400.0,
+          "overall_pct_increase": 121.79535220612934,
+          "other_pct_increase": 39.938316206041854,
+          "pos_title": 342.9245821239974,
+          "neg_title": 2.0783308007514996,
+          "pos_overall": 887.1618982559078,
+          "neg_overall": 399.9912033465014,
+          "pos_other": 544.2373161319105,
+          "neg_other": 388.91229427870803,
+          "pos_word_cov": 52.0,
+          "neg_word_cov": 51.354596137348,
+          "pos_title_to_other_ratio": 0.6301011917580075,
+          "neg_title_to_other_ratio": 0.3902996261742347,
+          "title_to_other_diff": 0.2398015655837728
+        }
+      ],
+      "top_5_smallest": [
+        {
+          "query_id": 0,
+          "query_text": "what is paula deen's brother",
+          "title_pct_increase": -100.0,
+          "overall_pct_increase": 113.38800221762104,
+          "other_pct_increase": 32.4082943451242,
+          "pos_title": 0.0,
+          "neg_title": 8.43582666415981,
+          "pos_overall": 1031.5487902428458,
+          "neg_overall": 483.4146154059936,
+          "pos_other": 571.149405652754,
+          "neg_other": 431.35470362909786,
+          "pos_word_cov": 51.21951219512195,
+          "neg_word_cov": 43.72215501428917,
+          "pos_title_to_other_ratio": null,
+          "neg_title_to_other_ratio": 0.30896573575207675,
+          "title_to_other_diff": null
+        },
+        {
+          "query_id": 2,
+          "query_text": "what is paranoid sc",
+          "title_pct_increase": -100.0,
+          "overall_pct_increase": -27.763630798738966,
+          "other_pct_increase": -13.448958750530885,
+          "pos_title": 0.0,
+          "neg_title": 92.78887343886483,
+          "pos_overall": 712.7048205648006,
+          "neg_overall": 986.6287971632423,
+          "pos_other": 712.7048205648006,
+          "neg_other": 823.4503135676281,
+          "pos_word_cov": 69.6969696969697,
+          "neg_word_cov": 52.922368702623,
+          "pos_title_to_other_ratio": null,
+          "neg_title_to_other_ratio": 0.5332972634783861,
+          "title_to_other_diff": null
+        },
+        {
+          "query_id": 3,
+          "query_text": "what is prime rate in canada",
+          "title_pct_increase": -100.0,
+          "overall_pct_increase": 39.11835452366172,
+          "other_pct_increase": 9.048365148863695,
+          "pos_title": 0.0,
+          "neg_title": 45.06258558388032,
+          "pos_overall": 1041.5133738830198,
+          "neg_overall": 748.6527406460056,
+          "pos_other": 699.2885399961885,
+          "neg_other": 641.2645792915633,
+          "pos_word_cov": 62.7906976744186,
+          "neg_word_cov": 56.34342873402653,
+          "pos_title_to_other_ratio": null,
+          "neg_title_to_other_ratio": 0.4425090292039471,
+          "title_to_other_diff": null
+        },
+        {
+          "query_id": 8,
+          "query_text": "who proposed the geocentric theory",
+          "title_pct_increase": -100.0,
+          "overall_pct_increase": -14.103190555421497,
+          "other_pct_increase": -1.7365835168053199,
+          "pos_title": 0.0,
+          "neg_title": 46.75572369853239,
+          "pos_overall": 514.9727705784886,
+          "neg_overall": 599.5249112375406,
+          "pos_other": 514.9727705784886,
+          "neg_other": 524.0737489181041,
+          "pos_word_cov": 64.04494382022472,
+          "neg_word_cov": 57.755742754757236,
+          "pos_title_to_other_ratio": null,
+          "neg_title_to_other_ratio": 0.8003596333021699,
+          "title_to_other_diff": null
+        },
+        {
+          "query_id": 9,
+          "query_text": "what is probability biology",
+          "title_pct_increase": -100.0,
+          "overall_pct_increase": 9.9114846453102,
+          "other_pct_increase": 23.409042051232195,
+          "pos_title": 0.0,
+          "neg_title": 71.96504985088595,
+          "pos_overall": 758.8066408137555,
+          "neg_overall": 690.3797571859411,
+          "pos_other": 758.8066408137555,
+          "neg_other": 614.8711862610063,
+          "pos_word_cov": 58.82352941176471,
+          "neg_word_cov": 59.95686366276189,
+          "pos_title_to_other_ratio": null,
+          "neg_title_to_other_ratio": 0.6452287637769588,
+          "title_to_other_diff": null
+        }
+      ]
+    },
+    "title_to_other_diff": {
+      "top_5_largest": [
+        {
+          "query_id": 4874,
+          "query_text": "who is charles duke",
+          "title_pct_increase": 2164.776552208027,
+          "overall_pct_increase": -7.750915580578599,
+          "other_pct_increase": -76.35802325903553,
+          "pos_title": 362.14270762233684,
+          "neg_title": 15.990217987256557,
+          "pos_overall": 475.1146642715667,
+          "neg_overall": 515.0345580790824,
+          "pos_other": 112.97195664922978,
+          "neg_other": 477.84480074156914,
+          "pos_word_cov": 39.726027397260275,
+          "neg_word_cov": 50.9752033884337,
+          "pos_title_to_other_ratio": 3.205598231259878,
+          "neg_title_to_other_ratio": 0.6959281670798094,
+          "title_to_other_diff": 2.5096700641800687
+        },
+        {
+          "query_id": 3298,
+          "query_text": "who is dav pilkey",
+          "title_pct_increase": 2486.6967089579057,
+          "overall_pct_increase": 127.6166486955381,
+          "other_pct_increase": -54.45309243503753,
+          "pos_title": 355.81148045775114,
+          "neg_title": 13.755438711680112,
+          "pos_overall": 850.7594355470125,
+          "neg_overall": 373.7685447978787,
+          "pos_other": 144.6561841977989,
+          "neg_other": 317.59825624051257,
+          "pos_word_cov": 50.0,
+          "neg_word_cov": 47.24495939339167,
+          "pos_title_to_other_ratio": 2.4597045744793027,
+          "neg_title_to_other_ratio": 0.33938582417583124,
+          "title_to_other_diff": 2.1203187503034715
+        },
+        {
+          "query_id": 3414,
+          "query_text": "what is the definition of a discriminant in math",
+          "title_pct_increase": 798.6738472127556,
+          "overall_pct_increase": -10.615239952556884,
+          "other_pct_increase": -72.04561207113181,
+          "pos_title": 319.9110564886896,
+          "neg_title": 35.598126893410374,
+          "pos_overall": 438.88281135853043,
+          "neg_overall": 491.0040717518096,
+          "pos_other": 118.97175486984085,
+          "neg_other": 425.59241566144266,
+          "pos_word_cov": 60.46511627906976,
+          "neg_word_cov": 57.744474048174666,
+          "pos_title_to_other_ratio": 2.688966420220638,
+          "neg_title_to_other_ratio": 1.1345636830753365,
+          "title_to_other_diff": 1.5544027371453015
+        },
+        {
+          "query_id": 162,
+          "query_text": "what is elbaite",
+          "title_pct_increase": 6413.1578947368425,
+          "overall_pct_increase": 72.1350705135089,
+          "other_pct_increase": -55.66658027774874,
+          "pos_title": 325.2207806814781,
+          "neg_title": 4.993288753897442,
+          "pos_overall": 633.4718520132141,
+          "neg_overall": 368.0085935558961,
+          "pos_other": 140.21961647746548,
+          "neg_other": 316.2842328788101,
+          "pos_word_cov": 62.5,
+          "neg_word_cov": 40.095680538341846,
+          "pos_title_to_other_ratio": 2.3193671936363964,
+          "neg_title_to_other_ratio": 0.9097143074461882,
+          "title_to_other_diff": 1.4096528861902082
+        },
+        {
+          "query_id": 3865,
+          "query_text": "where is lucas black from",
+          "title_pct_increase": 2530.4240071522445,
+          "overall_pct_increase": 187.92456335638502,
+          "other_pct_increase": -47.2331199842588,
+          "pos_title": 373.33219511382396,
+          "neg_title": 14.192852334783916,
+          "pos_overall": 1352.6522670042866,
+          "neg_overall": 469.7939804913453,
+          "pos_other": 209.74194061655794,
+          "neg_other": 397.48785706865476,
+          "pos_word_cov": 65.45454545454545,
+          "neg_word_cov": 49.655986630540134,
+          "pos_title_to_other_ratio": 1.779959660125276,
+          "neg_title_to_other_ratio": 0.37187517179984675,
+          "title_to_other_diff": 1.4080844883254293
+        }
+      ],
+      "top_5_smallest": [
+        {
+          "query_id": 232,
+          "query_text": "what is cataflam",
+          "title_pct_increase": 2374.9999999999995,
+          "overall_pct_increase": 162.9806212318366,
+          "other_pct_increase": -39.267821794383615,
+          "pos_title": 338.3858000668258,
+          "neg_title": 13.67215353805357,
+          "pos_overall": 938.8069018632111,
+          "neg_overall": 356.9871032571576,
+          "pos_other": 189.0424949970492,
+          "neg_other": 311.27237748170694,
+          "pos_word_cov": 48.148148148148145,
+          "neg_word_cov": 37.174055145997464,
+          "pos_title_to_other_ratio": 1.7899985835571477,
+          "neg_title_to_other_ratio": 7.482103147343078,
+          "title_to_other_diff": -5.69210456378593
+        },
+        {
+          "query_id": 2327,
+          "query_text": "what county is perris ca in",
+          "title_pct_increase": 9218.928077483108,
+          "overall_pct_increase": 161.74106571739617,
+          "other_pct_increase": 10.385202287025468,
+          "pos_title": 358.0198068746099,
+          "neg_title": 3.841856100807093,
+          "pos_overall": 1514.7307073537856,
+          "neg_overall": 578.7134331413062,
+          "pos_other": 528.9794657410263,
+          "neg_other": 479.2122990956387,
+          "pos_word_cov": 73.68421052631578,
+          "neg_word_cov": 61.558229761588244,
+          "pos_title_to_other_ratio": 0.6768122949654802,
+          "neg_title_to_other_ratio": 3.5881885206021438,
+          "title_to_other_diff": -2.9113762256366638
+        },
+        {
+          "query_id": 4992,
+          "query_text": "what is myfortic",
+          "title_pct_increase": 436.25000000000006,
+          "overall_pct_increase": 64.75279846688971,
+          "other_pct_increase": -70.5898680989084,
+          "pos_title": 162.1405783869952,
+          "neg_title": 30.236005293612155,
+          "pos_overall": 954.8283064699278,
+          "neg_overall": 579.55210190971,
+          "pos_other": 144.16365892202475,
+          "neg_other": 490.1836530582643,
+          "pos_word_cov": 54.71698113207547,
+          "neg_word_cov": 40.628980002852465,
+          "pos_title_to_other_ratio": 1.1246979889015984,
+          "neg_title_to_other_ratio": 3.3637498275228204,
+          "title_to_other_diff": -2.239051838621222
+        },
+        {
+          "query_id": 4189,
+          "query_text": "where is mayflower arkansas",
+          "title_pct_increase": 208.0686507151884,
+          "overall_pct_increase": 382.9555707391089,
+          "other_pct_increase": 74.11866833146559,
+          "pos_title": 128.18879890002697,
+          "neg_title": 41.6104652655938,
+          "pos_overall": 1901.5546637049613,
+          "neg_overall": 393.73283567158086,
+          "pos_other": 599.5676340821319,
+          "neg_other": 344.34425660822836,
+          "pos_word_cov": 67.85714285714286,
+          "neg_word_cov": 49.429332593689175,
+          "pos_title_to_other_ratio": 0.2138020656876634,
+          "neg_title_to_other_ratio": 2.432241227035917,
+          "title_to_other_diff": -2.2184391613482535
+        },
+        {
+          "query_id": 2214,
+          "query_text": "what county is belmont ms in",
+          "title_pct_increase": 631.4538046053431,
+          "overall_pct_increase": 40.7546664239327,
+          "other_pct_increase": -35.812413071690116,
+          "pos_title": 197.08403373908618,
+          "neg_title": 26.944153205331013,
+          "pos_overall": 1278.3806874048764,
+          "neg_overall": 908.2332542741984,
+          "pos_other": 545.5022771473804,
+          "neg_other": 849.8563402245412,
+          "pos_word_cov": 73.68421052631578,
+          "neg_word_cov": 50.946539247244075,
+          "pos_title_to_other_ratio": 0.36128911213426546,
+          "neg_title_to_other_ratio": 2.464120730989281,
+          "title_to_other_diff": -2.1028316188550153
+        }
+      ]
+    }
+  }
+}

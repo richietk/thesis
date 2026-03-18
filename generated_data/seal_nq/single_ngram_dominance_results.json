@@ -1,0 +1,104 @@
+{
+  "total_queries": 6515,
+  "mean_dominance": 0.4380451404253993,
+  "median_dominance": 0.439146661683766,
+  "std_dominance": 0.10914714605130248,
+  "dominance_std_success": 0.1051902436259647,
+  "dominance_std_fail": 0.11073842815008653,
+  "precision_at_1": 0.4165771297006907,
+  "r_precision": 0.2602814032906959,
+  "deciles": [
+    {
+      "decile": 1,
+      "dominance_min": 0.11726418033244636,
+      "dominance_max": 0.2959713847393644,
+      "dominance_std": 0.040447497902961774,
+      "success_top1_pct": 48.61963190184049,
+      "success_top1_std": 50.01931529702184,
+      "count": 652
+    },
+    {
+      "decile": 2,
+      "dominance_min": 0.29598269159666024,
+      "dominance_max": 0.3468076417840206,
+      "dominance_std": 0.014860865366239984,
+      "success_top1_pct": 45.775729646697386,
+      "success_top1_std": 49.859545132431265,
+      "count": 651
+    },
+    {
+      "decile": 3,
+      "dominance_min": 0.34689625294896576,
+      "dominance_max": 0.38283100065322606,
+      "dominance_std": 0.01025112372112981,
+      "success_top1_pct": 45.39877300613497,
+      "success_top1_std": 49.82606180247536,
+      "count": 652
+    },
+    {
+      "decile": 4,
+      "dominance_min": 0.38284894826565224,
+      "dominance_max": 0.41334685558456785,
+      "dominance_std": 0.008695999502246065,
+      "success_top1_pct": 47.465437788018434,
+      "success_top1_std": 49.974115951702444,
+      "count": 651
+    },
+    {
+      "decile": 5,
+      "dominance_min": 0.4135452913764711,
+      "dominance_max": 0.439146661683766,
+      "dominance_std": 0.007280225788941794,
+      "success_top1_pct": 44.325153374233125,
+      "success_top1_std": 49.71505700708396,
+      "count": 652
+    },
+    {
+      "decile": 6,
+      "dominance_min": 0.43923585729126824,
+      "dominance_max": 0.46698686631872327,
+      "dominance_std": 0.008040406305745084,
+      "success_top1_pct": 46.85099846390169,
+      "success_top1_std": 49.93910979846432,
+      "count": 651
+    },
+    {
+      "decile": 7,
+      "dominance_min": 0.46699124826520866,
+      "dominance_max": 0.49495357936678797,
+      "dominance_std": 0.00802405389976774,
+      "success_top1_pct": 37.94162826420891,
+      "success_top1_std": 48.56148809458028,
+      "count": 651
+    },
+    {
+      "decile": 8,
+      "dominance_min": 0.49507626321767284,
+      "dominance_max": 0.5280005764033874,
+      "dominance_std": 0.009439236153237636,
+      "success_top1_pct": 35.42944785276074,
+      "success_top1_std": 47.86661822928887,
+      "count": 652
+    },
+    {
+      "decile": 9,
+      "dominance_min": 0.5280268501175847,
+      "dominance_max": 0.5743436284329029,
+      "dominance_std": 0.01335192678212262,
+      "success_top1_pct": 35.17665130568356,
+      "success_top1_std": 47.78887358596295,
+      "count": 651
+    },
+    {
+      "decile": 10,
+      "dominance_min": 0.5743680967492618,
+      "dominance_max": 0.8481019636221988,
+      "dominance_std": 0.049470854105781774,
+      "success_top1_pct": 29.601226993865033,
+      "success_top1_std": 45.68469240176561,
+      "count": 652
+    }
+  ],
+  "spearman_correlation": -0.11487747618189326,
+  "spearman_p_value": 1.3857428727852958e-20
+}
