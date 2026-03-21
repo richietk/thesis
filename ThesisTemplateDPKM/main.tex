@@ -414,7 +414,7 @@ We analyze how discriminative each \gs{docid} is by using the n-gram corpus freq
 
 Across 6,515 queries for \gs{nq} and 6,980 queries for \gs{MSMARCO}, the average corpus frequency of the top-5 scored n-grams for the top-1 retrieved passage is 28,753 for \gs{SEAL} (NQ), 21,310 for \gs{MINDER} (NQ), and 42,380 for \gs{MINDER} (MSMARCO). The mean frequency across \textit{all} generated n-grams for such passages is 382,136, 498,399, and 476,277, respectively. $k=5$ was arbitrarily selected as a representation of the n-grams with the strongest influence on the passage's overall score. The deciles signify the mean frequency of the top-5 n-gram for the highest-ranked retrieved queries. We chose this to ensure that the deciles capture the overall retrieval ``ethos'' of each query. Individual misranks do not meaningfully affect the decile distribution.
 
-In the following tables, we present the evaluation metrics.
+We present the evaluation metrics in Table~\ref{tab:nonspec-decile-freq-hits} and Table~\ref{tab:nonspec-decile-rank}.
 
 \begin{table}[htbp]
     \centering
@@ -470,7 +470,8 @@ We further examine whether the analyzed systems disproportionately generate shor
 
 We quantify this scoring bias by measuring the fraction of generated n-grams that consist of a single token for the top-retrieved passages. Across all queries, the mean unigram proportion is $0.869 \pm 0.066$ for \gs{SEAL} (NQ), $0.853 \pm 0.071$ for \gs{MINDER} (NQ), and $0.855 \pm 0.106$ for \gs{MINDER} (MSMARCO). The average absolute n-gram length is $1.28$ words for \gs{SEAL}, $1.48$ for \gs{MINDER} NQ, and $1.45$ for \gs{MINDER} MSMARCO. This indicates that more than four-fifths of generated n-grams are unigrams.
 
-Below we present our results for this section.
+We present our results in Table~\ref{tab:unigram-dec-hits} and Table~\ref{tab:unigram-dec-rank}.
+
 
 \begin{table}[H]
     \centering
@@ -612,7 +613,7 @@ Our analysis across 6,515 queries shows that the token-level lexical overlap var
     \end{tabular}}
 \end{table}
 
-As visible from table, the hit rate of \gs{SEAL} and \gs{MINDER} are relatively similar, and are positively correlated with $C(Q, G_n)$. Similar to other failure modes, low query coverage typically arises when the model generates semantically related but lexically distinct n-grams (e.g., for a query containing ``automobile,'' the model could generate n-grams with ``car'') or when the model generates generic topical n-grams that lack the specific query terms needed to isolate the answer (e.g., a query about ``Victorian architecture in London'' generates only ``architecture'' and ``London'').
+As visible from Table~\ref{tab:p-unique-coverage}, the hit rate of \gs{SEAL} and \gs{MINDER} are relatively similar, and are positively correlated with $C(Q, G_n)$. Similar to other failure modes, low query coverage typically arises when the model generates semantically related but lexically distinct n-grams (e.g., for a query containing ``automobile,'' the model could generate n-grams with ``car'') or when the model generates generic topical n-grams that lack the specific query terms needed to isolate the answer (e.g., a query about ``Victorian architecture in London'' generates only ``architecture'' and ``London'').
 
 
 \subparagraph{Overreliance on a Single Identifier}
@@ -705,7 +706,7 @@ However, it is worth noting that the results for MINDER on MSMARCO are notably l
 
 We analyzed whether there is a correlation with retrieval failure and the amount of unique titles retrieved in the top-k passages. For this, according to the other analyses, we use $k=10$. This analysis is possible as Wikipedia articles have unique titles. We present our results for the NQ dataset. The results on the MSMarco dataset for \gs{MINDER} are omitted from this thesis to keep it in scope but can be computed using the scripts available under the \href{https://github.com/richietk/thesis}{GitHub repository}\footnote{https://github.com/richietk/thesis/} of this thesis.
 
-The results are illustrated in the following table and Figure~\ref{fig:title-repetition-comparison}:
+The results are illustrated in Table~\ref{tab:title-repetition-impact} and Figure~\ref{fig:title-repetition-comparison}.
 
 \begin{table}[H]
     \centering
