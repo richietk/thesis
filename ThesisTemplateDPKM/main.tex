@@ -537,7 +537,7 @@ Our analysis shows that for \gs{SEAL}, title score is higher by around 280\% on 
 
 To strengthen this conclusion, we analyze whether retrieval success correlates with the model's ability to generate the specific answer string as an identifier, or whether it relies on the surrounding context. While generating the answer string provides a valuable anchor for a passage, the primary goal of \gs{GR} is document identification, not direct question answering. This analysis is presented for NQ only, as MSMARCO's incomplete metadata makes answer string matching unreliable and complex.
 
-Table \ref{tab:answer-presence-impact} illustrates the results of our analysis. We looked at whether among the top-1 and top-10 scored retrieved passages, at least one of them contained the answer string or not and what the Hits@1 value is for these cases. The results are mostly similar between \gs{SEAL} and \gs{MINDER}, with most top-1 ranked retrieved passages not containing the answer string, yet when they do, the respective query's Hits@1 rate doubles and Hits@10 increases significantly.
+Table \ref{tab:answer-presence-impact} illustrates the results of our analysis. We looked at whether the generated n-grams for the top-1 and top-10 scored retrieved passages, at least one of them contained the answer string or not and what the Hits@1 value is for these cases. The results are mostly similar between \gs{SEAL} and \gs{MINDER}, with the generated n-grams of most top-1 ranked retrieved passages not containing the answer string, yet when they do, the respective query's Hits@1 rate doubles and Hits@10 increases significantly.
 
 \begin{table}[htbp]
     \centering
