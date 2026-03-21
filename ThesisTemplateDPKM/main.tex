@@ -203,10 +203,12 @@ From the output data available, the n-gram keys are deemed most useful to unders
 
 The \gs{MINDER} output is structurally identical to that of \gs{SEAL}'s, including being ran on the same 6,515 queries. The main difference arises from the pseudoqueries, which are appended to the \textit{text}. For MSMARCO, MINDER output follows the same structure across 6,980 queries.
 
-On NQ, the output dataset (of both systems) has an average per-query annotated correct passage count of 8.46, with the minimum being one and maximum being 101. This is important to analyze to accurately identify evaluation metrics. To illustrate the distribution, please consult the histogram below.
+On NQ, the output dataset (of both systems) has an average per-query annotated correct passage count of 8.46, with the minimum being one and maximum being 101. This is important to analyze to accurately identify evaluation metrics. To illustrate the distribution, please consult Figure~\ref{fig:positive-ctxs-histogram}.
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.7\textwidth]{assets/positive_ctxs_histogram.png}
+    \caption{Distribution of annotated correct passage counts per query on the NQ dataset.}
+    \label{fig:positive-ctxs-histogram}
 \end{figure}
 
 For MINDER on MSMARCO, the average annotated correct passage count per query is much lower, the average having around 1.32 positive passages. The distribution is comparable to that of NQ.
@@ -516,7 +518,7 @@ For \gs{MINDER} (NQ), queries with the highest proportion of unigrams (D10) suff
 
 The Spearman $\rho$ confirms that this negatively impacts ranking quality: for \gs{MINDER} (NQ), unigram proportion vs. MRR is $\rho = -0.351$, and vs. NDCG@10 is $\rho = -0.304$. For \gs{MINDER} (MSMARCO), it is $\rho = -0.267$ and $\rho = -0.323$ ($p<0.001$).
 
-To understand the results more illustratively, we summarized the trend in the following chart, showing our results for \gs{SEAL} and \gs{MINDER} on the \gs{nq} dataset. We can see a convergence in hit rates as unigram proportions increase. Without multi-token strings to enforce specific intersections, generative systems struggle to confidently disambiguate documents.
+To understand the results more illustratively, we summarized the trend in Figure~\ref{fig:ngram_bias}, showing our results for \gs{SEAL} and \gs{MINDER} on the \gs{nq} dataset. We can see a convergence in hit rates as unigram proportions increase. Without multi-token strings to enforce specific intersections, generative systems struggle to confidently disambiguate documents.
 
 \begin{figure}[H]
     \centering
@@ -703,7 +705,7 @@ However, it is worth noting that the results for MINDER on MSMARCO are notably l
 
 We analyzed whether there is a correlation with retrieval failure and the amount of unique titles retrieved in the top-k passages. For this, according to the other analyses, we use $k=10$. This analysis is possible as Wikipedia articles have unique titles. We present our results for the NQ dataset. The results on the MSMarco dataset for \gs{MINDER} are omitted from this thesis to keep it in scope but can be computed using the scripts available under the \href{https://github.com/richietk/thesis}{GitHub repository}\footnote{https://github.com/richietk/thesis/} of this thesis.
 
-The results are illustrated in the following table and line chart:
+The results are illustrated in the following table and Figure~\ref{fig:title-repetition-comparison}:
 
 \begin{table}[H]
     \centering
@@ -729,6 +731,8 @@ The results are illustrated in the following table and line chart:
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.7\textwidth]{assets/title_repetition_comparison.png}
+    \caption{Hits@k by maximum title repetition count in the top-10 results on NQ for SEAL and MINDER.}
+    \label{fig:title-repetition-comparison}
 \end{figure}
 
 We can see that when stratified by maximum title repetition, i.e. the maximum number of passages from the same Wikipedia article per query, \glsxtrshort{MINDER} marginally outperforms \glsxtrshort{SEAL}, especially on queries where the system is relatively sure of the answer, as evidenced by a specific title appearing in several of the top-10 results. We can see that in cases where the max repetition is very low, i.e. the model couldn't confidently pinpoint a single document and is likely guessing, retrieval success suffers. Based on this analysis, there are significantly more cases with high title repetition than low title repetition, indicating that the models are fairly certain about the correct document (or, alternatively, are confidently incorrect about one).
@@ -743,7 +747,7 @@ The retrieval ``symptoms'' observed in the scoring and ranking behavior of SEAL 
 The significant drop in Hits@1 when identifiers lack lexical specificity can be traced back to the failure mode when the corpus size exceeds the transformer's parametric memory, forcing the model to default to high-frequency linguistic priors rather than discriminative document mappings. As the corpus scales, the model loses the fine-grained resolution required to distinguish unique identifiers, leading to an overreliance on generic terms that match many topically-related passages.
 
 The disproportionate impact of answer-string presence on retrieval success reflects a reliance on rote memorization and a dependence on metadata, as GR models often overfit to their training data \cite{ronak-pradeep-how-does}, dropping performance when queries are not phrased the way the model saw queries during training. When that anchor is absent, the model cannot generalize enough to discriminate the context.
-This failure also suggests that a passage’s ``semantic environment'' is too generic to discriminate each passage individually.
+This failure also suggests that a passage's ``semantic environment'' is too generic to discriminate each passage individually.
 
 \paragraph{Failure Mode Categorization by Downstream Task}
 
