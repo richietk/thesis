@@ -1,9 +1,6 @@
-
-\newcommand{\adrian}[1]{\textcolor{orange}{#1}}
-
 \section{Introduction}
 
-\gf{IR}, as defined by \href{https://en.wikipedia.org/wiki/Information_retrieval}{Wikipedia} is ``the task of identifying and retrieving information system resources that are relevant to an information need.'' Traditionally, \gf{IR} has long been structured around the ``index-retrieve-then-rank'' pipeline \cite{tang-recent-advances,metzler-rethinking-search}, with the most popular (and best performing) methods using sparse retrieval, such as BM25 \cite{robertson-the-probabilistic} and SPLADE \cite{formal-splade-sparse}. These rely on lexical representations but suffer when terms do not overlap exactly \cite{choi-spade-improving,biplob-biswas-efficient-and,luyu-gao-coil-revisit}. A newer method called \gf{DR}, popularized by frameworks such as DPR \cite{vladimir-karpukhin-dense-passage} utilizes the bidirectional-encoder architectures (typically from BERT \cite{devlin-bert-pretraining}) to address this issue by encoding queries and documents into semantic vector representations and then calculating the similarity between query vectors and document vectors, usually via cosine similarity. However, \gs{DR} systems still depend on separate vector index structures \cite{lee-xiong-approximate-nearest,haitao-li-constructing-treebased}, and queries and documents are encoded independently with limited semantic interaction \cite{jianmo-ni-large-dual}.
+\gf{IR} is commonly defined as ``the task of identifying and retrieving information system resources that are relevant to an information need.'' Traditionally, \gf{IR} has long been structured around the ``index-retrieve-then-rank'' pipeline \cite{tang-recent-advances,metzler-rethinking-search}, with the most popular (and best performing) methods using sparse retrieval, such as BM25 \cite{robertson-the-probabilistic} and SPLADE \cite{formal-splade-sparse}. These rely on lexical representations but suffer when terms do not overlap exactly \cite{choi-spade-improving,biplob-biswas-efficient-and,luyu-gao-coil-revisit}. A newer paradigm called \gf{DR}, popularized by frameworks such as DPR \cite{vladimir-karpukhin-dense-passage} utilizes the bidirectional-encoder architectures (typically from BERT \cite{devlin-bert-pretraining}) to address this issue by encoding queries and documents into semantic vector representations and then calculating the similarity between query vectors and document vectors, usually via cosine similarity. However, \gs{DR} systems still depend on separate vector index structures \cite{lee-xiong-approximate-nearest,haitao-li-constructing-treebased}, and queries and documents are encoded independently with limited semantic interaction \cite{jianmo-ni-large-dual}.
 
 \gf{GR} represents an emerging framework in \gf{IR} which aims to directly generate document identifiers through autoregressive language models, such as BART \cite{lewis-bart-denoising} and T5 \cite{colin-raffel-exploring-the}, consolidating the retrieval process into a single end-to-end model \cite{peitian-zhang-generative-retrieval,xiaoxi-li-from-matching,tzulin-kuo-a-survey} by using an \gs{LM} to encode the entire document corpus into the parameters of a single transformer.
 This architecture offers several advantages: it eliminates the need for separate dense vector indexes, reduces storage needs \cite{michele-bevilacqua-autoregressive-search}
@@ -24,7 +21,7 @@ This thesis addresses two interconnected research questions:
 
 \textbf{RQ1:} What failure modes of GR systems have been identified in the literature, and how can they be organized into a coherent taxonomy?
 
-\textbf{RQ2:} Which failure modes appear in n-gram-based retrieval? When and how do they happen?
+\textbf{RQ2:} Which failure modes appear in n-gram-based retrieval? What are the conditions in which failures occur?
 
 \subsection{Contributions}
 
@@ -38,7 +35,7 @@ This thesis makes the following contributions:
 
 
 \end{enumerate}
-The code used for this thesis is available on \href{https://github.com/richietk/thesis}{Github}.
+The code used for this thesis is available on \href{https://github.com/richietk/thesis}{Github}\footnote{https://github.com/richietk/thesis/}.
 
 
 \pagebreak
@@ -85,7 +82,7 @@ non-autoregressive generation \cite{ravisri-valluri-scaling-the,xinpeng-zhao-dif
 During the generation phase, \gs{SEAL} enforces that at each decoding step, the language model can only generate tokens that would extend the current partial n-gram into a sequence that exists somewhere in the corpus. As an example, when \gs{SEAL} has generated the partial sequence ``earthquakes can be,'', ``earthquakes can be predicted'' can only be generated if this complete 4-gram exists as a contiguous substring in at least one document \cite{michele-bevilacqua-autoregressive-search}. ``earthquakes can be predicted'' exists in the corpus in the sentence ``discussing why the claim that earthquakes can be predicted is false.''
 
 After n-gram generation, in the retrieval phase, for each n-gram, \gs{SEAL} identifies every passage containing that n-gram and assigns a relevance score based on the n-gram's uniqueness and frequency in the corpus.
-Passages are then ranked by additively aggregating the scores from all n-grams they contain. The FM-index, which \gs{SEAL} uses, provides a range of rows in the Burrows-Wheeler Transform matrix, and each row corresponds to an occurrence of that n-gram in the corpus. \gs{SEAL} then maps these occurrences back to their respective document/passage id-s.This means that a document scores highly not because any single n-gram uniquely identifies it, but because it contains multiple high-scoring n-grams. This provides robustness, since even if some highly ranked n-grams point to an irrelevant document, other n-grams can still guide retrieval toward relevant documents. 
+Passages are then ranked by additively aggregating the scores from all n-grams they contain. The FM-index, which \gs{SEAL} uses, provides a range of rows in the Burrows-Wheeler Transform matrix \cite{burrows1994block}, and each row corresponds to an occurrence of that n-gram in the corpus. \gs{SEAL} then maps these occurrences back to their respective document/passage id-s.This means that a document scores highly not because any single n-gram uniquely identifies it, but because it contains multiple high-scoring n-grams. This provides robustness, since even if some highly ranked n-grams point to an irrelevant document, other n-grams can still guide retrieval toward relevant documents. 
 
 This architecture helps explain why \gs{SEAL} can overcome vocabulary mismatch issues. While the model cannot generate n-grams that do not exist in the corpus, it can find paraphrases and related terms as long as those appear in corpus documents using BART's parametric knowledge.
 
@@ -206,7 +203,7 @@ From the output data available, the n-gram keys are deemed most useful to unders
 
 The \gs{MINDER} output is structurally identical to that of \gs{SEAL}'s, including being ran on the same 6,515 queries. The main difference arises from the pseudoqueries, which are appended to the \textit{text}. For MSMARCO, MINDER output follows the same structure across 6,980 queries.
 
-On NQ, the output dataset (of both systems) has an average per-query annotated correct passage count of 8.46, with the minimum being 1 and maximum being 101. This is important to analyze to accurately identify evaluation metrics. To illustrate the distribution, please consult the histogram below.
+On NQ, the output dataset (of both systems) has an average per-query annotated correct passage count of 8.46, with the minimum being one and maximum being 101. This is important to analyze to accurately identify evaluation metrics. To illustrate the distribution, please consult the histogram below.
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.7\textwidth]{assets/positive_ctxs_histogram.png}
@@ -217,7 +214,7 @@ For MINDER on MSMARCO, the average annotated correct passage count per query is 
 \paragraph{Evaluation Metrics}
 
 We used Hits@k to determine retrieval performance for \gs{SEAL} and \gs{MINDER}. For most of our evaluations, we use $k=1$, $k=10$ and $k=100$, following previous works. 
-To analyze distribution, we bin the results into deciles and report them. Additionally, when appropriate, we report the Spearman $\rho$ values to analyze monotonic correlation between variables.
+To analyze distribution, we bin the results into deciles and report them. Additionally, when appropriate, we report the Spearman rank correlation values to analyze the relationship between variables.
 
 For MSMARCO, we include MRR, nDCG, and Recall when appropriate.
 
@@ -225,7 +222,7 @@ For MSMARCO, we include MRR, nDCG, and Recall when appropriate.
 \section{RQ1: Failure Mode Classification}
 \label{sec:proposed-failure-taxonomy}
 
-We categorize the failure modes by which part of the GR process it occurs in. We create 4 such categories:
+We categorize the failure modes by which part of the GR process it occurs in. We create four such categories:
 \begin{itemize}
     \item Representation
     \item Training
@@ -248,7 +245,7 @@ or semantic clustering \cite{yi-tay-transformer-memory} as identifiers, multiple
 In frameworks relying on substring-based identifiers, a single generated identifier (e.g., "The apple") may exist in multiple distinct passages across the corpus. This creates a one-to-many mapping that prevents the model from uniquely resolving a specific document, often necessitating complex post-hoc scoring or re-ranking mechanisms to disambiguate the results \cite{michele-bevilacqua-autoregressive-search, yongqi-li-multiview-identifiers}. This ambiguity forces the \gs{GR} system to rely on auxiliary scoring statistics to filter the retrieved candidates.
 
 \subparagraph{Specific terms inaccurately split into tokens}
-If an important identifier (e.g. a proper noun) is split into many meaningless subwords, the model might struggle to generate it consistently compared to common words. This can happen even though BART uses BPE, which allows it to handle ``out-of-vocabulary'' words by breaking them down into known subunits. Accordingly, if BART doesn't have good representations for domain-specific jargon, e.g. for rare medical terms, retrieval can fail \cite{herold2025vocabulary}. As an example, rare medical drug names like ``Zyloprim,'' are split into meaningless subword units (e.g., "Zy-lo-prim"), the \gs{LM} can struggle to generate these identifiers consistently. Because \gs{GR} relies on the model’s ability to decode the correct sequence of tokens, these, separately meaningless, tokens can cause the model to assign low probabilities to valid identifiers. This issue is particularly pronounced in non-English or non-Latin scripts where a single word may be represented by a significantly larger number of tokens. Non-English, primarily non-latin, texts use several times more tokens per text. As an example, ``Hello World'' in Hindi uses 23 tokens using the tokenizer of \texttt{BART-Large}, which many of the models use. In English, ``Hello World'' is 2 tokens long. This also has the potential to impact scalability and memory requirements of \gs{GR} models when ported to foreign languages.
+If an important identifier (e.g. a proper noun) is split into many meaningless subwords, the model might struggle to generate it consistently compared to common words. This can happen even though BART uses BPE, which allows it to handle ``out-of-vocabulary'' words by breaking them down into known subunits. Accordingly, if BART doesn't have good representations for domain-specific jargon, e.g. for rare medical terms, retrieval can fail \cite{herold2025vocabulary}. As an example, rare medical drug names like ``Zyloprim,'' are split into meaningless subword units (e.g., "Zy-lo-prim"), the \gs{LM} can struggle to generate these identifiers consistently. Because \gs{GR} relies on the model’s ability to decode the correct sequence of tokens, these, separately meaningless, tokens can cause the model to assign low probabilities to valid identifiers. This issue is particularly pronounced in non-English or non-Latin scripts where a single word may be represented by a significantly larger number of tokens. Non-English, primarily non-latin, texts use several times more tokens per text. As an example, ``Hello World'' in Hindi uses 23 tokens using the tokenizer of \texttt{BART-Large}, which many of the models use. In English, ``Hello World'' is two tokens long. This also has the potential to impact scalability and memory requirements of \gs{GR} models when ported to foreign languages.
 
 \subparagraph{DocID assignment is often a static pre-processing step decoupled from the E2E gradient}
 Many \gs{GR} implementations use static, pre-computed document identifiers, which act as a decoupled preprocessing step in the retrieval pipeline \cite{tianchi-yang-auto-search}. Because these DocIDs are typically assigned before the model training begins, 
@@ -291,11 +288,10 @@ An additional issue identified is the problem that newly added documents are pra
 Unlike traditional \gf{IR} systems where a document can be removed from an inverted index, deletion in \gs{GR} is non-trivial because the document identity is "baked" into the model's weights \cite{tzulin-kuo-a-survey}. If a document is removed for accuracy or privacy reasons, the model's parameters may still "know" the docID and continue to attempt to generate it at inference time. Without a full retraining cycle, it remains challenging to purge specific knowledge from the \gs{LM} index 
 , which is a significant challenge for production-ready compliance and content management systems \cite{sanket-vaibhav-mehta-dsi-updating}.
 
-\subparagraph{Implicit Western-centricity in the model's parametric knowledge and English datasets}
-\gs{GR} models often default to Western-centric interpretations of ambiguous queries because they are trained on datasets which are overwhelmingly English-based and Western-focused, such as the English Wikipedia \cite{kwiatkowski-natural-questions, payal-bajaj-ms-marco}. English content in public corpora is itself not culturally neutral, as a substantial portion reflects Western (particularly US and Eurocentric) perspectives and framing simply because such sources dominate English public corpora. As BART (which \gs{SEAL} and \gs{MINDER} use) was trained on the English Wikipedia and on BookCorpus \cite{zhu-aligning,yinhan-liu-roberta-a}, it can be presumed that BART would implicitly default to Western interpretations in ambiguous cases. Other commonly used language models, such as T5 and LLaMa-3 \cite{colin-raffel-exploring-the,aaron-grattafiori-the-llama} were also trained on overwhelmingly English data. Similar bias was also demonstrated for LLMs
-by multiple papers \cite{tarek-naous-having-beer,md-abdul-aowal-detecting-natural,navigli-biases-in}. 
+\subparagraph{Implicit biases learned from the training data}
+\gs{GR} models often exhibit biases learned from the training data. A prominent example is Western-centricity, as the models are trained on datasets which are overwhelmingly English-based and Western-focused, such as the English Wikipedia \cite{kwiatkowski-natural-questions, payal-bajaj-ms-marco}. English content in public corpora is itself not culturally neutral, as a substantial portion reflects Western (particularly US and Eurocentric) perspectives and framing simply because such sources dominate English public corpora. As BART (which \gs{SEAL} and \gs{MINDER} use) was trained on the English Wikipedia and on BookCorpus \cite{zhu-aligning,yinhan-liu-roberta-a}, it can be presumed that BART would implicitly default to Western interpretations in ambiguous cases. Other commonly used language models, such as T5 and LLaMa-3 \cite{colin-raffel-exploring-the,aaron-grattafiori-the-llama} were also trained on overwhelmingly English data. Similar bias was also demonstrated for LLMs by multiple papers \cite{tarek-naous-having-beer,md-abdul-aowal-detecting-natural,navigli-biases-in}.
 
-Similarly, the NQ dataset is also based on the English Wikipedia \cite{kwiatkowski-natural-questions}, adding onto the issue. Such a ``Western-centricity'' can also be shown in other commonly used datasets, such as MSMarco \cite{payal-bajaj-ms-marco}, Trivia QA \cite{joshi-triviaqa-a} and the KILT datasets \cite{fabio-petroni-kilt-a}.
+Similarly, the NQ dataset is also based on the English Wikipedia \cite{kwiatkowski-natural-questions}, adding onto the issue. Such training data biases, including Western-centricity, can also be shown in other commonly used datasets, such as MSMarco \cite{payal-bajaj-ms-marco}, Trivia QA \cite{joshi-triviaqa-a} and the KILT datasets \cite{fabio-petroni-kilt-a}.
 
 For example, a query regarding "the capital" may default to a U.S. context, ignoring historical or non-Western alternatives, simply because the underlying \gs{LM} has stronger parametric associations with Western-centric data. This cultural bias is integrated into the model's generation process, which might reinforce cultural stereotypes and Eurocentric worldviews \cite{gallegos-bias-and}.
 
@@ -371,7 +367,7 @@ Privacy surrounding \gs{LLM}-memorized content and the risk of models producing 
 A critical failure occurs when the \gs{LLM}'s parametric knowledge directly conflicts with the information found in the retrieved documents \cite{mindfulragfailure}. If the retrieved document states ``The Austrian Chancellor is Christian Stocker,'' but the \gs{LLM}'s training weights strongly believe it is ``Karl Nehammer,'' the model may prioritize its internal, outdated weights over the retrieved information.
 
 \subparagraph{Citation Hallucination}
-\gs{GR} systems often aim to support verifiability by generating citations, but they frequently fall victim to citation hallucination \cite{niu-etal-2024-ragtruth}. The model may claim "The sky is blue [Doc 2]," while the retrieved Document 2 does not actually mention the sky's color. Such errors erode user trust.
+\gs{GR} systems often aim to support verifiability by generating citations, but they frequently fall victim to citation hallucination \cite{niu-etal-2024-ragtruth}. The model may claim "The sky is blue [Doc 2]," while the retrieved ``Document 2'' does not actually mention the sky's color. Such errors erode user trust.
 
 
 \paragraph{Evaluation \& Meta-Concerns}
@@ -384,7 +380,7 @@ The reliability of GR evaluation depends on the quality of \gs{GT} annotations i
 
 For QA tasks, multiple passages may contain semantically equivalent answers but only a subset are annotated as ground truth. The authors of MS MARCO, TriviaQA, and NQ each acknowledge this concern \cite{payal-bajaj-ms-marco,joshi-triviaqa-a,kwiatkowski-natural-questions}.
 
-During our analysis, we identified such cases where the annotation can cause misleading evaluation results. Here we present 3 such examples:
+During our analysis, we identified such cases where the annotation can cause misleading evaluation results. Here we present three such examples:
 \textbf{Example 1: ``which apostle had a thorn in his side'' (answer: Paul).} The ground-truth passage 
 is from the Wikipedia article ``Thorn in the flesh,'' which explains that Paul the Apostle used this phrase in 2 Corinthians 12:7--9. \gs{SEAL}'s  top-1 result 
 was from Galatians 3, which mentions ``Paul the Apostle'' as the author of that epistle but contains nothing about a thorn. Even though \gs{SEAL} seemed to be able to identify ``Paul'' as a relevant term, potentially from BART's parametric knowledge, Galatians 3 is the wrong chapter entirely. \gs{SEAL} matched on generic terms (``Paul,'' ``apostle'') but never generated n-grams containing ``thorn'' for the top-1 result.
@@ -402,7 +398,7 @@ The lack of interpretability in generation processes presents challenges for und
 
 \section{RQ2: Analysis of failures in n-gram-based GR models}
 
-In this second half of the thesis, we will conduct a high-level analysis on \gs{GR} model based on n-gram \gp{docid}. These are a specialized group of GR models that are theoretically more robust than single docids, rely less on metadata, and provide better semantics than unstructed integers. However, these also show failure modes which we will analyze below. Please note that many of the analyses were kept high-level to keep within the scope of this thesis. Accordingly, in many cases, the analysis focuses on general correlations instead of comprehensive, low-level causation finding.
+In this second half of the thesis, we will conduct a high-level analysis on \gs{GR} model based on n-gram \gp{docid}. These are a specialized group of GR models that are theoretically more robust than single docids, rely less on metadata, and provide better semantics than unstructed integers. However, these also show failure modes which we will analyze below. To maintain the broad scope over many failure modes in this thesis, we focus on identification of correlations to illustrate systemic trends, rather than pursuing low-level causal attribution.
 
 For our analyses we ran \gs{SEAL} and \gs{MINDER} on \gs{nq}, as well as \gs{MINDER} on \gs{MSMARCO}. Considering that MINDER uses SEAL under the hood, we expect SEAL's results on MSMARCO to be comparative and therefore refrain from running it on MSMARCO to save space and compute.
 
@@ -701,11 +697,11 @@ It is interesting to note that \glsxtrshort{MINDER} has a considerably higher su
 
 These findings suggest that token repetition is not a redundancy failure, but rather a signal of model certainty. When \glsxtrshort{SEAL} and \glsxtrshort{MINDER} are highly confident in a target document, it generates multiple overlapping n-grams that concentrate score on a specific semantic cluster. In contrast, high identifier diversity indicates a lack of model confidence, where the model produces a wide variety of topically related but lexically distinct tokens that fail to converge.
 
-However, it is worth noting that the results for MINDER on MSMARCO are notably lower than on NQ for Hit@1 and Hits@10, indicating that pinpointing the specific answer is challenging when the dataset is messier. Similarly, as expected, diversity ratio ranges are also lower on MSMarco, indicating that the dataset is less standardized. Interestingly, the Hits@100 rate on MSMarco is comparable to that on NQ, suggesting that even if the model struggles to retrieve the exact answers on the top, the model can still triangulate at least 1 correct passage in the top-100 retrieved results in most cases.
+However, it is worth noting that the results for MINDER on MSMARCO are notably lower than on NQ for Hit@1 and Hits@10, indicating that pinpointing the specific answer is challenging when the dataset is messier. Similarly, as expected, diversity ratio ranges are also lower on MSMarco, indicating that the dataset is less standardized. Interestingly, the Hits@100 rate on MSMarco is comparable to that on NQ, suggesting that even if the model struggles to retrieve the exact answers on the top, the model can still triangulate at least one correct passage in the top-100 retrieved results in most cases.
 
 \subparagraph{Unique Articles among Passages}
 
-We analyzed whether there is a correlation with retrieval failure and the amount of unique titles retrieved in the top-k passages. For this, according to the other analyses, we use $k=10$. This analysis is possible as Wikipedia articles have unique titles. We present our results for the NQ dataset. The results on the MSMarco dataset for \gs{MINDER} are omitted from this thesis to keep it in scope but can be computed using the scripts available under the \href{https://github.com/richietk/thesis}{GitHub repository} of this thesis.
+We analyzed whether there is a correlation with retrieval failure and the amount of unique titles retrieved in the top-k passages. For this, according to the other analyses, we use $k=10$. This analysis is possible as Wikipedia articles have unique titles. We present our results for the NQ dataset. The results on the MSMarco dataset for \gs{MINDER} are omitted from this thesis to keep it in scope but can be computed using the scripts available under the \href{https://github.com/richietk/thesis}{GitHub repository}\footnote{https://github.com/richietk/thesis/} of this thesis.
 
 The results are illustrated in the following table and line chart:
 
