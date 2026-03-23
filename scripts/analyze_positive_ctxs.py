@@ -69,9 +69,9 @@ for input_file in DATASETS:
 
     plt.figure(figsize=(10, 6))
     plt.hist(all_counts, bins=10, edgecolor='black')
-    plt.xlabel('Number of Positive Contexts')
-    plt.ylabel('Frequency')
-    plt.title(f'Distribution of Positive Contexts Count ({dataset_name})')
+    plt.xlabel('Number of Positive Contexts', fontsize=14, fontweight='bold')
+    plt.ylabel('Frequency', fontsize=14, fontweight='bold')
+    plt.title(f'Distribution of Positive Contexts Count (Deciles)', fontsize=16, fontweight='bold')
     plt.grid(axis='y', alpha=0.3)
     plt.tight_layout()
 
