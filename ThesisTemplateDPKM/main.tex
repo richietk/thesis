@@ -30,12 +30,12 @@ This thesis makes the following contributions:
 \begin{enumerate}
     \item A synthesis of failure modes documented across generative retrieval research to understand and summarize the issues present in \gs{GR} and their mitigations.
     \item A mapping from abstract failure modes to observable indicators.
-    \item Quantitative characterization of failure patterns via SEAL and MINDER on NQ, and MINDER on MSMARCO to assess generalizability.
+    \item Quantitative characterization of failure patterns via SEAL and MINDER on NQ, and MINDER on MSMARCO to assess generalizability. 
+The code used for this thesis is available on \href{https://github.com/richietk/thesis}{Github}\footnote{https://github.com/richietk/thesis/}.
     \item Discussion of \gs{SOTA} challenges, solutions, and future research directions.
 
 
 \end{enumerate}
-The code used for this thesis is available on \href{https://github.com/richietk/thesis}{Github}\footnote{https://github.com/richietk/thesis/}.
 
 
 \pagebreak
@@ -133,8 +133,6 @@ To illustrate \gs{SEAL}'s n-gram based scoring, let's examine the query ``who si
     \label{tab:ngram-example}
 \end{table}
 
-It is also worth noting that while the additive nature of the scoring mechanism could theoretically bias retrieval toward longer documents in a corpus of varying document lengths, this effect is neutralized by dividing $F(n, R)$ by the total number of tokens in the corpus $R$.
-
 \subsection{MINDER Architecture}
 \label{sec:minderarch}
 The \gf{MINDER} framework \cite{yongqi-li-multiview-identifiers} extends the n-gram based approach of \gs{SEAL} by introducing synthetic and multiview identifiers. \gs{MINDER} is motivated by the observation that single-view identifiers, such as document titles or extractive n-grams, often lack the contextualized information necessary to satisfy complex queries, especially if those require rephrasing.
@@ -222,7 +220,7 @@ We categorize the failure modes by which part of the GR process it occurs in. We
 
 Please note that the last category ``response'', which refers to the response generation via an LLM post-retrieval, is not traditionally considered part of \gs{GR} and is considered part of \gs{RAG}. Nevertheless, we will identify failure modes in that category as well to achieve our goal of creating a comprehensive taxonomy.
 
-\paragraph{Representation}
+\subsection{Representation Failures - DocID Design and Encoding}
 
 \subparagraph{DocIDs not being sufficiently distinct, conflating similar documents}
 \gs{GR} systems also suffer from cases where the mapping from document content to identifiers is not sufficiently distinct \cite{zhang-multilevel-relevance}. This is especially prominent with large corpus sizes. As an example, in frameworks relying on substring-based identifiers, a single generated identifier may exist in multiple distinct passages across the corpus. This creates a one-to-many mapping that prevents the model from uniquely resolving a specific document, often necessitating complex post-hoc scoring or re-ranking mechanisms to disambiguate the results \cite{michele-bevilacqua-autoregressive-search, yongqi-li-multiview-identifiers}.
@@ -247,12 +245,12 @@ such models form a ``fake end-to-end'' framework, according to \citet{tianchi-ya
 Even when the model possesses the parametric knowledge to identify a relevant document, it may fail to bridge the lexical gap between a user query and the document's identifiers \cite{yuan-liu-on-the}. For instance, a query asking about ``heart attack'' may fail to trigger the docID ``myocardial infarction'' if the model has not explicitly learned that association during the identifier generation phase. The model's parametric knowledge partially mitigates this, however, it is still prevalent in substring-based retrieval, where the model is constrained by the exact word orderings present in the corpus. \cite{michele-bevilacqua-autoregressive-search}.
 
 
-\paragraph{In n-gram-based docids, n-grams must be continuous}
+\subparagraph{In n-gram-based docids, n-grams must be continuous}
 As discussed previously, a fundamental structural constraint of autoregressive, beam-search, and n-gram-based retrieval is that such n-grams must be strictly contiguous substrings within the corpus. This means the model cannot match n-grams that would semantically connect a query to a passage if the relevant terms are separated by intervening words or are cut off between passages.
 
 Consider a passage stating ``Tom likes pizza and tomatoes'' and a query ``does Tom like tomatoes?'' The relevant n-gram ``likes tomatoes'' does not exist as a contiguous substring in the passage due to the intervening words ``pizza'' and ``and.''  This issue is partially mitigated by the fact that n-grams ``and tomatoes,'' ``pizza and tomatoes,'' ``tomatoes.'' are still generated and scored, however, this is not a robust solution. Introducing skip-grams, using methods such as permutation-invariant decoding \cite{peitian-zhang-generative-retrieval}, or forcing overlap between passages could theoretically be solutions to this problem.
 
-\paragraph{Training}
+\subsection{Training Failures - Optimization and Generalization}
 
 \subparagraph{Sequential indexing of new documents causes the model to "forget" the initial corpus}
 Continuously updating the corpora has been a central challenge in \gs{GR}. When a model is fine-tuned to index new documents, it often suffers from forgetting, where the ability to retrieve previously learned documents degrades. Several models have been proposed for solving such issues, such as using frozen pre-trained \gp{LM} \cite{varsha-kishore-incdsi-incrementally,guo-corpusbrain-a} 
@@ -296,7 +294,7 @@ As explained by \citet{yujia-zhou-ultron-an}, the use of unstructured atomic ide
 it makes this approach prohibitively expensive for large corpora. As an example, 8.8 million documents (the amount of passages in MsMarcoFull \cite{payal-bajaj-ms-marco}) with a hidden size of 768 (the hidden dimension of the T5-base model \cite{colin-raffel-exploring-the})
 adds approximately 6.8 billion parameters to the output layer alone, making this approach prohibitively expensive for large corpora. Sequential identifiers reuse a fixed vocabulary across multiple decoding steps, keeping parameter count constant regardless of corpus size \cite{tzulin-kuo-a-survey,ronak-pradeep-how-does}. As an example, \gs{PQ}-based \gp{docid} allows for \gs{docid} tokens to be ``sharable'' among documents.
 
-\paragraph{Inference}
+\subsection{Inference Failures - Decoding and Generation}
 
 \subparagraph{Beam search prematurely discards relevant docIDs based on low initial token probabilities}
 
@@ -326,7 +324,7 @@ Generative retrieval may retrieve a list of passages that are topically redundan
 Related is the problem of hallucination, in which the model generates invalid (with respect to the pre-defined document index) identifiers. Constrained decoding is often used to eliminate this problem with solutions such as constraining the docid generation through an FM-index \cite{michele-bevilacqua-autoregressive-search} or a trie \cite{nicola-de-cao-autoregressive-entity}. Using Bloom filters \cite{bloom-spacetime-tradeoffs} or cuckoo filters \cite{fan-cuckoo} could be another method. There have been several implementations of constrained decoding, such as \gs{SEAL} \cite{michele-bevilacqua-autoregressive-search} and \gs{MINDER} \cite{yongqi-li-multiview-identifiers}. Several GR solutions also use intentional hallucination, such as \gs{MINDER}\cite{yongqi-li-multiview-identifiers}, where the generation of additional identifiers, such as pseudoqueries, is achieved through intentional, constrained hallucination of docid generation.
 
 
-\paragraph{Response}
+\subsection{Response Failures - Post-Retrieval Generation}
 
 \subparagraph{The LLM summarizer generating what is not present in the retrieved text}
 In the response generation stage, the LLM may hallucinate information not contained within the retrieved documents, relying instead on its pre-trained parametric knowledge \cite{huang-a-survey}. This is usually tackled by methods such as self-reflection \cite{jason-wei-chainofthought-prompting,akari-asai-selfrag-learning} or by incorporating a non-parametric memory component, such as \gs{DPR}, to condition generation on retrieved documents at runtime \cite{patrick-lewis-retrievalaugmented-generation}, the latter commonly known as \gs{RAG}.
@@ -346,9 +344,6 @@ A critical failure occurs when the \gs{LLM}'s parametric knowledge directly conf
 
 \subparagraph{Citation Hallucination}
 \gs{GR} systems often aim to support verifiability by generating citations, but they frequently fall victim to citation hallucination \cite{niu-etal-2024-ragtruth}. The model may claim "The sky is blue [Doc 2]," while the retrieved ``Document 2'' does not actually mention the sky's color. Such errors erode user trust.
-
-
-\paragraph{Evaluation \& Meta-Concerns}
 
 
 \subparagraph{Annotation Issues}

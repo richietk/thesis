@@ -193,8 +193,8 @@ def create_comparison_chart():
     ax.plot(x, seal_rates, marker="o", linewidth=3.5, label="SEAL", color="#1f77b4")
     ax.plot(x, minder_rates, marker="s", linewidth=3.5, label="Minder", color="#ff7f0e")
     
-    ax.set_xlabel("Max Same Title Count (out of top-10)", fontsize=18)
-    ax.set_ylabel("Hits@10 Rate (%)", fontsize=18)
+    ax.set_xlabel("Max Same Title Count (out of top-10)", fontsize=21, fontweight="bold")
+    ax.set_ylabel("Hits@10 Rate (%)", fontsize=21, fontweight="bold")
     ax.set_title("Hits@10 Rate by Title Repetition", fontsize=21, fontweight="bold")
     ax.grid(True, linestyle='--', alpha=1)
     
