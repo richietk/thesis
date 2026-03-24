@@ -45,6 +45,7 @@ def plot_ngram_length_comparison():
         plt.title('Hits@1 and Hits@10 vs Mean Unigram Fraction', fontsize=18, fontweight='bold')
         plt.legend(fontsize=13)
         plt.grid(True, alpha=0.3)
+        plt.tick_params(axis='both', labelsize=14)
         plt.tight_layout()
 
         # Save plot

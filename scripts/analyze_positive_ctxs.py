@@ -73,6 +73,7 @@ for input_file in DATASETS:
     plt.ylabel('Frequency', fontsize=14, fontweight='bold')
     plt.title(f'Distribution of Positive Contexts Count (Deciles)', fontsize=16, fontweight='bold')
     plt.grid(axis='y', alpha=0.3)
+    plt.tick_params(axis='both', labelsize=14)
     plt.tight_layout()
 
     histogram_path = os.path.join(output_dir, 'positive_ctxs_histogram.png')
