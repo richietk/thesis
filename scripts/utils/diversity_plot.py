@@ -28,8 +28,8 @@ for label, path in paths.items():
     for xi, yi, ni in zip(x, y, n_vals):
         plt.text(xi, yi + 0.015, f'n={ni}', color=colors[label], fontsize=8, fontweight='bold', ha='center', va='bottom')
 
-plt.title('H@1 Rate vs Diversity', fontsize=16)
-plt.xlabel('Diversity (Decile Midpoint)', fontweight='bold', fontsize=16)
+plt.title('H@1 Rate vs Type-Token Ratio', fontsize=16)
+plt.xlabel('Type-Token Ratio', fontweight='bold', fontsize=16)
 plt.ylabel('H@1 Rate', fontweight='bold', fontsize=16)
 plt.xlim(0.1, 1.0)
 plt.ylim(0.0, 1.0)
