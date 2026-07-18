@@ -1,5 +1,13 @@
 ## Bachelor's thesis: Taxonomy and Analysis of Failure Modes in N-gram Based Generative Retrieval
 
+**published as: Understanding and Debugging Failures in N-Gram-Based Generative Retrieval**
+
+arxiv: https://arxiv.org/abs/2606.17721
+
+acm sigir 26 vulgen: https://vulgen-workshop.github.io/SIGIR2026/papers/Understanding%20and%20Debugging%20Failures%20in%20N-Gram-Based%20Generative%20Retrieval.pdf
+
+---
+
 Data: https://drive.google.com/drive/folders/1efondSjYtrF2LzWv2Zi0_KVe5CxRUik-?usp=sharing
 
 Download data from the google drive link above, place it in the folder called data/
